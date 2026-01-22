@@ -8,6 +8,8 @@
   ├── repo-analysis-output
     ├── dependencies.json
     ├── dependencies.md
+    ├── file-summaries.json
+    ├── file-summaries.md
     ├── SUMMARY.md
     ├── tree.json
     └── tree.md
@@ -18,8 +20,17 @@
 ├── src
   ├── assets
     └── react.svg
+  ├── config
+    └── env.ts
+  ├── context
+    └── AuthContext.tsx
+  ├── hooks
+    └── useAuth.ts
   ├── layouts
     └── AppLayout.tsx
+  ├── lib
+    └── http
+      └── client.ts
   ├── pages
     ├── AppPage.tsx
     ├── GamePage.tsx
@@ -30,8 +41,13 @@
     └── index.tsx
   ├── styles
     └── base.css
+  ├── types
+    └── auth.ts
   ├── App.tsx
   └── main.tsx
+├── .env.development
+├── .env.example
+├── .env.production
 ├── .gitignore
 ├── dungeon-master.openapi.json
 ├── eslint.config.js

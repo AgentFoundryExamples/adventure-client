@@ -38,6 +38,14 @@
             },
             {
               "type": "file",
+              "name": "file-summaries.json"
+            },
+            {
+              "type": "file",
+              "name": "file-summaries.md"
+            },
+            {
+              "type": "file",
               "name": "SUMMARY.md"
             },
             {
@@ -88,11 +96,57 @@
         },
         {
           "type": "directory",
+          "name": "config",
+          "children": [
+            {
+              "type": "file",
+              "name": "env.ts"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "context",
+          "children": [
+            {
+              "type": "file",
+              "name": "AuthContext.tsx"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "hooks",
+          "children": [
+            {
+              "type": "file",
+              "name": "useAuth.ts"
+            }
+          ]
+        },
+        {
+          "type": "directory",
           "name": "layouts",
           "children": [
             {
               "type": "file",
               "name": "AppLayout.tsx"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "lib",
+          "children": [
+            {
+              "type": "directory",
+              "name": "http",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "client.ts"
+                }
+              ]
             }
           ]
         },
@@ -143,6 +197,16 @@
           ]
         },
         {
+          "type": "directory",
+          "name": "types",
+          "children": [
+            {
+              "type": "file",
+              "name": "auth.ts"
+            }
+          ]
+        },
+        {
           "type": "file",
           "name": "App.tsx"
         },
@@ -151,6 +215,18 @@
           "name": "main.tsx"
         }
       ]
+    },
+    {
+      "type": "file",
+      "name": ".env.development"
+    },
+    {
+      "type": "file",
+      "name": ".env.example"
+    },
+    {
+      "type": "file",
+      "name": ".env.production"
     },
     {
       "type": "file",

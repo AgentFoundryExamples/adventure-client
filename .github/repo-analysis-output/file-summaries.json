@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 2,
+  "total_files": 6,
   "files": [
     {
       "schema_version": "2.0",
@@ -11,8 +11,64 @@
       "summary": "JavaScript module for eslint.config",
       "summary_text": "JavaScript module for eslint.config",
       "metrics": {
-        "size_bytes": 1207,
-        "loc": 22,
+        "size_bytes": 1389,
+        "loc": 31,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/config/env.ts",
+      "language": "TypeScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "TypeScript core implementation",
+      "summary_text": "TypeScript core implementation",
+      "metrics": {
+        "size_bytes": 2825,
+        "loc": 64,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/hooks/useAuth.ts",
+      "language": "TypeScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "TypeScript core implementation",
+      "summary_text": "TypeScript core implementation",
+      "metrics": {
+        "size_bytes": 1445,
+        "loc": 33,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/lib/http/client.ts",
+      "language": "TypeScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "TypeScript core implementation",
+      "summary_text": "TypeScript core implementation",
+      "metrics": {
+        "size_bytes": 7591,
+        "loc": 211,
+        "todo_count": 2
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/types/auth.ts",
+      "language": "TypeScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "TypeScript core implementation",
+      "summary_text": "TypeScript core implementation",
+      "metrics": {
+        "size_bytes": 1082,
+        "loc": 20,
         "todo_count": 0
       }
     },

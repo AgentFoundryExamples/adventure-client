@@ -17,6 +17,47 @@
       }
     },
     {
+      "id": "src/config/env.ts",
+      "path": "src/config/env.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/hooks/useAuth.ts",
+      "path": "src/hooks/useAuth.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/context/AuthContext",
+          "react"
+        ]
+      }
+    },
+    {
+      "id": "src/lib/http/client.ts",
+      "path": "src/lib/http/client.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/config/env"
+        ]
+      }
+    },
+    {
+      "id": "src/types/auth.ts",
+      "path": "src/types/auth.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
       "id": "vite.config.ts",
       "path": "vite.config.ts",
       "type": "file",
@@ -37,16 +78,19 @@
       "path"
     ],
     "third-party": [
+      "@/config/env",
+      "@/context/AuthContext",
       "@eslint/js",
       "@vitejs/plugin-react",
       "eslint-plugin-react-hooks",
       "eslint-plugin-react-refresh",
       "eslint/config",
       "globals",
+      "react",
       "typescript-eslint",
       "vite"
     ],
     "stdlib_count": 1,
-    "third-party_count": 8
+    "third-party_count": 11
   }
 }
