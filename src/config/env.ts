@@ -41,8 +41,8 @@ function getRequiredEnv(key: string): string {
   if (value === undefined || value === '') {
     throw new Error(
       `Missing required environment variable: ${key}\n` +
-      `Please ensure ${key} is set in your .env file or environment.\n` +
-      `See .env.example for required variables.`
+        `Please ensure ${key} is set in your .env file or environment.\n` +
+        `See .env.example for required variables.`
     );
   }
   return value;
@@ -61,7 +61,7 @@ function getOptionalEnv(key: string, fallback: string): string {
  */
 function loadConfig(): EnvConfig {
   const mode = import.meta.env.MODE || 'development';
-  
+
   return {
     dungeonMasterApiUrl: getRequiredEnv('VITE_DUNGEON_MASTER_API_BASE_URL'),
     journeyLogApiUrl: getRequiredEnv('VITE_JOURNEY_LOG_API_BASE_URL'),

@@ -8,9 +8,7 @@
   "paths": {
     "/turn": {
       "post": {
-        "tags": [
-          "game"
-        ],
+        "tags": ["game"],
         "summary": "Process a player turn",
         "description": "Process a player's turn action and generate an AI narrative response. This endpoint will orchestrate calls to journey-log for context retrieval and OpenAI for narrative generation. Currently stubbed.",
         "operationId": "process_turn_turn_post",
@@ -120,9 +118,7 @@
     },
     "/admin/turns/{turn_id}": {
       "get": {
-        "tags": [
-          "game"
-        ],
+        "tags": ["game"],
         "summary": "Get turn details for introspection",
         "description": "Admin endpoint to inspect specific turn state for debugging. Returns comprehensive turn details including input, context snapshot, policy decisions, LLM output, and journey-log writes. Requires ADMIN_ENDPOINTS_ENABLED=true. Relies on Cloud IAM/service-to-service auth (no custom auth).",
         "operationId": "get_turn_details_admin_turns__turn_id__get",
@@ -176,9 +172,7 @@
     },
     "/admin/characters/{character_id}/recent_turns": {
       "get": {
-        "tags": [
-          "game"
-        ],
+        "tags": ["game"],
         "summary": "Get recent turns for a character",
         "description": "Admin endpoint to list recent turns for a specific character. Returns turns in reverse chronological order with comprehensive state. Requires ADMIN_ENDPOINTS_ENABLED=true. Relies on Cloud IAM/service-to-service auth (no custom auth).",
         "operationId": "get_character_recent_turns_admin_characters__character_id__recent_turns_get",
@@ -232,9 +226,7 @@
     },
     "/admin/policy/config": {
       "get": {
-        "tags": [
-          "game"
-        ],
+        "tags": ["game"],
         "summary": "Get current policy configuration",
         "description": "Admin endpoint to inspect current policy configuration. Returns quest/POI probabilities and cooldowns. Requires ADMIN_ENDPOINTS_ENABLED=true.",
         "operationId": "get_policy_config_admin_policy_config_get",
@@ -257,9 +249,7 @@
     },
     "/admin/policy/reload": {
       "post": {
-        "tags": [
-          "game"
-        ],
+        "tags": ["game"],
         "summary": "Reload policy configuration",
         "description": "Admin endpoint to manually reload policy configuration from file or provided values. Validates config before applying and rolls back on errors. Requires ADMIN_ENDPOINTS_ENABLED=true.",
         "operationId": "reload_policy_config_admin_policy_reload_post",
@@ -315,9 +305,7 @@
     },
     "/health": {
       "get": {
-        "tags": [
-          "game"
-        ],
+        "tags": ["game"],
         "summary": "Health check endpoint",
         "description": "Check service health status. Optionally pings journey-log service if HEALTH_CHECK_JOURNEY_LOG is enabled. Returns 200 with status='healthy' or 'degraded' based on dependency availability.",
         "operationId": "health_check_health_get",
@@ -353,9 +341,7 @@
     },
     "/metrics": {
       "get": {
-        "tags": [
-          "game"
-        ],
+        "tags": ["game"],
         "summary": "Metrics endpoint",
         "description": "Get service metrics including request counts, error rates, and latencies. Only available when ENABLE_METRICS is true. Returns 404 if metrics are disabled.",
         "operationId": "get_metrics_metrics_get",
@@ -409,9 +395,7 @@
     },
     "/debug/parse_llm": {
       "post": {
-        "tags": [
-          "game"
-        ],
+        "tags": ["game"],
         "summary": "Debug endpoint to test LLM response parsing",
         "description": "Test the outcome parser with raw LLM response JSON. Only available when ENABLE_DEBUG_ENDPOINTS is true. This endpoint is intended for local development and debugging only. It validates the response against the DungeonMasterOutcome schema and returns detailed parsing results including any validation errors.",
         "operationId": "debug_parse_llm_debug_parse_llm_post",
@@ -463,9 +447,7 @@
     },
     "/characters": {
       "post": {
-        "tags": [
-          "game"
-        ],
+        "tags": ["game"],
         "summary": "Create a new character",
         "description": "Create a new character and generate an introductory narrative scene.",
         "operationId": "create_character_characters_post",
@@ -556,12 +538,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "character_id",
-          "turns",
-          "total_count",
-          "limit"
-        ],
+        "required": ["character_id", "turns", "total_count", "limit"],
         "title": "AdminRecentTurnsResponse",
         "description": "Response for admin recent turns endpoint.\n\nReturns a list of recent turns for a character in reverse chronological\norder. Returned by GET /admin/characters/{id}/recent_turns endpoint.\n\nAttributes:\n    character_id: Character UUID\n    turns: List of turn details (most recent first)\n    total_count: Total number of turns returned\n    limit: Maximum number of turns requested"
       },
@@ -681,10 +658,7 @@
             "minLength": 1,
             "title": "Name",
             "description": "Character name",
-            "examples": [
-              "Aelthor",
-              "Grom"
-            ]
+            "examples": ["Aelthor", "Grom"]
           },
           "race": {
             "type": "string",
@@ -692,11 +666,7 @@
             "minLength": 1,
             "title": "Race",
             "description": "Character race",
-            "examples": [
-              "Human",
-              "Elf",
-              "Dwarf"
-            ]
+            "examples": ["Human", "Elf", "Dwarf"]
           },
           "class_name": {
             "type": "string",
@@ -704,11 +674,7 @@
             "minLength": 1,
             "title": "Class Name",
             "description": "Character class",
-            "examples": [
-              "Warrior",
-              "Rogue",
-              "Wizard"
-            ]
+            "examples": ["Warrior", "Rogue", "Wizard"]
           },
           "custom_prompt": {
             "anyOf": [
@@ -722,17 +688,11 @@
             ],
             "title": "Custom Prompt",
             "description": "Optional prompt to customize the world setting or opening scene",
-            "examples": [
-              "A dark fantasy world where the sun has vanished."
-            ]
+            "examples": ["A dark fantasy world where the sun has vanished."]
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "race",
-          "class_name"
-        ],
+        "required": ["name", "race", "class_name"],
         "title": "CharacterCreationRequest",
         "description": "Request model for creating a new character.\n\nAttributes:\n    name: Name of the character.\n    race: Race of the character.\n    class_name: Class of the character (e.g., \"Warrior\", \"Mage\").\n    custom_prompt: Optional user-provided prompt to shape the world/setting."
       },
@@ -750,10 +710,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "character_id",
-          "narrative"
-        ],
+        "required": ["character_id", "narrative"],
         "title": "CharacterCreationResponse",
         "description": "Response model for character creation.\n\nAttributes:\n    character_id: The UUID of the created character.\n    narrative: The introductory narrative scene."
       },
@@ -761,12 +718,7 @@
         "properties": {
           "action": {
             "type": "string",
-            "enum": [
-              "none",
-              "start",
-              "continue",
-              "end"
-            ],
+            "enum": ["none", "start", "continue", "end"],
             "title": "Action",
             "description": "Combat action to perform",
             "default": "none"
@@ -797,9 +749,7 @@
             ],
             "title": "Combat Notes",
             "description": "Additional notes about the combat situation",
-            "examples": [
-              "The goblins are hiding behind barrels"
-            ]
+            "examples": ["The goblins are hiding behind barrels"]
           }
         },
         "type": "object",
@@ -829,9 +779,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "llm_response"
-        ],
+        "required": ["llm_response"],
         "title": "DebugParseRequest",
         "description": "Request model for debug parse endpoint.\n\nAttributes:\n    llm_response: Raw JSON string from LLM to parse\n    user_id: Optional user ID for request correlation"
       },
@@ -848,10 +796,7 @@
             ],
             "title": "Name",
             "description": "Name of the enemy",
-            "examples": [
-              "Goblin Scout",
-              "Shadow Wraith"
-            ]
+            "examples": ["Goblin Scout", "Shadow Wraith"]
           },
           "description": {
             "anyOf": [
@@ -864,9 +809,7 @@
             ],
             "title": "Description",
             "description": "Description of the enemy's appearance or behavior",
-            "examples": [
-              "A small, cunning creature with sharp teeth"
-            ]
+            "examples": ["A small, cunning creature with sharp teeth"]
           },
           "threat": {
             "anyOf": [
@@ -879,11 +822,7 @@
             ],
             "title": "Threat",
             "description": "Threat level or classification",
-            "examples": [
-              "low",
-              "medium",
-              "high"
-            ]
+            "examples": ["low", "medium", "high"]
           }
         },
         "type": "object",
@@ -909,10 +848,7 @@
             "type": "string",
             "title": "Status",
             "description": "Service health status",
-            "examples": [
-              "healthy",
-              "degraded"
-            ]
+            "examples": ["healthy", "degraded"]
           },
           "service": {
             "type": "string",
@@ -934,9 +870,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "status"
-        ],
+        "required": ["status"],
         "title": "HealthResponse",
         "description": "Response model for health check endpoint.\n\nAttributes:\n    status: Service status (\"healthy\" or \"degraded\")\n    service: Service name\n    journey_log_accessible: Whether journey-log service is accessible (optional)"
       },
@@ -1060,11 +994,7 @@
           },
           "action": {
             "type": "string",
-            "enum": [
-              "none",
-              "update_minor",
-              "leave_poi"
-            ],
+            "enum": ["none", "update_minor", "leave_poi"],
             "title": "Action",
             "description": "Location action: 'none' (no change), 'update_minor' (update minor_location), 'leave_poi' (exit current POI)",
             "default": "none"
@@ -1087,22 +1017,13 @@
             ],
             "title": "Player Mood",
             "description": "Assessment of player's emotional state",
-            "examples": [
-              "excited",
-              "cautious",
-              "frustrated",
-              "engaged"
-            ]
+            "examples": ["excited", "cautious", "frustrated", "engaged"]
           },
           "pacing_hint": {
             "anyOf": [
               {
                 "type": "string",
-                "enum": [
-                  "slow",
-                  "normal",
-                  "fast"
-                ]
+                "enum": ["slow", "normal", "fast"]
               },
               {
                 "type": "null"
@@ -1144,11 +1065,7 @@
         "properties": {
           "action": {
             "type": "string",
-            "enum": [
-              "none",
-              "create",
-              "reference"
-            ],
+            "enum": ["none", "create", "reference"],
             "title": "Action",
             "description": "POI action: 'create' (enter/discover new location), 'reference' (mention existing location)",
             "default": "none"
@@ -1164,11 +1081,7 @@
             ],
             "title": "Name",
             "description": "Name of the point of interest",
-            "examples": [
-              "The Old Mill",
-              "Shadowfen Swamp",
-              "The Rusty Tankard Inn"
-            ]
+            "examples": ["The Old Mill", "Shadowfen Swamp", "The Rusty Tankard Inn"]
           },
           "description": {
             "anyOf": [
@@ -1201,16 +1114,8 @@
             "title": "Reference Tags",
             "description": "Tags for referencing this POI in future context",
             "examples": [
-              [
-                "mill",
-                "forest",
-                "quest_location"
-              ],
-              [
-                "tavern",
-                "town",
-                "social_hub"
-              ]
+              ["mill", "forest", "quest_location"],
+              ["tavern", "town", "social_hub"]
             ]
           }
         },
@@ -1287,10 +1192,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "success",
-          "message"
-        ],
+        "required": ["success", "message"],
         "title": "PolicyConfigReloadResponse",
         "description": "Response for policy config reload endpoint.\n\nReturns success/failure status and error details if reload failed.\n\nAttributes:\n    success: Whether config reload succeeded\n    message: Human-readable status message\n    error: Error details if reload failed\n    config: Current config after reload attempt"
       },
@@ -1355,13 +1257,7 @@
         "properties": {
           "action": {
             "type": "string",
-            "enum": [
-              "none",
-              "start",
-              "advance",
-              "complete",
-              "abandon"
-            ],
+            "enum": ["none", "start", "advance", "complete", "abandon"],
             "title": "Action",
             "description": "Quest action: 'start' (begin new quest), 'advance' (progress active quest), 'complete' (finish quest), 'abandon' (give up)",
             "default": "none"
@@ -1377,9 +1273,7 @@
             ],
             "title": "Quest Title",
             "description": "Title of the quest (required for 'start' action)",
-            "examples": [
-              "Rescue the Innkeeper's Daughter"
-            ]
+            "examples": ["Rescue the Innkeeper's Daughter"]
           },
           "quest_summary": {
             "anyOf": [
@@ -1392,9 +1286,7 @@
             ],
             "title": "Quest Summary",
             "description": "Brief summary of the quest objective (required for 'start' action)",
-            "examples": [
-              "Find the missing girl last seen near the old mill"
-            ]
+            "examples": ["Find the missing girl last seen near the old mill"]
           },
           "quest_details": {
             "anyOf": [
@@ -1420,10 +1312,7 @@
             ],
             "title": "Progress Update",
             "description": "Description of progress made when action='advance' (e.g., 'Found a clue at the mill', 'Defeated the bandits')",
-            "examples": [
-              "Discovered the hideout location",
-              "Convinced the guard to help"
-            ]
+            "examples": ["Discovered the hideout location", "Convinced the guard to help"]
           }
         },
         "type": "object",
@@ -1463,9 +1352,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "action"
-        ],
+        "required": ["action"],
         "title": "SubsystemActionType",
         "description": "Base class for subsystem action types with success/failure tracking.\n\nAttributes:\n    action: The action performed (e.g., \"offer\", \"complete\", \"none\")\n    success: Whether the action succeeded (None if not attempted)\n    error: Error message if action failed (None if success or not attempted)"
       },
@@ -1475,9 +1362,7 @@
             "type": "string",
             "title": "Character Id",
             "description": "Character UUID identifier",
-            "examples": [
-              "550e8400-e29b-41d4-a716-446655440000"
-            ]
+            "examples": ["550e8400-e29b-41d4-a716-446655440000"]
           },
           "user_action": {
             "type": "string",
@@ -1485,16 +1370,11 @@
             "minLength": 1,
             "title": "User Action",
             "description": "Player's action or input for this turn",
-            "examples": [
-              "I search the room for treasure"
-            ]
+            "examples": ["I search the room for treasure"]
           }
         },
         "type": "object",
-        "required": [
-          "character_id",
-          "user_action"
-        ],
+        "required": ["character_id", "user_action"],
         "title": "TurnRequest",
         "description": "Request model for a turn in the game.\n\nAttributes:\n    character_id: UUID or string identifier for the character\n    user_action: The player's action/input for this turn\n    user_id: Optional user ID for request tracking and correlation (passed as X-User-Id to journey-log)"
       },
@@ -1504,9 +1384,7 @@
             "type": "string",
             "title": "Narrative",
             "description": "AI-generated narrative response",
-            "examples": [
-              "You search the dimly lit room and discover a glinting treasure chest..."
-            ]
+            "examples": ["You search the dimly lit room and discover a glinting treasure chest..."]
           },
           "intents": {
             "anyOf": [
@@ -1532,9 +1410,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "narrative"
-        ],
+        "required": ["narrative"],
         "title": "TurnResponse",
         "description": "Response model for a turn in the game.\n\nAttributes:\n    narrative: The AI-generated narrative response for the player's action\n    intents: Optional structured intents from the LLM (informational only, not persisted)\n    subsystem_summary: Optional summary of subsystem changes made during this turn"
       },
@@ -1601,11 +1477,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
+        "required": ["loc", "msg", "type"],
         "title": "ValidationError"
       }
     },

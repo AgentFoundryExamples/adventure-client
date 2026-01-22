@@ -1,0 +1,21 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+dist-ssr
+*.local
+
+# Environment
+.env
+.env.*
+
+# Docker
+docker-compose.yml
+Dockerfile
+
+# Generated files
+*.log
+package-lock.json
+pnpm-lock.yaml
+*.openapi.json

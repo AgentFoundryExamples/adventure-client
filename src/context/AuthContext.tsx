@@ -37,16 +37,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // TODO: Replace with real Firebase authentication
       // _password will be used when implementing real auth
       console.log('[Mock Auth] Login attempt:', { email });
-      
+
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Mock successful login
       setUser({
         ...MOCK_USER,
         email,
       });
-      
+
       console.log('[Mock Auth] Login successful');
     } catch (error) {
       console.error('[Mock Auth] Login failed:', error);
@@ -61,10 +61,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       // TODO: Replace with real Firebase logout
       console.log('[Mock Auth] Logout');
-      
+
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 300));
-      
+
       setUser(null);
       console.log('[Mock Auth] Logout successful');
     } catch (error) {
@@ -75,20 +75,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
-  const register = useCallback(async (
-    email: string,
-    _password: string,
-    displayName: string
-  ) => {
+  const register = useCallback(async (email: string, _password: string, displayName: string) => {
     setIsLoading(true);
     try {
       // TODO: Replace with real Firebase registration
       // _password will be used when implementing real auth
       console.log('[Mock Auth] Register attempt:', { email, displayName });
-      
+
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 800));
-      
+
       // Mock successful registration
       setUser({
         id: `mock-user-${Date.now()}`,
@@ -97,7 +93,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         avatarUrl: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayName)}`,
         createdAt: new Date(),
       });
-      
+
       console.log('[Mock Auth] Registration successful');
     } catch (error) {
       console.error('[Mock Auth] Registration failed:', error);

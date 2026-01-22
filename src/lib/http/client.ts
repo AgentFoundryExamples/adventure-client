@@ -56,10 +56,10 @@ async function fetchWithTimeout(
   options: RequestOptions & { timeout?: number }
 ): Promise<Response> {
   const { timeout = 30000, ...fetchOptions } = options;
-  
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
-  
+
   try {
     const response = await fetch(url, {
       ...fetchOptions,
@@ -70,12 +70,7 @@ async function fetchWithTimeout(
   } catch (error) {
     clearTimeout(timeoutId);
     if ((error as Error).name === 'AbortError') {
-      throw createApiError(
-        'Request timeout',
-        408,
-        'Request Timeout',
-        { timeout }
-      );
+      throw createApiError('Request timeout', 408, 'Request Timeout', { timeout });
     }
     throw error;
   }
@@ -85,41 +80,38 @@ async function fetchWithTimeout(
  * Base HTTP request handler
  * @throws ApiError for non-2xx responses
  */
-async function request<T = unknown>(
-  endpoint: string,
-  options: RequestOptions = {}
-): Promise<T> {
+async function request<T = unknown>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { baseUrl, ...fetchOptions } = options;
-  
+
   // Build full URL
   const url = baseUrl
     ? `${baseUrl}${endpoint}`
     : endpoint.startsWith('http')
-    ? endpoint
-    : `${config.dungeonMasterApiUrl}${endpoint}`;
-  
+      ? endpoint
+      : `${config.dungeonMasterApiUrl}${endpoint}`;
+
   // TODO: Add auth headers when Firebase is integrated
   // const authToken = getAuthToken();
   // if (authToken) {
   //   headers.Authorization = `Bearer ${authToken}`;
   // }
-  
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((fetchOptions.headers as Record<string, string>) || {}),
   };
-  
+
   // Log request in development
   if (config.isDevelopment) {
     console.log('[HTTP Client]', fetchOptions.method || 'GET', url);
   }
-  
+
   try {
     const response = await fetchWithTimeout(url, {
       ...fetchOptions,
       headers,
     });
-    
+
     // Handle non-2xx responses
     if (!response.ok) {
       let errorData: unknown;
@@ -128,52 +120,49 @@ async function request<T = unknown>(
       } catch {
         errorData = await response.text();
       }
-      
+
       const error = createApiError(
         `HTTP ${response.status}: ${response.statusText}`,
         response.status,
         response.statusText,
         errorData
       );
-      
+
       // TODO: Add centralized error logging/tracking
       console.error('[HTTP Client] Request failed:', error);
-      
+
       throw error;
     }
-    
+
     // Handle empty body for 204 No Content, etc.
     const contentLength = response.headers.get('Content-Length');
     if (response.status === 204 || (contentLength && parseInt(contentLength, 10) === 0)) {
       return undefined as T;
     }
-    
+
     // Parse JSON response
     const text = await response.text();
     if (!text) {
       return undefined as T;
     }
     const data = JSON.parse(text);
-    
+
     if (config.isDevelopment) {
       console.log('[HTTP Client] Response:', data);
     }
-    
+
     return data as T;
   } catch (error) {
     // Re-throw ApiError as-is
     if (isApiError(error)) {
       throw error;
     }
-    
+
     // Wrap other errors
     console.error('[HTTP Client] Network error:', error);
-    throw createApiError(
-      'Network request failed',
-      0,
-      'Network Error',
-      { originalError: (error as Error).message }
-    );
+    throw createApiError('Network request failed', 0, 'Network Error', {
+      originalError: (error as Error).message,
+    });
   }
 }
 
@@ -199,7 +188,7 @@ export const httpClient = {
    */
   get: <T = unknown>(endpoint: string, options?: RequestOptions) =>
     request<T>(endpoint, { ...options, method: 'GET' }),
-  
+
   /**
    * POST request
    */
@@ -209,7 +198,7 @@ export const httpClient = {
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
     }),
-  
+
   /**
    * PUT request
    */
@@ -219,7 +208,7 @@ export const httpClient = {
       method: 'PUT',
       body: body ? JSON.stringify(body) : undefined,
     }),
-  
+
   /**
    * PATCH request
    */
@@ -229,7 +218,7 @@ export const httpClient = {
       method: 'PATCH',
       body: body ? JSON.stringify(body) : undefined,
     }),
-  
+
   /**
    * DELETE request
    */

@@ -175,7 +175,36 @@ try {
 - `npm run dev` - Start development server
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint
+- `npm run lint` - Run ESLint on all source files
+- `npm run format` - Format code with Prettier
+- `npm run test` - Run tests with Vitest (CI mode)
+- `npm run test:watch` - Run tests in watch mode
+
+### Code Quality
+
+#### Linting
+
+ESLint is configured with React, TypeScript, and Prettier integration:
+```bash
+npm run lint
+```
+
+#### Formatting
+
+Prettier is configured for consistent code formatting:
+```bash
+npm run format
+```
+
+#### Testing
+
+Vitest is configured with jsdom and React Testing Library for component testing:
+```bash
+npm run test        # Run tests once (CI mode)
+npm run test:watch  # Run tests in watch mode
+```
+
+Tests are located in `src/components/__tests__/` and use the pattern `*.test.tsx`.
 
 ### Technology Stack
 
