@@ -1,10 +1,52 @@
 {
-  "nodes": [],
+  "nodes": [
+    {
+      "id": "eslint.config.js",
+      "path": "eslint.config.js",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@eslint/js",
+          "eslint-plugin-react-hooks",
+          "eslint-plugin-react-refresh",
+          "eslint/config",
+          "globals",
+          "typescript-eslint"
+        ]
+      }
+    },
+    {
+      "id": "vite.config.ts",
+      "path": "vite.config.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [
+          "path"
+        ],
+        "third-party": [
+          "@vitejs/plugin-react",
+          "vite"
+        ]
+      }
+    }
+  ],
   "edges": [],
   "external_dependencies_summary": {
-    "stdlib": [],
-    "third-party": [],
-    "stdlib_count": 0,
-    "third-party_count": 0
+    "stdlib": [
+      "path"
+    ],
+    "third-party": [
+      "@eslint/js",
+      "@vitejs/plugin-react",
+      "eslint-plugin-react-hooks",
+      "eslint-plugin-react-refresh",
+      "eslint/config",
+      "globals",
+      "typescript-eslint",
+      "vite"
+    ],
+    "stdlib_count": 1,
+    "third-party_count": 8
   }
 }

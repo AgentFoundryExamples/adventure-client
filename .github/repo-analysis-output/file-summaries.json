@@ -1,0 +1,34 @@
+{
+  "schema_version": "2.0",
+  "total_files": 2,
+  "files": [
+    {
+      "schema_version": "2.0",
+      "path": "eslint.config.js",
+      "language": "JavaScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "JavaScript module for eslint.config",
+      "summary_text": "JavaScript module for eslint.config",
+      "metrics": {
+        "size_bytes": 1207,
+        "loc": 22,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "vite.config.ts",
+      "language": "TypeScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "TypeScript module for vite.config",
+      "summary_text": "TypeScript module for vite.config",
+      "metrics": {
+        "size_bytes": 859,
+        "loc": 11,
+        "todo_count": 0
+      }
+    }
+  ]
+}

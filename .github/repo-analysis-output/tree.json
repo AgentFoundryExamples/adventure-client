@@ -63,12 +63,114 @@
       ]
     },
     {
+      "type": "directory",
+      "name": "public",
+      "children": [
+        {
+          "type": "file",
+          "name": "vite.svg"
+        }
+      ]
+    },
+    {
+      "type": "directory",
+      "name": "src",
+      "children": [
+        {
+          "type": "directory",
+          "name": "assets",
+          "children": [
+            {
+              "type": "file",
+              "name": "react.svg"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "layouts",
+          "children": [
+            {
+              "type": "file",
+              "name": "AppLayout.tsx"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "pages",
+          "children": [
+            {
+              "type": "file",
+              "name": "AppPage.tsx"
+            },
+            {
+              "type": "file",
+              "name": "GamePage.tsx"
+            },
+            {
+              "type": "file",
+              "name": "HomePage.tsx"
+            },
+            {
+              "type": "file",
+              "name": "LoginPage.tsx"
+            },
+            {
+              "type": "file",
+              "name": "NotFoundPage.tsx"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "router",
+          "children": [
+            {
+              "type": "file",
+              "name": "index.tsx"
+            }
+          ]
+        },
+        {
+          "type": "directory",
+          "name": "styles",
+          "children": [
+            {
+              "type": "file",
+              "name": "base.css"
+            }
+          ]
+        },
+        {
+          "type": "file",
+          "name": "App.tsx"
+        },
+        {
+          "type": "file",
+          "name": "main.tsx"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": ".gitignore"
+    },
+    {
       "type": "file",
       "name": "dungeon-master.openapi.json"
     },
     {
       "type": "file",
+      "name": "eslint.config.js"
+    },
+    {
+      "type": "file",
       "name": "gcp_deployment_reference.md"
+    },
+    {
+      "type": "file",
+      "name": "index.html"
     },
     {
       "type": "file",
@@ -80,11 +182,35 @@
     },
     {
       "type": "file",
+      "name": "package-lock.json"
+    },
+    {
+      "type": "file",
+      "name": "package.json"
+    },
+    {
+      "type": "file",
       "name": "README.md"
     },
     {
       "type": "file",
       "name": "ts_dev_versions.txt"
+    },
+    {
+      "type": "file",
+      "name": "tsconfig.app.json"
+    },
+    {
+      "type": "file",
+      "name": "tsconfig.json"
+    },
+    {
+      "type": "file",
+      "name": "tsconfig.node.json"
+    },
+    {
+      "type": "file",
+      "name": "vite.config.ts"
     }
   ]
 }

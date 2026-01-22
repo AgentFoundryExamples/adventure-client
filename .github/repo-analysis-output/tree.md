@@ -13,9 +13,37 @@
     └── tree.md
   └── workflows
     └── af_maintenance.yml
+├── public
+  └── vite.svg
+├── src
+  ├── assets
+    └── react.svg
+  ├── layouts
+    └── AppLayout.tsx
+  ├── pages
+    ├── AppPage.tsx
+    ├── GamePage.tsx
+    ├── HomePage.tsx
+    ├── LoginPage.tsx
+    └── NotFoundPage.tsx
+  ├── router
+    └── index.tsx
+  ├── styles
+    └── base.css
+  ├── App.tsx
+  └── main.tsx
+├── .gitignore
 ├── dungeon-master.openapi.json
+├── eslint.config.js
 ├── gcp_deployment_reference.md
+├── index.html
 ├── journey-log.openapi.json
 ├── LICENSE
+├── package-lock.json
+├── package.json
 ├── README.md
-└── ts_dev_versions.txt
+├── ts_dev_versions.txt
+├── tsconfig.app.json
+├── tsconfig.json
+├── tsconfig.node.json
+└── vite.config.ts
