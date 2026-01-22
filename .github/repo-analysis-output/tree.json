@@ -64,6 +64,10 @@
     },
     {
       "type": "file",
+      "name": "dungeon-master.openapi.json"
+    },
+    {
+      "type": "file",
       "name": "gcp_deployment_reference.md"
     },
     {
