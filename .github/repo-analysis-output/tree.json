@@ -238,6 +238,10 @@
     },
     {
       "type": "file",
+      "name": ".dockerignore"
+    },
+    {
+      "type": "file",
       "name": ".env.development"
     },
     {
@@ -262,6 +266,10 @@
     },
     {
       "type": "file",
+      "name": "Dockerfile"
+    },
+    {
+      "type": "file",
       "name": "dungeon-master.openapi.json"
     },
     {
@@ -283,6 +291,10 @@
     {
       "type": "file",
       "name": "LICENSE"
+    },
+    {
+      "type": "file",
+      "name": "nginx.conf"
     },
     {
       "type": "file",
