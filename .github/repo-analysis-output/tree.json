@@ -68,7 +68,15 @@
     },
     {
       "type": "file",
+      "name": "journey-log.openapi.json"
+    },
+    {
+      "type": "file",
       "name": "LICENSE"
+    },
+    {
+      "type": "file",
+      "name": "openapi.json"
     },
     {
       "type": "file",

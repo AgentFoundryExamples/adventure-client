@@ -14,6 +14,8 @@
   └── workflows
     └── af_maintenance.yml
 ├── gcp_deployment_reference.md
+├── journey-log.openapi.json
 ├── LICENSE
+├── openapi.json
 ├── README.md
 └── ts_dev_versions.txt
