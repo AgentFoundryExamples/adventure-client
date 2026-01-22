@@ -18,3 +18,4 @@ Dockerfile
 *.log
 package-lock.json
 pnpm-lock.yaml
+*.openapi.json
