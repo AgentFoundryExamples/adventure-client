@@ -1,0 +1,28 @@
+# Node Runtime: 24.x (Active LTS 'Krypton') or 25.x (Current)
+# Package Manager: 'pnpm' (preferred) or 'npm'
+
+# Core Framework & Build
+react>=19.2.0        # React 19 is fully stable (Actions, Compiler)
+react-dom>=19.2.0
+typescript>=5.9.0    # TS 6.0 is imminent, but 5.9 is the safe stable
+vite>=7.0.0          # Vite 7 is the current standard
+
+# Backend Integration (Firebase Modular)
+firebase>=12.8.0     # Must use v12+ modular SDK (Data Connect, Genkit ready)
+react-firebase-hooks>=6.0.0
+
+# Routing & State Management
+react-router>=7.12.0 # v7 is the unified Remix/Router standard (Framework Mode)
+zustand>=5.0.0       # Standard for client-state (avoid Redux)
+
+# UI & Styling
+tailwindcss>=4.0.0   # v4 is stable (Oxide engine, no postcss.config.js needed)
+lucide-react>=0.400.0
+clsx>=2.1.0
+tailwind-merge>=2.6.0
+
+# Development & Testing
+vitest>=2.1.0
+@testing-library/react>=16.0.0
+eslint>=9.10.0       # Flat config is now mandatory
+prettier>=3.4.0
