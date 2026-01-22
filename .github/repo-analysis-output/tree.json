@@ -1,6 +1,6 @@
 {
   "type": "directory",
-  "name": "agent-foundry-ts-template",
+  "name": "adventure-client",
   "children": [
     {
       "type": "directory",

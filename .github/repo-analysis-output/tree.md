@@ -1,4 +1,4 @@
-# agent-foundry-ts-template
+# adventure-client
 
 ├── .github
   ├── af-config
