@@ -2,6 +2,11 @@
 dist
 dist-ssr
 
+# Note: node_modules is NOT excluded due to npm timing issues in Alpine containers
+# The npm install process requires the presence of source files and works more
+# reliably when existing node_modules (if any) are present in the context.
+# This doesn't affect the final image size as only /dist is copied to the nginx stage.
+
 # Git
 .git
 

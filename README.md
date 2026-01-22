@@ -203,7 +203,14 @@ docker build \
   -t adventure-client:prod .
 ```
 
-**Note**: Environment variables must be provided at build time since Vite bundles them into the static assets.
+**Important Notes**:
+- Environment variables must be provided at build time since Vite bundles them into the static assets
+- The Dockerfile declares these as `ARG` directives, making them available during the build process
+- ⚠️ **Security Warning**: Build arguments and bundled environment variables are visible in:
+  - Docker image layers (via `docker history`)
+  - Client-side JavaScript bundle (anyone can inspect the frontend code)
+  - Never pass sensitive secrets (API keys, tokens) via build args for frontend applications
+  - Use backend services or secure runtime configuration for sensitive data
 
 ### Running the Docker Container Locally
 

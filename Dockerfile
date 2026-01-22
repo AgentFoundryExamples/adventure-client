@@ -1,5 +1,18 @@
 # STAGE 1: BUILD
 FROM node:24-alpine AS builder
+
+# Declare build arguments for production environment variables
+# These are passed via --build-arg during docker build and made available to Vite
+ARG VITE_DUNGEON_MASTER_API_BASE_URL
+ARG VITE_JOURNEY_LOG_API_BASE_URL
+ARG VITE_FIREBASE_API_KEY
+ARG VITE_FIREBASE_AUTH_DOMAIN
+ARG VITE_FIREBASE_PROJECT_ID
+ARG VITE_FIREBASE_STORAGE_BUCKET
+ARG VITE_FIREBASE_MESSAGING_SENDER_ID
+ARG VITE_FIREBASE_APP_ID
+ARG VITE_FIREBASE_MEASUREMENT_ID
+
 WORKDIR /app
 
 # Copy all files (package files and source together)
