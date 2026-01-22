@@ -4,7 +4,10 @@
  * TODO: Replace mock implementation with real Firebase auth when ready
  */
 
-import { createContext, useState, useCallback, ReactNode } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+
+import { createContext, useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import type { AuthContextValue, User } from '@/types/auth';
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -33,6 +36,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       // TODO: Replace with real Firebase authentication
       console.log('[Mock Auth] Login attempt:', { email, password: '***' });
+      void password; // Unused in mock but required by interface
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -80,6 +84,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       // TODO: Replace with real Firebase registration
       console.log('[Mock Auth] Register attempt:', { email, displayName, password: '***' });
+      void password; // Unused in mock but required by interface
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 800));
