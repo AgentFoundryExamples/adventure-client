@@ -36,7 +36,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       // TODO: Replace with real Firebase authentication
       // _password will be used when implementing real auth
-      console.log('[Mock Auth] Login attempt:', { email, password: '***' });
+      console.log('[Mock Auth] Login attempt:', { email });
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       // TODO: Replace with real Firebase registration
       // _password will be used when implementing real auth
-      console.log('[Mock Auth] Register attempt:', { email, displayName, password: '***' });
+      console.log('[Mock Auth] Register attempt:', { email, displayName });
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 800));
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         id: `mock-user-${Date.now()}`,
         email,
         displayName,
-        avatarUrl: `https://api.dicebear.com/7.x/adventurer/svg?seed=${displayName}`,
+        avatarUrl: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayName)}`,
         createdAt: new Date(),
       });
       

@@ -129,8 +129,18 @@ async function request<T = unknown>(
       throw error;
     }
     
+    // Handle empty body for 204 No Content, etc.
+    const contentLength = response.headers.get('Content-Length');
+    if (response.status === 204 || (contentLength && parseInt(contentLength, 10) === 0)) {
+      return undefined as T;
+    }
+    
     // Parse JSON response
-    const data = await response.json();
+    const text = await response.text();
+    if (!text) {
+      return undefined as T;
+    }
+    const data = JSON.parse(text);
     
     if (config.isDevelopment) {
       console.log('[HTTP Client] Response:', data);
