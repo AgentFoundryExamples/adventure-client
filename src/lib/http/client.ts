@@ -139,7 +139,7 @@ async function request<T = unknown>(
     return data as T;
   } catch (error) {
     // Re-throw ApiError as-is
-    if ((error as ApiError).status !== undefined) {
+    if (isApiError(error)) {
       throw error;
     }
     
@@ -152,6 +152,19 @@ async function request<T = unknown>(
       { originalError: (error as Error).message }
     );
   }
+}
+
+/**
+ * Type guard for ApiError
+ */
+function isApiError(error: unknown): error is ApiError {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'status' in error &&
+    'message' in error &&
+    'statusText' in error
+  );
 }
 
 /**

@@ -31,12 +31,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(MOCK_USER);
   const [isLoading, setIsLoading] = useState(false);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email: string, _password: string) => {
     setIsLoading(true);
     try {
       // TODO: Replace with real Firebase authentication
+      // _password will be used when implementing real auth
       console.log('[Mock Auth] Login attempt:', { email, password: '***' });
-      void password; // Unused in mock but required by interface
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -77,14 +77,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const register = useCallback(async (
     email: string,
-    password: string,
+    _password: string,
     displayName: string
   ) => {
     setIsLoading(true);
     try {
       // TODO: Replace with real Firebase registration
+      // _password will be used when implementing real auth
       console.log('[Mock Auth] Register attempt:', { email, displayName, password: '***' });
-      void password; // Unused in mock but required by interface
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 800));
