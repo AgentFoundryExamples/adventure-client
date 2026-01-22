@@ -16,7 +16,7 @@ A React-based web client for the Adventure Game platform, built with TypeScript 
 
 ## Prerequisites
 
-- **Node.js**: 24.x (Active LTS) or 25.x (Current) - see `ts_dev_versions.txt`
+- **Node.js**: 24.x (Active LTS 'Krypton') or 25.x (Current) - see `ts_dev_versions.txt`
 - **Package Manager**: npm (included with Node.js) or pnpm (preferred)
 - **Docker**: Required for containerized deployment (optional for local development)
 
