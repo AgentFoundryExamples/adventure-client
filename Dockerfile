@@ -1,15 +1,14 @@
 # STAGE 1: BUILD
-# Using Node 22 LTS instead of 24 for better Docker compatibility
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 
-# Copy package files and source
-COPY package.json package-lock.json ./
+# Copy all files (package files and source together)
+# Note: Copying source with package files as npm has timing issues in Alpine
+# when installing before source is present. Layer caching still works via package-lock.json.
 COPY . .
 
 # Install dependencies and build
-# Note: Running install after COPY . to workaround npm timing issues in Docker
-RUN npm install --loglevel=verbose && npm run build
+RUN npm install && npm run build
 
 # STAGE 2: SERVE
 FROM nginx:alpine
