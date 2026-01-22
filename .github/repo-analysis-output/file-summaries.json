@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 6,
+  "total_files": 8,
   "files": [
     {
       "schema_version": "2.0",
@@ -11,8 +11,8 @@
       "summary": "JavaScript module for eslint.config",
       "summary_text": "JavaScript module for eslint.config",
       "metrics": {
-        "size_bytes": 1389,
-        "loc": 31,
+        "size_bytes": 1698,
+        "loc": 43,
         "todo_count": 0
       }
     },
@@ -25,7 +25,7 @@
       "summary": "TypeScript core implementation",
       "summary_text": "TypeScript core implementation",
       "metrics": {
-        "size_bytes": 2825,
+        "size_bytes": 2827,
         "loc": 64,
         "todo_count": 0
       }
@@ -39,7 +39,7 @@
       "summary": "TypeScript core implementation",
       "summary_text": "TypeScript core implementation",
       "metrics": {
-        "size_bytes": 1445,
+        "size_bytes": 1436,
         "loc": 33,
         "todo_count": 0
       }
@@ -53,9 +53,23 @@
       "summary": "TypeScript core implementation",
       "summary_text": "TypeScript core implementation",
       "metrics": {
-        "size_bytes": 7591,
-        "loc": 211,
+        "size_bytes": 7466,
+        "loc": 200,
         "todo_count": 2
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/setupTests.ts",
+      "language": "TypeScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "TypeScript core implementation",
+      "summary_text": "TypeScript core implementation",
+      "metrics": {
+        "size_bytes": 627,
+        "loc": 1,
+        "todo_count": 0
       }
     },
     {
@@ -81,8 +95,22 @@
       "summary": "TypeScript module for vite.config",
       "summary_text": "TypeScript module for vite.config",
       "metrics": {
-        "size_bytes": 859,
+        "size_bytes": 863,
         "loc": 11,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "vitest.config.ts",
+      "language": "TypeScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "TypeScript module for vitest.config",
+      "summary_text": "TypeScript module for vitest.config",
+      "metrics": {
+        "size_bytes": 958,
+        "loc": 17,
         "todo_count": 0
       }
     }

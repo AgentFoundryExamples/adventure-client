@@ -96,6 +96,22 @@
         },
         {
           "type": "directory",
+          "name": "components",
+          "children": [
+            {
+              "type": "directory",
+              "name": "__tests__",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "AppLayout.test.tsx"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "directory",
           "name": "config",
           "children": [
             {
@@ -213,6 +229,10 @@
         {
           "type": "file",
           "name": "main.tsx"
+        },
+        {
+          "type": "file",
+          "name": "setupTests.ts"
         }
       ]
     },
@@ -231,6 +251,14 @@
     {
       "type": "file",
       "name": ".gitignore"
+    },
+    {
+      "type": "file",
+      "name": ".prettierignore"
+    },
+    {
+      "type": "file",
+      "name": ".prettierrc"
     },
     {
       "type": "file",
@@ -287,6 +315,10 @@
     {
       "type": "file",
       "name": "vite.config.ts"
+    },
+    {
+      "type": "file",
+      "name": "vitest.config.ts"
     }
   ]
 }

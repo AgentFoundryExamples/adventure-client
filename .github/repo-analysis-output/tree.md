@@ -20,6 +20,9 @@
 ├── src
   ├── assets
     └── react.svg
+  ├── components
+    └── __tests__
+      └── AppLayout.test.tsx
   ├── config
     └── env.ts
   ├── context
@@ -44,11 +47,14 @@
   ├── types
     └── auth.ts
   ├── App.tsx
-  └── main.tsx
+  ├── main.tsx
+  └── setupTests.ts
 ├── .env.development
 ├── .env.example
 ├── .env.production
 ├── .gitignore
+├── .prettierignore
+├── .prettierrc
 ├── dungeon-master.openapi.json
 ├── eslint.config.js
 ├── gcp_deployment_reference.md
@@ -62,4 +68,5 @@
 ├── tsconfig.app.json
 ├── tsconfig.json
 ├── tsconfig.node.json
-└── vite.config.ts
+├── vite.config.ts
+└── vitest.config.ts

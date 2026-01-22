@@ -8,10 +8,10 @@ Includes classification of external dependencies as stdlib vs third-party.
 
 ## Statistics
 
-- **Total files**: 6
+- **Total files**: 8
 - **Intra-repo dependencies**: 0
 - **External stdlib dependencies**: 1
-- **External third-party dependencies**: 11
+- **External third-party dependencies**: 14
 
 ## External Dependencies
 
@@ -23,12 +23,14 @@ Total: 1 unique modules
 
 ### Third-Party Packages
 
-Total: 11 unique packages
+Total: 14 unique packages
 
 - `@/config/env`
 - `@/context/AuthContext`
 - `@eslint/js`
+- `@testing-library/jest-dom`
 - `@vitejs/plugin-react`
+- `eslint-config-prettier`
 - `eslint-plugin-react-hooks`
 - `eslint-plugin-react-refresh`
 - `eslint/config`
@@ -36,3 +38,4 @@ Total: 11 unique packages
 - `react`
 - `typescript-eslint`
 - `vite`
+- `vitest/config`
