@@ -2,14 +2,25 @@
 
 A React-based web client for the Adventure Game platform, built with TypeScript and Vite.
 
-## Quick Start
+## Table of Contents
 
-### Prerequisites
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Building for Production](#building-for-production)
+- [Docker Deployment](#docker-deployment)
+- [Cloud Run Deployment](#cloud-run-deployment)
+- [Project Structure](#project-structure)
+- [Architecture](#architecture)
 
-- Node.js 24.x or 25.x (see `ts_dev_versions.txt`)
-- npm or pnpm package manager
+## Prerequisites
 
-### Setup
+- **Node.js**: 24.x (LTS) or 25.x (Current) - see `ts_dev_versions.txt`
+- **Package Manager**: npm (included with Node.js) or pnpm (preferred)
+- **Docker**: Required for containerized deployment (optional for local development)
+
+## Installation
 
 1. **Clone the repository**
    ```bash
@@ -21,28 +32,337 @@ A React-based web client for the Adventure Game platform, built with TypeScript 
    ```bash
    npm install
    ```
+   
+   Or with pnpm (recommended for faster installs):
+   ```bash
+   pnpm install
+   ```
 
-3. **Configure environment variables**
-   
-   Copy the example environment file:
-   ```bash
-   cp .env.example .env.local
-   ```
-   
-   Or for development, you can use the pre-configured development template:
-   ```bash
-   cp .env.development .env.local
-   ```
-   
-   Edit `.env.local` and fill in the required values:
-   - `VITE_DUNGEON_MASTER_API_BASE_URL` - Base URL for Dungeon Master API
-   - `VITE_JOURNEY_LOG_API_BASE_URL` - Base URL for Journey Log API
-   - Firebase configuration variables (see `.env.example` for all required keys)
+## Configuration
 
-4. **Run the development server**
+The application uses environment variables for configuration. Different configurations are needed for development and production.
+
+### Development Configuration
+
+For local development, copy the development template:
+
+```bash
+cp .env.development .env.local
+```
+
+The `.env.development` file includes mock values for local development:
+- API endpoints point to localhost (ports 8001, 8002)
+- Firebase configuration uses mock/test values
+
+Edit `.env.local` to match your local setup if needed.
+
+### Production Configuration
+
+For production deployments, environment variables should be:
+- Built into the application during the Docker build process
+- Set via CI/CD pipelines or Cloud Run environment configuration
+
+**Important**: Since Vite bundles environment variables at build time (not runtime), production values must be available during the `npm run build` step.
+
+#### Environment Variables Reference
+
+| Variable | Description | Example (Development) |
+|----------|-------------|----------------------|
+| `VITE_DUNGEON_MASTER_API_BASE_URL` | Dungeon Master API endpoint | `http://localhost:8001` |
+| `VITE_JOURNEY_LOG_API_BASE_URL` | Journey Log API endpoint | `http://localhost:8002` |
+| `VITE_FIREBASE_API_KEY` | Firebase API key | `mock-api-key-dev` |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase auth domain | `mock-project-dev.firebaseapp.com` |
+| `VITE_FIREBASE_PROJECT_ID` | Firebase project ID | `mock-project-dev` |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket | `mock-project-dev.appspot.com` |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase sender ID | `000000000000` |
+| `VITE_FIREBASE_APP_ID` | Firebase app ID | `1:000000000000:web:mockappiddev` |
+| `VITE_FIREBASE_MEASUREMENT_ID` | Firebase measurement ID | `G-MOCKIDDEV` |
+
+**Security Note**: Never commit real Firebase credentials or production API keys to version control. Use `.env.local` for local secrets (already in `.gitignore`).
+
+
+## Development
+
+### Starting the Development Server
+
+Run the Vite development server with hot module replacement (HMR):
+
+```bash
+npm run dev
+```
+
+The application will be available at `http://localhost:5173` by default.
+
+### Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server with HMR |
+| `npm run build` | Build optimized production bundle |
+| `npm run preview` | Preview production build locally |
+| `npm run lint` | Run ESLint on all source files |
+| `npm run format` | Format code with Prettier |
+| `npm run test` | Run tests with Vitest (single run, CI mode) |
+| `npm run test:watch` | Run tests in watch mode for development |
+
+### Code Quality
+
+#### Linting
+
+ESLint is configured with React, TypeScript, and Prettier integration. Run the linter to check for code issues:
+
+```bash
+npm run lint
+```
+
+ESLint will check for:
+- TypeScript type errors
+- React best practices
+- Code style consistency
+
+#### Formatting
+
+Prettier is configured for consistent code formatting across the project:
+
+```bash
+npm run format
+```
+
+This will automatically format all TypeScript/TSX files in the `src/` directory and configuration files in the root.
+
+#### Testing
+
+Vitest is configured with jsdom and React Testing Library for component testing:
+
+```bash
+# Run all tests once (CI mode)
+npm run test
+
+# Run tests in watch mode (re-runs on file changes)
+npm run test:watch
+```
+
+Tests are located in `src/components/__tests__/` and follow the pattern `*.test.tsx`.
+
+## Building for Production
+
+### Local Production Build
+
+Create an optimized production bundle:
+
+```bash
+npm run build
+```
+
+This command:
+1. Runs TypeScript compilation (`tsc -b`) to check types
+2. Builds optimized assets with Vite
+3. Outputs to the `dist/` directory
+
+The build includes:
+- Minified JavaScript bundles
+- Optimized CSS with vendor prefixes
+- Hashed filenames for cache busting (e.g., `index-DjVD9LGM.css`)
+- Tree-shaken dependencies
+
+### Preview Production Build
+
+Test the production build locally before deployment:
+
+```bash
+npm run preview
+```
+
+This starts a local static file server serving the `dist/` directory, allowing you to verify the production build works correctly.
+
+## Docker Deployment
+
+The application includes a multi-stage Dockerfile optimized for production deployment.
+
+### Building the Docker Image
+
+Build the Docker image locally:
+
+```bash
+docker build -t adventure-client:latest .
+```
+
+**With production environment variables:**
+
+```bash
+docker build \
+  --build-arg VITE_DUNGEON_MASTER_API_BASE_URL=https://your-api.run.app \
+  --build-arg VITE_JOURNEY_LOG_API_BASE_URL=https://your-log-api.run.app \
+  --build-arg VITE_FIREBASE_API_KEY=your-key \
+  --build-arg VITE_FIREBASE_AUTH_DOMAIN=your-domain \
+  --build-arg VITE_FIREBASE_PROJECT_ID=your-project \
+  --build-arg VITE_FIREBASE_STORAGE_BUCKET=your-bucket \
+  --build-arg VITE_FIREBASE_MESSAGING_SENDER_ID=your-sender-id \
+  --build-arg VITE_FIREBASE_APP_ID=your-app-id \
+  --build-arg VITE_FIREBASE_MEASUREMENT_ID=your-measurement-id \
+  -t adventure-client:prod .
+```
+
+**Note**: Environment variables must be provided at build time since Vite bundles them into the static assets.
+
+### Running the Docker Container Locally
+
+Run the container on port 8080:
+
+```bash
+docker run -p 8080:8080 adventure-client:latest
+```
+
+Access the application at `http://localhost:8080`.
+
+### Docker Image Details
+
+The Dockerfile uses a two-stage build process:
+
+1. **Build Stage** (`node:24-alpine`):
+   - Installs dependencies
+   - Builds the production bundle
+   - Result: `dist/` directory with optimized assets
+
+2. **Serve Stage** (`nginx:alpine`):
+   - Copies only the `dist/` files (excludes `node_modules`)
+   - Configures nginx with `nginx.conf` for SPA routing
+   - Final image size: ~30MB (lightweight and secure)
+
+**Key Features**:
+- **SPA Routing**: nginx rewrites all non-file requests to `/index.html` (enables client-side routing)
+- **Cache Optimization**: Static assets cached for 1 year, index.html never cached
+- **Security Headers**: X-Content-Type-Options, X-Frame-Options, X-XSS-Protection
+- **Gzip Compression**: Enabled for text-based assets
+- **Port 8080**: Required by Cloud Run (configurable via `$PORT` environment variable)
+
+## Cloud Run Deployment
+
+Google Cloud Run provides serverless container hosting with automatic scaling.
+
+### Prerequisites
+
+1. **Google Cloud Project** with billing enabled
+2. **Artifact Registry** repository created:
    ```bash
-   npm run dev
+   gcloud artifacts repositories create frontend-repo \
+     --repository-format=docker \
+     --location=us-central1 \
+     --description="Adventure client frontend"
    ```
+3. **Docker** and **gcloud CLI** installed locally
+
+### Deployment Steps
+
+#### 1. Build and Tag Image
+
+Build the Docker image with production environment variables:
+
+```bash
+# Set your project ID
+export PROJECT_ID=your-gcp-project-id
+export GITHUB_SHA=$(git rev-parse HEAD)
+
+# Build with production config
+docker build \
+  --build-arg VITE_DUNGEON_MASTER_API_BASE_URL=https://dungeon-master-api.run.app \
+  --build-arg VITE_JOURNEY_LOG_API_BASE_URL=https://journey-log-api.run.app \
+  --build-arg VITE_FIREBASE_API_KEY=$FIREBASE_API_KEY \
+  --build-arg VITE_FIREBASE_AUTH_DOMAIN=$FIREBASE_AUTH_DOMAIN \
+  --build-arg VITE_FIREBASE_PROJECT_ID=$FIREBASE_PROJECT_ID \
+  --build-arg VITE_FIREBASE_STORAGE_BUCKET=$FIREBASE_STORAGE_BUCKET \
+  --build-arg VITE_FIREBASE_MESSAGING_SENDER_ID=$FIREBASE_SENDER_ID \
+  --build-arg VITE_FIREBASE_APP_ID=$FIREBASE_APP_ID \
+  --build-arg VITE_FIREBASE_MEASUREMENT_ID=$FIREBASE_MEASUREMENT_ID \
+  -t us-central1-docker.pkg.dev/$PROJECT_ID/frontend-repo/adventure-client:$GITHUB_SHA .
+```
+
+**Important**: Use commit SHA for immutable tags. Avoid using `:latest` in production.
+
+#### 2. Push to Artifact Registry
+
+Authenticate and push the image:
+
+```bash
+# Configure Docker to use gcloud as credential helper
+gcloud auth configure-docker us-central1-docker.pkg.dev
+
+# Push image
+docker push us-central1-docker.pkg.dev/$PROJECT_ID/frontend-repo/adventure-client:$GITHUB_SHA
+```
+
+#### 3. Deploy to Cloud Run
+
+Deploy the container:
+
+```bash
+gcloud run deploy adventure-client \
+  --image us-central1-docker.pkg.dev/$PROJECT_ID/frontend-repo/adventure-client:$GITHUB_SHA \
+  --region us-central1 \
+  --allow-unauthenticated \
+  --memory 256Mi \
+  --cpu 1 \
+  --min-instances 0 \
+  --max-instances 10 \
+  --port 8080 \
+  --platform managed
+```
+
+**Deployment Options Explained**:
+- `--allow-unauthenticated`: Makes the frontend publicly accessible
+- `--memory 256Mi`: Sufficient for nginx serving static files
+- `--cpu 1`: One vCPU is adequate for a frontend service
+- `--min-instances 0`: Scales to zero when idle (cost optimization)
+- `--max-instances 10`: Limits concurrent instances
+- `--port 8080`: Must match the EXPOSE directive in Dockerfile
+
+#### 4. Verify Deployment
+
+After deployment, Cloud Run will output a service URL like:
+```
+https://adventure-client-abc123-uc.a.run.app
+```
+
+Test the deployment:
+```bash
+curl -I https://adventure-client-abc123-uc.a.run.app
+```
+
+### CI/CD Integration
+
+For production deployments, integrate with GitHub Actions or Cloud Build:
+
+1. **Use Workload Identity Federation** (recommended) instead of service account keys
+2. **Automate on Git tags or main branch pushes**
+3. **Use `$GITHUB_SHA` for image tags** to enable atomic rollbacks
+4. **Store secrets in GitHub Secrets** or Google Secret Manager
+
+Example GitHub Actions workflow structure:
+```yaml
+- Checkout code
+- Authenticate to Google Cloud (Workload Identity)
+- Build Docker image with build args from secrets
+- Push to Artifact Registry
+- Deploy to Cloud Run
+```
+
+**Security Best Practices**:
+- Never commit Firebase credentials or API keys to the repository
+- Use environment-specific configurations (staging vs production)
+- Rotate credentials regularly
+- Monitor Cloud Run logs for unauthorized access attempts
+
+
+### Environment Differences
+
+| Aspect | Development | Production (Cloud Run) |
+|--------|-------------|------------------------|
+| **API URLs** | `localhost:8001`, `localhost:8002` | `https://your-api.run.app` |
+| **Firebase Config** | Mock/test project | Production Firebase project |
+| **Port** | 5173 (Vite dev server) | 8080 (nginx in container) |
+| **Build** | Development mode (HMR) | Production bundle (minified) |
+| **Environment File** | `.env.local` (not committed) | Build-time `--build-arg` flags |
+| **SSL** | Not required | Automatic HTTPS via Cloud Run |
 
 ## Project Structure
 
@@ -168,114 +488,27 @@ try {
 - Centralized error logging/tracking
 - Request/response interceptors
 
-## Development
+## Technology Stack
 
-### Available Scripts
+- **React 19** - Latest stable version with modern features
+- **TypeScript 5.9** - Type-safe development
+- **Vite 7** - Fast build tool and dev server
+- **React Router 7** - Client-side routing
+- **Vitest** - Fast unit testing with jsdom
+- **ESLint + Prettier** - Code quality and formatting
+- **nginx (alpine)** - Production web server (in Docker)
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run lint` - Run ESLint on all source files
-- `npm run format` - Format code with Prettier
-- `npm run test` - Run tests with Vitest (CI mode)
-- `npm run test:watch` - Run tests in watch mode
+### Build Plugins
 
-### Code Quality
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) - Fast Refresh with Babel
 
-#### Linting
+## Additional Resources
 
-ESLint is configured with React, TypeScript, and Prettier integration:
-```bash
-npm run lint
-```
+- [Vite Documentation](https://vite.dev/)
+- [React 19 Documentation](https://react.dev/)
+- [Cloud Run Documentation](https://cloud.google.com/run/docs)
+- [Deployment Reference](./gcp_deployment_reference.md) - Internal GCP deployment guidelines
 
-#### Formatting
+## License
 
-Prettier is configured for consistent code formatting:
-```bash
-npm run format
-```
-
-#### Testing
-
-Vitest is configured with jsdom and React Testing Library for component testing:
-```bash
-npm run test        # Run tests once (CI mode)
-npm run test:watch  # Run tests in watch mode
-```
-
-Tests are located in `src/components/__tests__/` and use the pattern `*.test.tsx`.
-
-### Technology Stack
-
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Licensed under the Apache License, Version 2.0. See LICENSE file for details.
