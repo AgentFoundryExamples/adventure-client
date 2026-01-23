@@ -5,7 +5,7 @@
 
 /* eslint-disable react-refresh/only-export-components */
 
-import { createContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import {
   onAuthStateChanged,
@@ -33,18 +33,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Subscribe to auth state changes
   useEffect(() => {
     const auth = getFirebaseAuth();
+    let isInitialLoad = true;
     
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {
         setUser(firebaseUser);
-        setLoading(false);
+        if (isInitialLoad) {
+          setLoading(false);
+          isInitialLoad = false;
+        }
         setError(null);
       },
       (err) => {
         console.error('Auth state change error:', err);
         setError(err as Error);
-        setLoading(false);
+        if (isInitialLoad) {
+          setLoading(false);
+          isInitialLoad = false;
+        }
       }
     );
 
@@ -54,88 +61,84 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signInWithEmailPassword = useCallback(async (email: string, password: string) => {
     setError(null);
-    setLoading(true);
     try {
       const auth = getFirebaseAuth();
       await signInWithEmailAndPassword(auth, email, password);
+      // Auth state will be updated by onAuthStateChanged listener
     } catch (err) {
       const authError = err as Error;
       setError(authError);
       throw authError;
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   const signUpWithEmailPassword = useCallback(async (email: string, password: string) => {
     setError(null);
-    setLoading(true);
     try {
       const auth = getFirebaseAuth();
       await createUserWithEmailAndPassword(auth, email, password);
+      // Auth state will be updated by onAuthStateChanged listener
     } catch (err) {
       const authError = err as Error;
       setError(authError);
       throw authError;
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   const signOutUser = useCallback(async () => {
     setError(null);
-    setLoading(true);
     try {
       const auth = getFirebaseAuth();
       await signOut(auth);
+      // Auth state will be updated by onAuthStateChanged listener
     } catch (err) {
       const authError = err as Error;
       setError(authError);
       throw authError;
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
     setError(null);
-    setLoading(true);
     try {
       const auth = getFirebaseAuth();
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
+      // Auth state will be updated by onAuthStateChanged listener
     } catch (err) {
       const authError = err as Error;
       setError(authError);
       throw authError;
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   const getIdToken = useCallback(async (forceRefresh = false): Promise<string | null> => {
+    if (!user) {
+      return null;
+    }
     try {
-      if (!user) {
-        return null;
-      }
       return await user.getIdToken(forceRefresh);
     } catch (err) {
-      console.error('Failed to get ID token:', err);
-      return null;
+      const tokenError = err as Error;
+      setError(tokenError);
+      throw tokenError;
     }
   }, [user]);
 
-  const value: AuthContextValue = {
-    user,
-    uid: user?.uid ?? null,
-    loading,
-    error,
-    signInWithEmailPassword,
-    signUpWithEmailPassword,
-    signOutUser,
-    signInWithGoogle,
-    getIdToken,
-  };
+  const value: AuthContextValue = useMemo(
+    () => ({
+      user,
+      uid: user?.uid ?? null,
+      loading,
+      error,
+      signInWithEmailPassword,
+      signUpWithEmailPassword,
+      signOutUser,
+      signInWithGoogle,
+      getIdToken,
+    }),
+    [user, loading, error, signInWithEmailPassword, signUpWithEmailPassword, signOutUser, signInWithGoogle, getIdToken]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

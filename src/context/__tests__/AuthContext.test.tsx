@@ -45,7 +45,7 @@ function TestComponent() {
       {auth.signInWithGoogle && (
         <button onClick={() => auth.signInWithGoogle!()}>Sign In With Google</button>
       )}
-      <button onClick={() => auth.getIdToken()}>Get Token</button>
+      <button onClick={() => auth.getIdToken().catch(() => {})}>Get Token</button>
     </div>
   );
 }
@@ -287,7 +287,7 @@ describe('AuthContext', () => {
     });
   });
 
-  it('handles getIdToken errors gracefully', async () => {
+  it('propagates getIdToken errors to error state', async () => {
     mockGetIdToken.mockRejectedValue(new Error('Token error'));
     
     const mockUser: Partial<FirebaseUser> = {
@@ -314,9 +314,10 @@ describe('AuthContext', () => {
     const getTokenButton = screen.getByText('Get Token');
     getTokenButton.click();
 
-    // Should not throw, just log error and return null
+    // Should throw and update error state
     await waitFor(() => {
       expect(mockGetIdToken).toHaveBeenCalled();
+      expect(screen.getByTestId('error')).toHaveTextContent('Token error');
     });
   });
 });
