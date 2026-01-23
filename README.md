@@ -989,8 +989,9 @@ flowchart TD
     M --> N[Game Page /game/:characterId]
     N --> O[Fetch Last Turn]
     O --> P[Display DM Response & Player Action]
-    P --> Q[Back to Dashboard]
-    Q --> E
+    P --> E
+    N --> E
+    J --> E
 ```
 
 ### Authentication and Protected Routes
@@ -1273,6 +1274,12 @@ JourneyLogOpenAPI.HEADERS = async () => ({
   'X-User-Id': authProvider.uid || '',
 });
 ```
+
+**Note**: The current implementation returns an empty string when `authProvider.uid` is not available. This is safe because:
+1. All Journey Log API calls are made from protected routes that require authentication
+2. The `ProtectedRoute` component ensures users are authenticated before accessing these pages
+3. If a user is not authenticated, they are redirected to login before any API calls are made
+4. In the rare case where auth state becomes null during an API call, the backend will return a 400 Bad Request, which is appropriate error handling
 
 This ensures:
 - Developers don't need to manually add headers to every API call
