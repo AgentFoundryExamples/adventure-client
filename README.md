@@ -13,6 +13,7 @@ A React-based web client for the Adventure Game platform, built with TypeScript 
 - [Cloud Run Deployment](#cloud-run-deployment)
 - [Project Structure](#project-structure)
 - [Architecture](#architecture)
+- [User Journey: Dashboard and Game Flow](#user-journey-dashboard-and-game-flow)
 
 ## Prerequisites
 
@@ -956,6 +957,494 @@ try {
 ### Build Plugins
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react) - Fast Refresh with Babel
+
+## User Journey: Dashboard and Game Flow
+
+This section documents the authenticated user experience, from login through character management and gameplay. Understanding this flow is essential for contributors working on features like character creation, gameplay enhancements, or API integrations.
+
+### Overview
+
+The application provides a character-based adventure gaming experience with the following primary flows:
+
+1. **Authentication**: User logs in via Firebase (email/password or Google Sign-In)
+2. **Dashboard**: User views their character list at `/app`
+3. **Resume Adventure**: User selects a character to continue their adventure at `/game/:characterId`
+4. **Character Creation**: User creates new characters at `/characters/new` (placeholder)
+
+```mermaid
+flowchart TD
+    A[User Visits Site] --> B{Authenticated?}
+    B -->|No| C[Login Page /login]
+    C --> D[Firebase Auth]
+    D --> E[Dashboard /app]
+    B -->|Yes| E
+    E --> F{Has Characters?}
+    F -->|No| G[Empty State]
+    G --> H[Create Character CTA]
+    H --> I[Character Creation /characters/new]
+    I --> J[Placeholder Page]
+    F -->|Yes| K[Character List]
+    K --> L[Character Cards]
+    L --> M[Resume Adventure Button]
+    M --> N[Game Page /game/:characterId]
+    N --> O[Fetch Last Turn]
+    O --> P[Display DM Response & Player Action]
+    P --> Q[Back to Dashboard]
+    Q --> E
+```
+
+### Authentication and Protected Routes
+
+All character and gameplay routes require authentication. The application uses Firebase Authentication with the following requirements:
+
+**Authentication Methods:**
+- Email/password authentication
+- Google Sign-In (if configured in Firebase Console)
+
+**Protected Routes:**
+- `/app` - Characters dashboard (requires login)
+- `/characters/new` - Character creation (requires login)
+- `/game/:characterId` - Game view (requires login)
+
+**How Protection Works:**
+1. User attempts to access a protected route
+2. `ProtectedRoute` component checks authentication status via `AuthContext`
+3. If not authenticated, user is redirected to `/login` with return URL
+4. After successful login, user is redirected to originally requested page
+5. Auth token is automatically included in all API requests via `Authorization` header
+
+**Token Management:**
+- Firebase SDK manages token lifecycle (refresh, expiration)
+- Tokens expire after 1 hour but are automatically refreshed
+- On 401 response, the app attempts token refresh and retries once
+- If refresh fails, user is redirected to login
+
+**Important**: See [docs/firebase-setup.md](docs/firebase-setup.md) for detailed Firebase configuration, including how to set up authentication providers and authorized domains for different environments.
+
+### Dashboard Experience (`/app`)
+
+After successful authentication, users are directed to the characters dashboard, which displays their existing characters and provides access to character creation.
+
+#### URL and Route
+- **Path**: `/app`
+- **Component**: `CharactersDashboardPage` (aliased as `AppPage` in routing)
+- **Protection**: Requires authentication via `<ProtectedRoute>`
+
+#### Loading States
+
+The dashboard implements proper loading, error, and empty state handling:
+
+**1. Loading State**
+```
+Shown while fetching user's characters from Journey Log API
+Displays: Spinner with "Loading your characters..." message
+```
+
+**2. Error State**
+```
+Shown if character fetch fails (network error, 401, 500, etc.)
+Displays: 
+  - Error heading: "Unable to Load Characters"
+  - Error message: Specific error from API or generic fallback
+  - Retry button: Allows user to attempt refetch without page reload
+```
+
+**3. Empty State**
+```
+Shown when user has no characters (empty array from API)
+Displays:
+  - Welcome message: "Welcome to Your Adventure"
+  - Guidance: "You don't have any characters yet."
+  - Call-to-Action: "Create Your First Character" button
+  - Links to: /characters/new (character creation route)
+```
+
+**4. Success State with Characters**
+```
+Shown when characters are successfully loaded
+Displays:
+  - Header: "Your Characters" with count (e.g., "2 characters")
+  - Grid of character cards (responsive layout)
+  - Each card shows character metadata (see below)
+```
+
+#### Character Card Metadata
+
+Each character card displays the following information, sourced from the `CharacterMetadata` type in the Journey Log API:
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| **Name** | Character's display name | "Aria Stormwind" |
+| **Status** | Current character state | "active", "completed", "inactive" |
+| **Race** | Character's race | "Elf", "Human", "Dwarf" |
+| **Class** | Character's class | "Wizard", "Rogue", "Fighter" |
+| **Created** | Character creation timestamp | "Jan 15, 2026" |
+| **Updated** | Last update timestamp | "Jan 22, 2026" |
+| **Resume Button** | Link to `/game/:characterId` | Always visible |
+
+**Metadata Source:** All fields come directly from the `CharacterMetadata` schema defined in `journey-log.openapi.json`. No additional derived or computed fields are displayed on the dashboard.
+
+**Visual Styling:**
+- Status is displayed as a badge with color coding (via CSS class `status-${character.status}`)
+- Dates are formatted using `toLocaleDateString()` with locale-aware formatting
+- Cards are displayed in a responsive grid (CSS Grid or Flexbox)
+
+#### Data Fetching Strategy
+
+**What is Fetched:**
+- Dashboard fetches only character metadata via `getUserCharacters()` from Journey Log API
+- This returns a lightweight list of all characters owned by the authenticated user
+
+**What is NOT Fetched:**
+- **Last turn data** is NOT prefetched on the dashboard
+- **Game state** is NOT loaded until user clicks "Resume Adventure"
+- **Narrative history** is NOT retrieved in bulk
+
+**Why This Strategy:**
+This design decision optimizes for performance and user experience:
+
+1. **Faster Dashboard Load**: Fetching only metadata keeps the initial page load fast
+2. **Reduced API Load**: Avoids N additional API calls for N characters on every dashboard visit
+3. **Bandwidth Efficiency**: Last turn data can be large (narrative text, game state); defer until needed
+4. **Cost Optimization**: Reduces backend load and database queries for data users may not view
+
+**Performance Implications:**
+- Dashboard loads in <1 second with metadata-only fetch
+- Users can browse their character list without waiting for game state
+- "Resume Adventure" has a slight delay to fetch last turn on-demand (acceptable UX tradeoff)
+
+**Alternative Considered:** Prefetching last turn for all characters was rejected due to:
+- Scalability concerns (users with many characters)
+- Most users only resume one character per session
+- Unnecessary bandwidth consumption for unused data
+
+### Resume Adventure Flow
+
+When a user clicks "Resume Adventure" on a character card, they navigate to the game page to view their last gameplay turn.
+
+#### URL and Route
+- **Path**: `/game/:characterId`
+- **Component**: `GamePage`
+- **Protection**: Requires authentication via `<ProtectedRoute>`
+- **Dynamic Segment**: `characterId` is the character's unique identifier (UUID)
+
+#### Data Fetching on Game Page
+
+**When Last Turn is Fetched:**
+- Last turn data is fetched **only when GamePage loads** (not on dashboard)
+- The `getCharacterLastTurn(characterId)` function is called in a `useEffect` hook
+- This is an **on-demand fetch strategy**, not prefetching
+
+**Why GamePage Owns the Fetch:**
+1. **Separation of Concerns**: Dashboard shows character list; GamePage shows game state
+2. **Performance**: Avoids fetching unused data (user may not resume every character)
+3. **Freshness**: Ensures last turn data is up-to-date when user navigates to game
+4. **Error Handling**: Game-specific errors (character not found, no turns) handled in appropriate context
+
+**API Call:**
+```typescript
+// Called in GamePage.tsx useEffect
+const response = await getCharacterLastTurn(characterId);
+// Returns: { turns: [NarrativeTurn] } with most recent turn first
+```
+
+**Response Structure:**
+- `turns`: Array of `NarrativeTurn` objects (newest first)
+- GamePage displays `turns[0]` (the most recent turn)
+- If `turns` is empty, shows "No Turns Yet" message
+
+#### Loading and Error States
+
+**Loading State:**
+```
+Shown while fetching last turn data
+Displays: Spinner with "Loading last turn..." message
+```
+
+**Error State:**
+```
+Shown if fetch fails
+Displays:
+  - Error heading: "Unable to Load Last Turn"
+  - Error message: 
+    - "Character not found" (404)
+    - "Unauthorized. Please log in again." (401/403)
+    - Generic error message (other failures)
+  - Action button:
+    - "Go to Login" (if auth error)
+    - "Retry" (if network/server error)
+```
+
+**Empty State:**
+```
+Shown when character has no recorded turns (turns array is empty)
+Displays:
+  - Heading: "No Turns Yet"
+  - Message: "This character doesn't have any recorded turns yet."
+  - Explanation: "Gameplay will resume once a new turn exists."
+  - Action: "Back to Characters" button (returns to /app)
+```
+
+**Success State:**
+```
+Shown when last turn is successfully loaded
+Displays:
+  - Page header: "Last Turn" with "Back to Characters" button
+  - DM Response section:
+    - Heading: "Last Dungeon Master Response"
+    - Narrative text: GM response from last turn
+    - Timestamp: When the turn occurred (formatted)
+  - Player Action section:
+    - Heading: "Your Last Action"
+    - Action text: Player's action from last turn
+    - Placeholder: "No player action recorded" (if null)
+```
+
+#### Last Turn Display Format
+
+The GamePage displays a `NarrativeTurn` object with the following fields:
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `gm_response` | Dungeon Master's narrative response | "You enter a dark cavern. Torchlight flickers on damp walls..." |
+| `player_action` | Player's action from this turn | "I search for traps" |
+| `timestamp` | ISO 8601 timestamp of turn | "2026-01-22T14:35:00Z" (displayed as "Jan 22, 2026, 2:35 PM") |
+
+**Formatting:**
+- Timestamps use `toLocaleString()` for user's locale and timezone
+- Text is displayed in readable paragraphs with appropriate styling
+- If `player_action` is null/empty, a placeholder message is shown
+
+**Future Enhancements:**
+- The GamePage currently displays only the last turn (read-only)
+- Future iterations will add turn input, action submission, and full narrative history
+- Character creation flow will enable users to create new characters from the empty state
+
+### Authentication Headers and API Integration
+
+All API requests to backend services include authentication headers. The application uses different header strategies for each backend service.
+
+#### Header Configuration by Service
+
+**Dungeon Master API** (port 8001 in dev):
+```
+Headers sent with every request:
+  Authorization: Bearer <firebase-id-token>
+```
+
+**Journey Log API** (port 8002 in dev):
+```
+Headers sent with every request:
+  Authorization: Bearer <firebase-id-token>
+  X-User-Id: <firebase-user-uid>
+```
+
+#### Why X-User-Id is Required
+
+The `X-User-Id` header is **required by the Journey Log API** for all user-specific operations, including:
+- Fetching user's character list (`getUserCharacters()`)
+- Retrieving last turn data (`getCharacterLastTurn()`)
+- Creating new characters
+- Fetching narrative history
+
+**Purpose:**
+1. **Ownership Validation**: Backend validates that the user owns the requested resources (characters, turns)
+2. **Data Isolation**: Ensures users can only access their own game data
+3. **Auditing**: Tracks which user performed each operation
+4. **Authorization**: Complements Firebase token validation for fine-grained access control
+
+**How It's Sourced:**
+- Extracted from Firebase Authentication: `auth.currentUser.uid`
+- Provided by `AuthContext` via `authProvider.uid`
+- Automatically injected by OpenAPI client configuration (see `src/api/index.ts`)
+
+**Error Handling:**
+- **Missing X-User-Id**: Results in 400 Bad Request from Journey Log API
+- **Mismatched X-User-Id**: Results in 403 Forbidden if trying to access another user's data
+- **Invalid UID format**: May result in 400 or 500 depending on backend validation
+
+#### Automatic Header Injection
+
+Headers are automatically injected by the OpenAPI client configuration (configured in `src/api/index.ts`):
+
+```typescript
+// Configured during app initialization
+JourneyLogOpenAPI.HEADERS = async () => ({
+  'X-User-Id': authProvider.uid || '',
+});
+```
+
+This ensures:
+- Developers don't need to manually add headers to every API call
+- Headers are consistent across all Journey Log API requests
+- UID is always current (fetched from auth context on each request)
+
+**Important for Deployment:**
+- **All Environments**: X-User-Id header must be sent in dev, staging, and production
+- **Different Auth Providers**: Staging and production may use different Firebase projects, but the header requirement remains the same
+- **Backend CORS**: Backend services must allow `X-User-Id` in CORS allowed headers
+- **Header Validation**: Backend should reject requests without X-User-Id or with invalid UIDs
+
+**Security Note:**
+- The `X-User-Id` header is **not sufficient for authentication** on its own
+- Backend must validate both the Firebase token (Authorization header) and X-User-Id
+- X-User-Id should match the `sub` claim in the Firebase token
+- Never trust X-User-Id without validating the token first
+
+### Character Creation (Placeholder)
+
+The character creation flow is currently **not implemented**. The application includes a placeholder route and UI elements to prepare for future development.
+
+#### Current Implementation
+
+**Route:**
+- **Path**: `/characters/new`
+- **Component**: `CharacterCreationPage`
+- **Protection**: Requires authentication via `<ProtectedRoute>`
+- **Status**: Placeholder (minimal implementation)
+
+**Page Content:**
+```
+Heading: "Create New Character"
+Message: "Character creation form coming soon..."
+Message: "This is a placeholder for the character creation flow."
+```
+
+**Call-to-Action Locations:**
+1. **Dashboard Empty State**: "Create Your First Character" button (when user has 0 characters)
+2. **Future**: Header navigation "New Character" button (not yet implemented)
+
+#### What's Missing
+
+The following functionality needs to be implemented to complete character creation:
+
+1. **Character Creation Form:**
+   - Name input field
+   - Race selection (dropdown or radio buttons)
+   - Class selection (dropdown or radio buttons)
+   - Optional: Background, alignment, starting equipment
+
+2. **API Integration:**
+   - POST request to Dungeon Master API or Journey Log API
+   - Use `CharactersService.createCharacterCharactersPost()` from generated client
+   - Request body: `CreateCharacterRequest` type
+
+3. **Form Validation:**
+   - Required field validation
+   - Character name length limits
+   - Race/class selection validation
+
+4. **Success Flow:**
+   - Display success message
+   - Redirect to dashboard (`/app`) or new character game page (`/game/:newCharacterId`)
+   - Optimistically update character list (or refetch)
+
+5. **Error Handling:**
+   - Network errors
+   - Validation errors from backend
+   - Retry mechanism
+
+#### Prerequisites for Implementation
+
+Before implementing character creation, ensure:
+
+1. **Backend API Ready:**
+   - Character creation endpoint is implemented and tested
+   - OpenAPI spec (`dungeon-master.openapi.json` or `journey-log.openapi.json`) includes creation endpoint
+   - API accepts required fields (name, race, class, etc.)
+
+2. **Frontend Clients Generated:**
+   - Run `npm run generate:api` to update TypeScript clients
+   - Verify `CreateCharacterRequest` and `CreateCharacterResponse` types exist
+
+3. **Authentication Working:**
+   - Firebase token and X-User-Id headers are correctly configured
+   - Test with debug page (`/debug`) to verify API connectivity
+
+4. **UI Design Decided:**
+   - Determine form layout and styling
+   - Define available races and classes (match backend constraints)
+   - Design error message display
+
+**Next Steps for Contributors:**
+- Character creation is a priority feature for the next development iteration
+- The placeholder route and CTA buttons are intentional—do not remove them
+- When implementing, replace the placeholder component content with the full form
+- Ensure the route path (`/characters/new`) remains the same for link consistency
+
+### Route Reference
+
+All routes in the application are defined in `src/router/index.tsx`. The following table provides a complete reference:
+
+| Route | Component | Protected | Description |
+|-------|-----------|-----------|-------------|
+| `/` | `HomePage` | No | Public landing page |
+| `/login` | `LoginPage` | No | Firebase authentication (email/password, Google) |
+| `/app` | `CharactersDashboardPage` | Yes | Character list dashboard (main hub) |
+| `/characters/new` | `CharacterCreationPage` | Yes | **Placeholder** for character creation form |
+| `/game/:characterId` | `GamePage` | Yes | Game view showing last turn for a character |
+| `/debug` | `DebugPage` | No (dev only) | API diagnostics (not available in production) |
+| `*` (404) | `NotFoundPage` | No | Fallback for invalid routes |
+
+**Notes:**
+- All routes use client-side routing via React Router 7 (no page reloads)
+- Protected routes redirect to `/login` if user is not authenticated
+- After login, user is redirected to originally requested protected route
+- The `/debug` route is conditionally included only in development mode (`config.isDevelopment`)
+
+**Important for Contributors:**
+- Do not change route paths without updating all internal links and documentation
+- Protected routes must remain wrapped in `<ProtectedRoute>` component
+- Add new routes to this table when implementing new features
+- Verify all links in the application use correct route paths (e.g., Link components, navigate() calls)
+
+### Environment-Specific Considerations
+
+The dashboard and game flow work consistently across environments, but some configuration differs:
+
+#### Authentication Providers
+
+| Environment | Firebase Project | Auth Methods | X-User-Id Header |
+|-------------|------------------|--------------|------------------|
+| **Development** | Test/mock project | Email/password, Google Sign-In | Required |
+| **Staging** | Staging Firebase project | Email/password, Google Sign-In | Required |
+| **Production** | Production Firebase project | Email/password, Google Sign-In | Required |
+
+**Important:**
+- Different Firebase projects (dev/staging/prod) mean different user databases
+- Users must create accounts separately in each environment
+- **X-User-Id header is required in ALL environments** (non-negotiable)
+
+#### API Endpoints
+
+| Environment | Dungeon Master API | Journey Log API |
+|-------------|--------------------|-----------------|
+| **Development** | `http://localhost:8001` | `http://localhost:8002` |
+| **Staging** | `https://dungeon-master-staging-xxx.run.app` | `https://journey-log-staging-xxx.run.app` |
+| **Production** | `https://dungeon-master-xxx.run.app` | `https://journey-log-xxx.run.app` |
+
+**Configuration:**
+- Set via environment variables: `VITE_DUNGEON_MASTER_API_BASE_URL`, `VITE_JOURNEY_LOG_API_BASE_URL`
+- Must be configured at build time (Vite bundles them into static assets)
+- See [Configuration](#configuration) section for details
+
+#### CORS Configuration
+
+Backend services must allow the following headers in CORS configuration:
+```
+Access-Control-Allow-Headers: Authorization, X-User-Id, Content-Type
+Access-Control-Allow-Credentials: true
+```
+
+This is critical for:
+- Firebase token transmission (Authorization header)
+- User identification (X-User-Id header)
+- JSON request bodies (Content-Type header)
+
+**Troubleshooting:**
+- If API calls fail with CORS errors, verify backend CORS settings
+- Check that `Access-Control-Allow-Origin` includes the frontend domain
+- Ensure `Access-Control-Allow-Methods` includes GET, POST, PUT, DELETE as needed
 
 ## Additional Resources
 
