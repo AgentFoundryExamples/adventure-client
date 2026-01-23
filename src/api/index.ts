@@ -17,9 +17,10 @@
  */
 
 import { config } from '@/config/env';
-import { OpenAPI as DungeonMasterOpenAPI } from './dungeonMaster';
+import { OpenAPI as DungeonMasterOpenAPI, GameService } from './dungeonMaster';
 import { OpenAPI as JourneyLogOpenAPI } from './journeyLog';
 import type { AuthProvider } from '@/lib/http/client';
+import type { CharacterCreationRequest, CharacterCreationResponse } from './dungeonMaster';
 
 /**
  * Configures OpenAPI clients with base URLs and auth token resolvers
@@ -63,7 +64,7 @@ export function configureApiClients(authProvider: AuthProvider | null): void {
 }
 
 // Re-export generated API services for convenience
-export { GameService } from './dungeonMaster';
+export { GameService };
 export { CharactersService, DefaultService, OperationsService } from './journeyLog';
 
 // Re-export helper functions
@@ -121,10 +122,9 @@ export { getUserCharacters, getCharacterLastTurn } from './journeyLog';
  * @see docs/character-creation.md for complete documentation
  */
 export async function createCharacter(
-  request: import('./dungeonMaster').CharacterCreationRequest,
+  request: CharacterCreationRequest,
   xDevUserId?: string | null
-): Promise<import('./dungeonMaster').CharacterCreationResponse> {
-  const { GameService } = await import('./dungeonMaster');
+): Promise<CharacterCreationResponse> {
   return GameService.createCharacterCharactersPost({
     requestBody: request,
     xDevUserId: xDevUserId ?? null,
