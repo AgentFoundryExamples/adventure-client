@@ -125,7 +125,7 @@ describe('CharactersDashboardPage', () => {
 
       const ctaButton = screen.getByText('Create Your First Character');
       expect(ctaButton).toBeInTheDocument();
-      expect(ctaButton).toHaveAttribute('href', '/characters/new');
+      expect(ctaButton).toHaveAttribute('href', '/app/new-character');
     });
   });
 
@@ -148,6 +148,23 @@ describe('CharactersDashboardPage', () => {
       expect(screen.getByText('Human')).toBeInTheDocument();
       expect(screen.getByText('Ranger')).toBeInTheDocument();
       expect(screen.getByText('Healthy')).toBeInTheDocument();
+    });
+
+    it('displays "New Character" button when characters exist', async () => {
+      mockGetUserCharacters.mockResolvedValue({
+        characters: [mockCharacter1],
+        count: 1,
+      } as ListCharactersResponse);
+
+      render(<TestApp />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Your Characters')).toBeInTheDocument();
+      });
+
+      const newCharButton = screen.getByText('New Character');
+      expect(newCharButton).toBeInTheDocument();
+      expect(newCharButton).toHaveAttribute('href', '/app/new-character');
     });
 
     it('displays multiple characters correctly', async () => {

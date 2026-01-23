@@ -1,13 +1,28 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getCharacterLastTurn } from '@/api';
 import type { GetNarrativeResponse, NarrativeTurn } from '@/api';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
+interface LocationState {
+  initialScenario?: {
+    narrative: string;
+    character_id: string;
+  };
+}
+
 export default function GamePage() {
   const { characterId } = useParams<{ characterId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Memoize the initial scenario to prevent unnecessary re-renders
+  const initialScenario = useMemo(() => {
+    const state = location.state as LocationState | undefined;
+    return state?.initialScenario;
+  }, [location.state]);
+  
   const [lastTurn, setLastTurn] = useState<NarrativeTurn | null>(null);
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +33,25 @@ export default function GamePage() {
     if (!characterId || characterId.trim() === '') {
       console.error('GamePage: No characterId provided');
       navigate('/app');
+      return;
+    }
+
+    // If we have an initial scenario from character creation, use it instead of fetching
+    if (initialScenario && initialScenario.character_id === characterId) {
+      // Create a synthetic NarrativeTurn from the initial scenario
+      const initialTurn: NarrativeTurn = {
+        turn_id: `initial-${characterId}`,
+        turn_number: 1,
+        gm_response: initialScenario.narrative,
+        player_action: '',
+        timestamp: new Date().toISOString(),
+      };
+      setLastTurn(initialTurn);
+      setLoadingState('success');
+
+      // Clear the location state to prevent re-processing on re-renders or back navigation
+      navigate(location.pathname, { replace: true, state: null });
+
       return;
     }
 
@@ -55,7 +89,7 @@ export default function GamePage() {
     };
 
     fetchLastTurn();
-  }, [characterId, navigate, retryCount]);
+  }, [characterId, navigate, retryCount, initialScenario, location.pathname]);
 
   if (loadingState === 'loading' || loadingState === 'idle') {
     return (

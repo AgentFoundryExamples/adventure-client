@@ -59,7 +59,7 @@ export default function CharactersDashboardPage() {
         <h1>Welcome to Your Adventure</h1>
         <p>You don't have any characters yet.</p>
         <p>Create your first character to begin your journey!</p>
-        <Link to="/characters/new" className="cta-button">
+        <Link to="/app/new-character" className="cta-button">
           Create Your First Character
         </Link>
       </div>
@@ -72,6 +72,12 @@ export default function CharactersDashboardPage() {
         <h1>Your Characters</h1>
         <p>{characters.length} character{characters.length !== 1 ? 's' : ''}</p>
       </header>
+
+      <div className="dashboard-actions">
+        <Link to="/app/new-character" className="button button-primary">
+          New Character
+        </Link>
+      </div>
 
       <div className="characters-grid">
         {characters.map((character) => (
