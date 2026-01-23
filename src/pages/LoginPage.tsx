@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -39,6 +38,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const isMountedRef = useRef(true);
   const navigate = useNavigate();
   const { signInWithEmailPassword, signUpWithEmailPassword, signInWithGoogle, user } = useAuth();
 
@@ -48,6 +48,13 @@ export default function LoginPage() {
       navigate('/app');
     }
   }, [user, navigate]);
+
+  // Cleanup on unmount to prevent state updates
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const validateForm = (): boolean => {
     if (!email.trim()) {
@@ -81,11 +88,12 @@ export default function LoginPage() {
       } else {
         await signUpWithEmailPassword(email, password);
       }
-      navigate('/app');
+      // Navigation handled by useEffect when user state updates
     } catch (err) {
-      setError(getFirebaseErrorMessage(err as Error));
-    } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setError(getFirebaseErrorMessage(err as Error));
+        setLoading(false);
+      }
     }
   };
 
@@ -100,11 +108,12 @@ export default function LoginPage() {
 
     try {
       await signInWithGoogle();
-      navigate('/app');
+      // Navigation handled by useEffect when user state updates
     } catch (err) {
-      setError(getFirebaseErrorMessage(err as Error));
-    } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setError(getFirebaseErrorMessage(err as Error));
+        setLoading(false);
+      }
     }
   };
 
