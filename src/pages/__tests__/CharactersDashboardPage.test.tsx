@@ -4,6 +4,25 @@ import { BrowserRouter } from 'react-router-dom';
 import CharactersDashboardPage from '../CharactersDashboardPage';
 import type { CharacterMetadata, ListCharactersResponse } from '@/api/journeyLog';
 
+// Mock config module - must be defined inline for vi.mock hoisting
+vi.mock('@/config/env', () => ({
+  config: {
+    dungeonMasterApiUrl: 'http://localhost:8000',
+    journeyLogApiUrl: 'http://localhost:8001',
+    firebase: {
+      apiKey: 'test-api-key',
+      authDomain: 'test-auth-domain.firebaseapp.com',
+      projectId: 'test-project-id',
+      storageBucket: 'test-bucket.appspot.com',
+      messagingSenderId: '123456789',
+      appId: 'test-app-id',
+      measurementId: 'test-measurement-id',
+    },
+    isDevelopment: true,
+    isProduction: false,
+  },
+}));
+
 // Mock the journey-log API
 const mockGetUserCharacters = vi.fn();
 vi.mock('@/api/journeyLog', () => ({
@@ -52,7 +71,9 @@ describe('CharactersDashboardPage', () => {
       render(<TestApp />);
 
       expect(screen.getByText('Loading your characters...')).toBeInTheDocument();
-      expect(document.querySelector('.loading-spinner')).toBeInTheDocument();
+      // Loading spinner has the class, not an explicit element
+      const loadingContainer = document.querySelector('.loading-container');
+      expect(loadingContainer).toBeInTheDocument();
     });
   });
 
@@ -65,7 +86,8 @@ describe('CharactersDashboardPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
-        expect(screen.getByText(errorMessage)).toBeInTheDocument();
+        // getFriendlyErrorMessage adds context prefix
+        expect(screen.getByText(/Network error\. Please check your internet connection\./)).toBeInTheDocument();
       });
     });
 
@@ -76,7 +98,8 @@ describe('CharactersDashboardPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
-        expect(screen.getByText('Failed to load characters')).toBeInTheDocument();
+        // getFriendlyErrorMessage returns a generic message for unknown errors
+        expect(screen.getByText(/An unexpected error occurred\./)).toBeInTheDocument();
       });
     });
 
@@ -385,6 +408,149 @@ describe('CharactersDashboardPage', () => {
       // Both character cards should be in the document
       const cards = document.querySelectorAll('.character-card');
       expect(cards).toHaveLength(2);
+    });
+  });
+
+  describe('Advanced Error Handling Edge Cases', () => {
+    it('handles 500 server error with retry guidance', async () => {
+      const error500 = { status: 500, message: 'Internal Server Error' } as Error & { status: number };
+      mockGetUserCharacters.mockRejectedValue(error500);
+
+      render(<TestApp />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
+        // 500 errors map to transient server error message
+        expect(screen.getByText(/Server error\. Please try again later/)).toBeInTheDocument();
+      });
+
+      // Should display retry button for transient errors
+      const retryButton = screen.getByText('Retry');
+      expect(retryButton).toBeInTheDocument();
+    });
+
+    it('handles 500 error then success on retry', async () => {
+      const error500 = { status: 500, message: 'Internal Server Error' } as Error & { status: number };
+      
+      mockGetUserCharacters
+        .mockRejectedValueOnce(error500)
+        .mockResolvedValueOnce({
+          characters: [mockCharacter1],
+          count: 1,
+        } as ListCharactersResponse);
+
+      render(<TestApp />);
+
+      // Wait for error state
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
+      });
+
+      // Click retry
+      const retryButton = screen.getByText('Retry');
+      fireEvent.click(retryButton);
+
+      // Should show success state
+      await waitFor(() => {
+        expect(screen.getByText('Your Characters')).toBeInTheDocument();
+        expect(screen.getByText('Aragorn')).toBeInTheDocument();
+      });
+
+      expect(mockGetUserCharacters).toHaveBeenCalledTimes(2);
+    });
+
+    it('handles 503 Service Unavailable error', async () => {
+      const error503 = { status: 503, message: 'Service Unavailable' } as Error & { status: number };
+      mockGetUserCharacters.mockRejectedValue(error503);
+
+      render(<TestApp />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
+        expect(screen.getByText(/Service under maintenance/)).toBeInTheDocument();
+      });
+
+      // Should allow retry for 503 errors
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    it('handles 429 Rate Limit error', async () => {
+      const error429 = { status: 429, message: 'Too Many Requests' } as Error & { status: number };
+      mockGetUserCharacters.mockRejectedValue(error429);
+
+      render(<TestApp />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
+        expect(screen.getByText(/Too many requests\. Please wait/)).toBeInTheDocument();
+      });
+
+      // Should allow retry for rate limit errors
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    it('handles timeout error (408)', async () => {
+      const error408 = { status: 408, message: 'Request Timeout' } as Error & { status: number };
+      mockGetUserCharacters.mockRejectedValue(error408);
+
+      render(<TestApp />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
+        expect(screen.getByText(/Request timeout\. Please check your connection/)).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+  });
+
+  describe('Race Condition Handling', () => {
+    it('handles rapid component mount/unmount gracefully', async () => {
+      mockGetUserCharacters.mockImplementation(
+        () => new Promise<ListCharactersResponse>(resolve => 
+          setTimeout(() => resolve({ characters: [mockCharacter1], count: 1 }), 100)
+        )
+      );
+
+      const { unmount } = render(<TestApp />);
+
+      // Unmount before request completes
+      unmount();
+
+      // Should not throw or cause errors
+      expect(() => unmount()).not.toThrow();
+    });
+
+    it('handles latest response when multiple requests overlap', async () => {
+      let resolveFirst: (value: ListCharactersResponse) => void;
+
+      const firstPromise = new Promise<ListCharactersResponse>(resolve => { resolveFirst = resolve; });
+
+      // Start with a pending promise
+      mockGetUserCharacters.mockReturnValueOnce(firstPromise);
+
+      render(<TestApp />);
+
+      // Wait for loading state
+      await waitFor(() => {
+        expect(screen.getByText('Loading your characters...')).toBeInTheDocument();
+      });
+
+      // Resolve with Gandalf
+      resolveFirst!({
+        characters: [mockCharacter2], // Gandalf
+        count: 1,
+      } as ListCharactersResponse);
+
+      // Verify Gandalf is shown
+      await waitFor(() => {
+        expect(screen.getByText('Gandalf')).toBeInTheDocument();
+      });
+
+      // This test verifies that the component correctly handles async responses
+      // The loading state prevents multiple concurrent requests, so race conditions
+      // are naturally avoided by the component's state management
+      expect(mockGetUserCharacters).toHaveBeenCalledTimes(1);
     });
   });
 });

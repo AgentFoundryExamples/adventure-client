@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AuthProvider } from '../AuthContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -319,6 +319,240 @@ describe('AuthContext', () => {
       expect(mockGetIdToken).toHaveBeenCalled();
       // Now expects retry failure message since we attempt refresh once
       expect(screen.getByTestId('error')).toHaveTextContent('Failed to refresh authentication token');
+    });
+  });
+
+  describe('Advanced Edge Cases', () => {
+    it('handles user becoming null mid-session (logout detection)', async () => {
+      const mockUser: Partial<FirebaseUser> = {
+        uid: 'test-uid',
+        email: 'test@example.com',
+        getIdToken: mockGetIdToken,
+      };
+
+      // Start with authenticated user
+      type AuthStateCallback = (user: Partial<FirebaseUser> | null) => void;
+      let capturedCallback: AuthStateCallback | undefined;
+      
+      mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
+        capturedCallback = callback as AuthStateCallback;
+        callback(mockUser); // Initial authenticated state
+        return unsubscribe;
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Verify user is authenticated
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('test-uid');
+      });
+
+      // Simulate Firebase detecting logout (user becomes null mid-session)
+      if (capturedCallback) {
+        capturedCallback(null);
+      }
+
+      // Should update to null user and show logout error
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('null');
+        expect(screen.getByTestId('error')).toHaveTextContent('Session expired or user logged out');
+      });
+    });
+
+    it('prevents overlapping token refresh requests', async () => {
+      mockGetIdToken.mockImplementation(() => 
+        new Promise(resolve => setTimeout(() => resolve('mock-token'), 100))
+      );
+      
+      const mockUser: Partial<FirebaseUser> = {
+        uid: 'test-uid',
+        email: 'test@example.com',
+        getIdToken: mockGetIdToken,
+      };
+
+      mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
+        callback(mockUser);
+        return unsubscribe;
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('test-uid');
+      });
+
+      // Trigger multiple concurrent token refreshes
+      const getTokenButton = screen.getByText('Get Token');
+      getTokenButton.click();
+      getTokenButton.click();
+      getTokenButton.click();
+
+      // Wait for the requests to complete
+      await waitFor(() => {
+        // Should only call getIdToken once due to deduplication
+        expect(mockGetIdToken).toHaveBeenCalledTimes(1);
+      }, { timeout: 200 });
+    });
+
+    it('retries token refresh once on first failure', async () => {
+      // First call fails, second succeeds
+      mockGetIdToken
+        .mockRejectedValueOnce(new Error('Network timeout'))
+        .mockResolvedValueOnce('mock-token-after-retry');
+      
+      const mockUser: Partial<FirebaseUser> = {
+        uid: 'test-uid',
+        email: 'test@example.com',
+        getIdToken: mockGetIdToken,
+      };
+
+      mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
+        callback(mockUser);
+        return unsubscribe;
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('test-uid');
+      });
+
+      const getTokenButton = screen.getByText('Get Token');
+      getTokenButton.click();
+
+      // Should automatically retry and succeed
+      await waitFor(() => {
+        // Called twice: initial attempt + retry with forceRefresh=true
+        expect(mockGetIdToken).toHaveBeenCalledTimes(2);
+        expect(mockGetIdToken).toHaveBeenNthCalledWith(1, false);
+        expect(mockGetIdToken).toHaveBeenNthCalledWith(2, true);
+        // Error should not be set since retry succeeded
+        expect(screen.getByTestId('error')).toHaveTextContent('null');
+      });
+    });
+
+    it('clears token refresh promise on successful retry', async () => {
+      // First request fails then succeeds on retry
+      mockGetIdToken
+        .mockRejectedValueOnce(new Error('Temporary error'))
+        .mockResolvedValueOnce('token-1')
+        .mockResolvedValueOnce('token-2');
+      
+      const mockUser: Partial<FirebaseUser> = {
+        uid: 'test-uid',
+        email: 'test@example.com',
+        getIdToken: mockGetIdToken,
+      };
+
+      mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
+        callback(mockUser);
+        return unsubscribe;
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('test-uid');
+      });
+
+      const getTokenButton = screen.getByText('Get Token');
+      
+      // First attempt (with retry)
+      getTokenButton.click();
+      await waitFor(() => {
+        expect(mockGetIdToken).toHaveBeenCalledTimes(2); // Initial + retry
+      });
+
+      // Second attempt should start fresh (not reuse cleared promise)
+      getTokenButton.click();
+      await waitFor(() => {
+        expect(mockGetIdToken).toHaveBeenCalledTimes(3); // New call
+      });
+    });
+
+    it('clears token refresh promise on logout and handles late resolution', async () => {
+      let resolveTokenRefresh: (value: string) => void;
+      const slowPromise = new Promise<string>(resolve => {
+        resolveTokenRefresh = resolve;
+      });
+      mockGetIdToken.mockReturnValue(slowPromise);
+      mockSignOut.mockResolvedValue(undefined);
+
+      const mockUser: Partial<FirebaseUser> = {
+        uid: 'test-uid',
+        email: 'test@example.com',
+        getIdToken: mockGetIdToken,
+      };
+
+      type AuthStateCallback = (user: Partial<FirebaseUser> | null) => void;
+      let capturedCallback: AuthStateCallback | undefined;
+      
+      mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
+        capturedCallback = callback as AuthStateCallback;
+        callback(mockUser); // Initial login
+        return unsubscribe;
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('test-uid');
+      });
+
+      // Start a slow token refresh
+      const getTokenButton = screen.getByText('Get Token');
+      fireEvent.click(getTokenButton);
+      await waitFor(() => {
+        expect(mockGetIdToken).toHaveBeenCalledTimes(1);
+      });
+
+      // Trigger logout mid-flight
+      const signOutButton = screen.getByText('Sign Out');
+      fireEvent.click(signOutButton);
+      await waitFor(() => {
+        expect(mockSignOut).toHaveBeenCalled();
+      });
+      
+      // Simulate onAuthStateChanged firing with null
+      if (capturedCallback) {
+        await act(async () => {
+          capturedCallback!(null);
+          await new Promise(resolve => setTimeout(resolve, 0));
+        });
+      }
+
+      // Wait for logout to be reflected
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('null');
+      });
+
+      // Now, resolve the original promise after logout has completed
+      // This should not cause any state updates or errors.
+      resolveTokenRefresh!('stale-token');
+      await new Promise(resolve => setImmediate(resolve)); // Allow microtasks to run
+
+      // Final state should still be logged out
+      expect(screen.getByTestId('user')).toHaveTextContent('null');
     });
   });
 });
