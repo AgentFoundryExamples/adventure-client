@@ -17,14 +17,6 @@
 
 import type { User as FirebaseUser } from 'firebase/auth';
 
-export interface User {
-  id: string;
-  email: string;
-  displayName: string;
-  avatarUrl?: string;
-  createdAt: Date;
-}
-
 export interface AuthState {
   user: FirebaseUser | null;
   uid: string | null;
