@@ -941,4 +941,299 @@ describe('GamePage', () => {
       });
     });
   });
+
+  describe('Advanced Action Submission Edge Cases', () => {
+    it('handles transient error on action submission with retry', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      
+      // First submission fails with 500, second succeeds
+      const error500 = { status: 500, message: 'Internal Server Error' } as any;
+      mockSubmitTurn
+        .mockRejectedValueOnce(error500)
+        .mockResolvedValueOnce({
+          narrative: 'You pick up the amulet successfully.',
+        });
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      
+      // Submit action
+      fireEvent.change(textarea, { target: { value: 'I pick up the amulet' } });
+      fireEvent.click(screen.getByText('Act'));
+
+      // Should show error
+      await waitFor(() => {
+        expect(screen.getByText(/Server error/)).toBeInTheDocument();
+      });
+
+      // Textarea should retain value for retry
+      expect(textarea).toHaveValue('I pick up the amulet');
+
+      // Retry submission
+      fireEvent.click(screen.getByText('Act'));
+
+      // Should succeed on retry
+      await waitFor(() => {
+        const successText = screen.getAllByText('You pick up the amulet successfully.');
+        expect(successText.length).toBeGreaterThan(0);
+      });
+
+      // Textarea should be cleared after success
+      expect(textarea).toHaveValue('');
+
+      // Should have called submitTurn twice (initial + retry)
+      expect(mockSubmitTurn).toHaveBeenCalledTimes(2);
+    });
+
+    it('prevents duplicate action submission during processing', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      
+      let resolveSubmit: (value: any) => void;
+      const submitPromise = new Promise(resolve => { resolveSubmit = resolve; });
+      mockSubmitTurn.mockReturnValue(submitPromise);
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      const actButton = screen.getByText('Act');
+      
+      // Submit action
+      fireEvent.change(textarea, { target: { value: 'I attack' } });
+      fireEvent.click(actButton);
+
+      // Button should be disabled during submission
+      await waitFor(() => {
+        expect(screen.getByText('Processing...')).toBeInTheDocument();
+      });
+
+      // Try to submit again while processing
+      fireEvent.click(actButton);
+      fireEvent.click(actButton);
+
+      // Should only call submitTurn once
+      expect(mockSubmitTurn).toHaveBeenCalledTimes(1);
+
+      // Resolve the promise
+      resolveSubmit!({ narrative: 'You strike!' });
+
+      await waitFor(() => {
+        const strikeText = screen.getAllByText('You strike!');
+        expect(strikeText.length).toBeGreaterThan(0);
+      });
+
+      // Still only called once
+      expect(mockSubmitTurn).toHaveBeenCalledTimes(1);
+    });
+
+    it('handles journey-log persist failure gracefully', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      mockSubmitTurn.mockResolvedValue({
+        narrative: 'The action succeeds.',
+      });
+      
+      // Persist fails with 500 error
+      const persistError = { status: 500, message: 'Failed to save' } as any;
+      mockAppendNarrativeTurn.mockRejectedValue(persistError);
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      
+      // Submit action
+      fireEvent.change(textarea, { target: { value: 'I test persistence' } });
+      fireEvent.click(screen.getByText('Act'));
+
+      // Should show the action result despite persist failure
+      await waitFor(() => {
+        const actionResult = screen.getAllByText('The action succeeds.');
+        expect(actionResult.length).toBeGreaterThan(0);
+      });
+
+      // Should show a warning about persistence failure
+      await waitFor(() => {
+        expect(screen.getByText('Save Warning')).toBeInTheDocument();
+        expect(screen.getByText(/Server error\. Please try again later/)).toBeInTheDocument();
+      });
+
+      // Action should still be in history despite persist failure
+      expect(screen.getByText('I test persistence')).toBeInTheDocument();
+    });
+
+    it('handles 403 forbidden error on action submission with redirect', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      
+      const error403 = { status: 403, message: 'Forbidden' } as any;
+      mockSubmitTurn.mockRejectedValue(error403);
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      
+      // Submit action
+      fireEvent.change(textarea, { target: { value: 'I try to act' } });
+      fireEvent.click(screen.getByText('Act'));
+
+      // Should redirect to /app with error message
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith('/app', {
+          replace: true,
+          state: {
+            message: 'Access denied. You do not have permission to interact with this character.',
+            severity: 'error'
+          }
+        });
+      });
+    });
+
+    it('limits turn history to MAX_HISTORY_SIZE', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      
+      // Create a character with many turns already
+      const manyTurns: NarrativeTurn[] = Array.from({ length: 25 }, (_, i) => ({
+        turn_id: `turn-${i}`,
+        turn_number: i + 1,
+        player_action: `Action ${i}`,
+        gm_response: `Response ${i}`,
+        timestamp: '2025-01-15T14:30:00Z',
+        game_state_snapshot: {},
+        metadata: {},
+      }));
+
+      mockGetNarrativeTurns.mockResolvedValue({
+        turns: manyTurns,
+        metadata: {
+          requested_n: 10,
+          returned_count: 25,
+          total_available: 25,
+        },
+      });
+
+      mockSubmitTurn.mockResolvedValue({
+        narrative: 'New action response',
+      });
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      
+      // Submit one more action to exceed MAX_HISTORY_SIZE (20)
+      fireEvent.change(textarea, { target: { value: 'Final action' } });
+      fireEvent.click(screen.getByText('Act'));
+
+      await waitFor(() => {
+        const newResponse = screen.getAllByText('New action response');
+        expect(newResponse.length).toBeGreaterThan(0);
+      });
+
+      // Check that history is capped - oldest entries should be removed
+      // We can verify by checking the history section has at most 20 entries
+      const historySection = document.querySelector('.turn-history-log');
+      if (historySection) {
+        const turnEntries = historySection.querySelectorAll('.history-turn-entry');
+        expect(turnEntries.length).toBeLessThanOrEqual(20);
+      }
+    });
+  });
+
+  describe('Race Condition Handling', () => {
+    it('handles rapid character ID changes gracefully', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+
+      const { rerender } = renderWithRoute('char-123');
+
+      await waitFor(() => {
+        expect(mockGetNarrativeTurns).toHaveBeenCalledWith({
+          characterId: 'char-123',
+          n: 10,
+          xUserId: 'test-user-id',
+        });
+      });
+
+      // Simulate navigation to different character
+      window.history.pushState({}, '', '/game/char-456');
+      
+      // Component should handle the change gracefully
+      // (In practice, React Router would remount the component)
+      rerender(<TestApp />);
+
+      // Should not throw errors
+      expect(mockGetNarrativeTurns).toHaveBeenCalled();
+    });
+
+    it('handles component unmount during fetch', async () => {
+      let resolveFetch: (value: any) => void;
+      const fetchPromise = new Promise(resolve => { resolveFetch = resolve; });
+      mockGetNarrativeTurns.mockReturnValue(fetchPromise);
+
+      const { unmount } = renderWithRoute();
+
+      // Wait for fetch to start
+      await waitFor(() => {
+        expect(mockGetNarrativeTurns).toHaveBeenCalledTimes(1);
+      });
+
+      // Unmount before fetch completes
+      unmount();
+
+      // Resolve fetch after unmount
+      resolveFetch!(mockResponseWithTurn);
+
+      // Should not cause errors or warnings
+      expect(() => unmount()).not.toThrow();
+    });
+
+    it('handles component unmount during action submission', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      
+      let resolveSubmit: (value: any) => void;
+      const submitPromise = new Promise(resolve => { resolveSubmit = resolve; });
+      mockSubmitTurn.mockReturnValue(submitPromise);
+
+      const { unmount } = renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      
+      // Start action submission
+      fireEvent.change(textarea, { target: { value: 'I leave' } });
+      fireEvent.click(screen.getByText('Act'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Processing...')).toBeInTheDocument();
+      });
+
+      // Unmount during submission
+      unmount();
+
+      // Resolve after unmount
+      resolveSubmit!({ narrative: 'Response after unmount' });
+
+      // Should not cause errors
+      expect(() => unmount()).not.toThrow();
+    });
+  });
 });

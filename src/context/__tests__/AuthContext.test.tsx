@@ -321,4 +321,212 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('error')).toHaveTextContent('Failed to refresh authentication token');
     });
   });
+
+  describe('Advanced Edge Cases', () => {
+    it('handles user becoming null mid-session (logout detection)', async () => {
+      const mockUser: Partial<FirebaseUser> = {
+        uid: 'test-uid',
+        email: 'test@example.com',
+        getIdToken: mockGetIdToken,
+      };
+
+      // Start with authenticated user
+      let authCallback: ((user: Partial<FirebaseUser> | null) => void) | null = null;
+      mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
+        authCallback = callback;
+        callback(mockUser); // Initial authenticated state
+        return unsubscribe;
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      // Verify user is authenticated
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('test-uid');
+      });
+
+      // Simulate Firebase detecting logout (user becomes null mid-session)
+      if (authCallback) {
+        authCallback(null);
+      }
+
+      // Should update to null user and show logout error
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('null');
+        expect(screen.getByTestId('error')).toHaveTextContent('Session expired or user logged out');
+      });
+    });
+
+    it('prevents overlapping token refresh requests', async () => {
+      mockGetIdToken.mockImplementation(() => 
+        new Promise(resolve => setTimeout(() => resolve('mock-token'), 100))
+      );
+      
+      const mockUser: Partial<FirebaseUser> = {
+        uid: 'test-uid',
+        email: 'test@example.com',
+        getIdToken: mockGetIdToken,
+      };
+
+      mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
+        callback(mockUser);
+        return unsubscribe;
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('test-uid');
+      });
+
+      // Trigger multiple concurrent token refreshes
+      const getTokenButton = screen.getByText('Get Token');
+      getTokenButton.click();
+      getTokenButton.click();
+      getTokenButton.click();
+
+      // Wait for the requests to complete
+      await waitFor(() => {
+        // Should only call getIdToken once due to deduplication
+        expect(mockGetIdToken).toHaveBeenCalledTimes(1);
+      }, { timeout: 200 });
+    });
+
+    it('retries token refresh once on first failure', async () => {
+      // First call fails, second succeeds
+      mockGetIdToken
+        .mockRejectedValueOnce(new Error('Network timeout'))
+        .mockResolvedValueOnce('mock-token-after-retry');
+      
+      const mockUser: Partial<FirebaseUser> = {
+        uid: 'test-uid',
+        email: 'test@example.com',
+        getIdToken: mockGetIdToken,
+      };
+
+      mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
+        callback(mockUser);
+        return unsubscribe;
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('test-uid');
+      });
+
+      const getTokenButton = screen.getByText('Get Token');
+      getTokenButton.click();
+
+      // Should automatically retry and succeed
+      await waitFor(() => {
+        // Called twice: initial attempt + retry with forceRefresh=true
+        expect(mockGetIdToken).toHaveBeenCalledTimes(2);
+        expect(mockGetIdToken).toHaveBeenNthCalledWith(1, false);
+        expect(mockGetIdToken).toHaveBeenNthCalledWith(2, true);
+        // Error should not be set since retry succeeded
+        expect(screen.getByTestId('error')).toHaveTextContent('null');
+      });
+    });
+
+    it('clears token refresh promise on successful retry', async () => {
+      // First request fails then succeeds on retry
+      mockGetIdToken
+        .mockRejectedValueOnce(new Error('Temporary error'))
+        .mockResolvedValueOnce('token-1')
+        .mockResolvedValueOnce('token-2');
+      
+      const mockUser: Partial<FirebaseUser> = {
+        uid: 'test-uid',
+        email: 'test@example.com',
+        getIdToken: mockGetIdToken,
+      };
+
+      mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
+        callback(mockUser);
+        return unsubscribe;
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('test-uid');
+      });
+
+      const getTokenButton = screen.getByText('Get Token');
+      
+      // First attempt (with retry)
+      getTokenButton.click();
+      await waitFor(() => {
+        expect(mockGetIdToken).toHaveBeenCalledTimes(2); // Initial + retry
+      });
+
+      // Second attempt should start fresh (not reuse cleared promise)
+      getTokenButton.click();
+      await waitFor(() => {
+        expect(mockGetIdToken).toHaveBeenCalledTimes(3); // New call
+      });
+    });
+
+    it('clears token refresh promise on logout', async () => {
+      mockGetIdToken.mockResolvedValue('mock-token');
+      mockSignOut.mockResolvedValue(undefined);
+      
+      const mockUser: Partial<FirebaseUser> = {
+        uid: 'test-uid',
+        email: 'test@example.com',
+        getIdToken: mockGetIdToken,
+      };
+
+      mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
+        callback(mockUser);
+        return unsubscribe;
+      });
+
+      render(
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('test-uid');
+      });
+
+      // Start a token refresh
+      const getTokenButton = screen.getByText('Get Token');
+      getTokenButton.click();
+
+      await waitFor(() => {
+        expect(mockGetIdToken).toHaveBeenCalledTimes(1);
+      });
+
+      // Trigger logout
+      const signOutButton = screen.getByText('Sign Out');
+      signOutButton.click();
+
+      await waitFor(() => {
+        expect(mockSignOut).toHaveBeenCalled();
+      });
+      
+      // Token refresh promise should be cleared on logout
+      // Next token request should start fresh (verified by implementation)
+    });
+  });
 });

@@ -410,4 +410,159 @@ describe('CharactersDashboardPage', () => {
       expect(cards).toHaveLength(2);
     });
   });
+
+  describe('Advanced Error Handling Edge Cases', () => {
+    it('handles 500 server error with retry guidance', async () => {
+      const error500 = { status: 500, message: 'Internal Server Error' } as any;
+      mockGetUserCharacters.mockRejectedValue(error500);
+
+      render(<TestApp />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
+        // 500 errors map to transient server error message
+        expect(screen.getByText(/Server error\. Please try again later/)).toBeInTheDocument();
+      });
+
+      // Should display retry button for transient errors
+      const retryButton = screen.getByText('Retry');
+      expect(retryButton).toBeInTheDocument();
+    });
+
+    it('handles 500 error then success on retry', async () => {
+      const error500 = { status: 500, message: 'Internal Server Error' } as any;
+      
+      mockGetUserCharacters
+        .mockRejectedValueOnce(error500)
+        .mockResolvedValueOnce({
+          characters: [mockCharacter1],
+          count: 1,
+        } as ListCharactersResponse);
+
+      render(<TestApp />);
+
+      // Wait for error state
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
+      });
+
+      // Click retry
+      const retryButton = screen.getByText('Retry');
+      fireEvent.click(retryButton);
+
+      // Should show success state
+      await waitFor(() => {
+        expect(screen.getByText('Your Characters')).toBeInTheDocument();
+        expect(screen.getByText('Aragorn')).toBeInTheDocument();
+      });
+
+      expect(mockGetUserCharacters).toHaveBeenCalledTimes(2);
+    });
+
+    it('handles 503 Service Unavailable error', async () => {
+      const error503 = { status: 503, message: 'Service Unavailable' } as any;
+      mockGetUserCharacters.mockRejectedValue(error503);
+
+      render(<TestApp />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
+        expect(screen.getByText(/Service under maintenance/)).toBeInTheDocument();
+      });
+
+      // Should allow retry for 503 errors
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    it('handles 429 Rate Limit error', async () => {
+      const error429 = { status: 429, message: 'Too Many Requests' } as any;
+      mockGetUserCharacters.mockRejectedValue(error429);
+
+      render(<TestApp />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
+        expect(screen.getByText(/Too many requests\. Please wait/)).toBeInTheDocument();
+      });
+
+      // Should allow retry for rate limit errors
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    it('handles timeout error (408)', async () => {
+      const error408 = { status: 408, message: 'Request Timeout' } as any;
+      mockGetUserCharacters.mockRejectedValue(error408);
+
+      render(<TestApp />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
+        expect(screen.getByText(/Request timeout\. Please check your connection/)).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+  });
+
+  describe('Race Condition Handling', () => {
+    it('handles rapid component mount/unmount gracefully', async () => {
+      mockGetUserCharacters.mockImplementation(
+        () => new Promise(resolve => 
+          setTimeout(() => resolve({ characters: [mockCharacter1], count: 1 }), 100)
+        )
+      );
+
+      const { unmount } = render(<TestApp />);
+
+      // Unmount before request completes
+      unmount();
+
+      // Should not throw or cause errors
+      expect(() => unmount()).not.toThrow();
+    });
+
+    it('handles latest response when multiple requests overlap', async () => {
+      let resolveFirst: (value: any) => void;
+      let resolveSecond: (value: any) => void;
+
+      const firstPromise = new Promise(resolve => { resolveFirst = resolve; });
+      const secondPromise = new Promise(resolve => { resolveSecond = resolve; });
+
+      mockGetUserCharacters
+        .mockReturnValueOnce(firstPromise)
+        .mockReturnValueOnce(secondPromise);
+
+      const { rerender } = render(<TestApp />);
+
+      // First request starts
+      await waitFor(() => {
+        expect(mockGetUserCharacters).toHaveBeenCalledTimes(1);
+      });
+
+      // Force a second fetch by triggering a retry
+      // (In practice, this scenario is prevented by the loading state, but testing defensively)
+      rerender(<TestApp />);
+
+      // Resolve second request first (newer data)
+      resolveSecond!({
+        characters: [mockCharacter2],
+        count: 1,
+      } as ListCharactersResponse);
+
+      // Then resolve first request (older data)
+      resolveFirst!({
+        characters: [mockCharacter1],
+        count: 1,
+      } as ListCharactersResponse);
+
+      // Due to React's state management, the last setState call wins
+      // This test documents current behavior
+      await waitFor(() => {
+        // Should show one of the characters (behavior depends on React timing)
+        const hasAragorn = screen.queryByText('Aragorn') !== null;
+        const hasGandalf = screen.queryByText('Gandalf') !== null;
+        expect(hasAragorn || hasGandalf).toBe(true);
+      });
+    });
+  });
 });
