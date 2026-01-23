@@ -78,16 +78,6 @@ body {
   outline-offset: var(--focus-outline-offset);
 }
 
-/* Ensure focus is never clipped */
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  position: relative;
-  z-index: 1;
-}
-
 /* Respect reduced motion preference */
 @media (prefers-reduced-motion: reduce) {
   *,

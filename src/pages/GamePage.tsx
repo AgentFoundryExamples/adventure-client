@@ -395,7 +395,6 @@ export default function GamePage() {
               placeholder="Describe your action... (Press Ctrl+Enter to submit)"
               disabled={isSubmitting}
               rows={4}
-              aria-label="Describe your action"
               aria-describedby="action-hint"
             />
             <div className="form-actions">
