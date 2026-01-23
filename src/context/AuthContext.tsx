@@ -65,10 +65,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (!firebaseUser && previousUser !== null && !isInitialLoad) {
           console.warn('[AuthContext] User became null mid-session, redirecting to login');
           setUser(null);
-          setError(createAuthError(
-            'Session expired or user logged out',
-            'no-user'
-          ));
+          setError({
+            message: 'Session expired or user logged out',
+            reason: 'no-user'
+          });
           // Clear any pending token refresh promises
           tokenRefreshPromiseRef.current = null;
           hasAttemptedRefreshRef.current.clear();
@@ -88,11 +88,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       },
       (err) => {
         console.error('[AuthContext] Auth state change error:', err);
-        const authError = createAuthError(
-          err instanceof Error ? err.message : 'Authentication state error',
-          'firebase-error',
-          err instanceof Error && 'code' in err ? (err as { code: string }).code : undefined
-        );
+        const authError: AuthError = {
+          message: err instanceof Error ? err.message : 'Authentication state error',
+          reason: 'firebase-error',
+          code: err instanceof Error && 'code' in err ? (err as { code: string }).code : undefined
+        };
         setError(authError);
         if (isInitialLoad) {
           setLoading(false);
@@ -103,7 +103,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, [createAuthError, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const signInWithEmailPassword = useCallback(async (email: string, password: string) => {
     setError(null);
@@ -217,7 +218,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           } catch (retryErr) {
             console.error('[AuthContext] Token refresh attempt failed:', retryErr);
             
-            // Both attempts failed, logout and redirect
+            // Both attempts failed - set error and clear state
+            // Don't logout/navigate here - let the caller or HTTP client handle it
             const authError = createAuthError(
               'Failed to refresh authentication token',
               'token-refresh-failed',
@@ -225,23 +227,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
             );
             setError(authError);
             
-            // Clear state and redirect to login
+            // Clear state
             tokenRefreshPromiseRef.current = null;
             hasAttemptedRefreshRef.current.clear();
-            
-            console.warn('[AuthContext] Token refresh failed after retry, logging out');
-            const auth = getFirebaseAuth();
-            await signOut(auth).catch(signOutErr => {
-              console.error('[AuthContext] Failed to sign out after token refresh failure:', signOutErr);
-            });
-            
-            navigate('/login', {
-              replace: true,
-              state: { 
-                message: 'Your session has expired. Please log in again.',
-                reason: 'token-refresh-failed'
-              }
-            });
             
             throw authError;
           }
@@ -266,7 +254,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
 
     return refreshPromise;
-  }, [user, createAuthError, navigate]);
+  }, [user, createAuthError]);
 
   const value: AuthContextValue = useMemo(
     () => ({
