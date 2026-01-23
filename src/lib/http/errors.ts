@@ -110,3 +110,103 @@ export function wrapError(error: unknown, defaultMessage = 'Network request fail
     originalError: error instanceof Error ? error.message : String(error),
   });
 }
+
+/**
+ * Maps HTTP status codes to user-friendly error messages
+ * Provides actionable copy for common HTTP errors with retry guidance
+ */
+export function getHttpErrorMessage(statusCode: number, context?: string): string {
+  const prefix = context ? `${context}: ` : '';
+  
+  switch (statusCode) {
+    case 400:
+      return `${prefix}Invalid request. Please check your input and try again.`;
+    case 401:
+      return `${prefix}Authentication failed. Please log in again.`;
+    case 403:
+      return `${prefix}Access denied. You don't have permission to access this resource.`;
+    case 404:
+      return `${prefix}Resource not found. It may have been moved or deleted.`;
+    case 408:
+      return `${prefix}Request timeout. Please check your connection and try again.`;
+    case 429:
+      return `${prefix}Too many requests. Please wait a moment before trying again.`;
+    case 500:
+      return `${prefix}Server error. Please try again later or contact support.`;
+    case 502:
+      return `${prefix}Service temporarily unavailable. Please try again in a few moments.`;
+    case 503:
+      return `${prefix}Service under maintenance. Please try again later.`;
+    case 504:
+      return `${prefix}Gateway timeout. The server is taking too long to respond.`;
+    default:
+      if (statusCode >= 500) {
+        return `${prefix}Server error (${statusCode}). Please try again later.`;
+      } else if (statusCode >= 400) {
+        return `${prefix}Request failed (${statusCode}). Please check your input.`;
+      } else if (statusCode === 0) {
+        return `${prefix}Network error. Please check your internet connection.`;
+      }
+      return `${prefix}An unexpected error occurred (${statusCode}).`;
+  }
+}
+
+/**
+ * Determines if an error is likely transient and worth retrying
+ */
+export function isTransientError(statusCode: number): boolean {
+  return [408, 429, 500, 502, 503, 504].includes(statusCode) || statusCode === 0;
+}
+
+/**
+ * Gets a friendly error message from an ApiError or unknown error
+ * Includes context and retry guidance where appropriate
+ */
+export function getFriendlyErrorMessage(error: unknown, context?: string): {
+  message: string;
+  shouldRetry: boolean;
+} {
+  if (isApiError(error)) {
+    return {
+      message: getHttpErrorMessage(error.status, context),
+      shouldRetry: isTransientError(error.status),
+    };
+  }
+
+  // Handle network errors
+  if (error instanceof Error) {
+    const errorName = error.name.toLowerCase();
+    
+    // Network timeout or offline
+    if (errorName === 'aborterror' || error.message.toLowerCase().includes('timeout')) {
+      return {
+        message: context 
+          ? `${context}: Request timeout. Please check your connection and try again.`
+          : 'Request timeout. Please check your connection and try again.',
+        shouldRetry: true,
+      };
+    }
+    
+    // Network error or fetch failure
+    if (errorName === 'networkerror' || error.message.toLowerCase().includes('failed to fetch')) {
+      return {
+        message: context
+          ? `${context}: Network error. Please check your internet connection.`
+          : 'Network error. Please check your internet connection.',
+        shouldRetry: true,
+      };
+    }
+
+    return {
+      message: context ? `${context}: ${error.message}` : error.message,
+      shouldRetry: false,
+    };
+  }
+
+  return {
+    message: context 
+      ? `${context}: An unexpected error occurred.`
+      : 'An unexpected error occurred.',
+    shouldRetry: false,
+  };
+}

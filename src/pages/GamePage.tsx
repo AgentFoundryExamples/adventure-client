@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { submitTurn, CharactersService } from '@/api';
 import type { GetNarrativeResponse, NarrativeTurn, TurnResponse } from '@/api';
 import { useAuth } from '@/hooks/useAuth';
+import { ErrorNotice, LoadingSpinner } from '@/components';
+import { getFriendlyErrorMessage, isApiError } from '@/lib/http/errors';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -17,13 +19,6 @@ interface Turn {
   player_action: string;
   gm_response: string;
   timestamp?: string;
-}
-
-// Helper function to extract HTTP status from error
-function getErrorStatus(err: unknown): number | undefined {
-  return err && typeof err === 'object' && 'status' in err 
-    ? (err as { status: number }).status 
-    : undefined;
 }
 
 // Maximum number of turns to keep in history to prevent unbounded growth
@@ -127,26 +122,31 @@ export default function GamePage() {
       } catch (err) {
         console.error('Failed to fetch last turn:', err);
         
+        // Use centralized error handling
+        const { message } = getFriendlyErrorMessage(err, 'Failed to load game state');
+        
         // Handle specific error codes
-        const status = getErrorStatus(err);
-        if (status === 404) {
-          setError('Character not found');
-          setLoadingState('error');
-        } else if (status === 403) {
-          // Access denied - redirect to /app with error message
-          console.warn('Access denied to character, redirecting to /app');
-          navigate('/app', {
-            replace: true,
-            state: {
-              message: 'Access denied. You do not have permission to view this character.',
-              severity: 'error'
-            }
-          });
-        } else if (status === 401) {
-          setError('Unauthorized. Please log in again.');
-          setLoadingState('error');
+        if (isApiError(err)) {
+          const status = err.status;
+          if (status === 404) {
+            setError('Character not found. It may have been deleted.');
+            setLoadingState('error');
+          } else if (status === 403) {
+            // Access denied - redirect to /app with error message
+            console.warn('Access denied to character, redirecting to /app');
+            navigate('/app', {
+              replace: true,
+              state: {
+                message: 'Access denied. You do not have permission to view this character.',
+                severity: 'error'
+              }
+            });
+          } else {
+            setError(message);
+            setLoadingState('error');
+          }
         } else {
-          setError(err instanceof Error ? err.message : 'Failed to load last turn');
+          setError(message);
           setLoadingState('error');
         }
       }
@@ -201,13 +201,15 @@ export default function GamePage() {
       } catch (persistErr) {
         console.error('Failed to persist turn to journey-log:', persistErr);
         
+        // Use centralized error handling for persist warnings
+        const { message } = getFriendlyErrorMessage(persistErr, 'Failed to save turn');
+        
         // Show warning but don't block - DM response is still displayed
-        const status = getErrorStatus(persistErr);
-        if (status === 403) {
+        if (isApiError(persistErr) && persistErr.status === 403) {
           setPersistWarning('Unable to save turn: Access denied.');
           console.warn('Access denied when persisting turn - character may be owned by another user');
         } else {
-          setPersistWarning('Warning: Failed to save turn to history. Your progress may not be saved.');
+          setPersistWarning(message);
         }
       }
 
@@ -231,27 +233,31 @@ export default function GamePage() {
     } catch (err) {
       console.error('Failed to submit action:', err);
       
-      // Handle specific error codes
-      const status = getErrorStatus(err);
+      // Use centralized error handling
+      const { message } = getFriendlyErrorMessage(err, 'Failed to submit action');
       
-      if (status === 403) {
-        // Access denied - redirect to /app with error message
-        console.warn('Access denied when submitting turn, redirecting to /app');
-        navigate('/app', {
-          replace: true,
-          state: {
-            message: 'Access denied. You do not have permission to interact with this character.',
-            severity: 'error'
-          }
-        });
-      } else if (status === 401) {
-        setSubmitError('Authentication failed. Please log in again.');
-      } else if (status === 404) {
-        setSubmitError('Character not found.');
-      } else if (status === 429) {
-        setSubmitError('Too many requests. Please wait a moment and try again.');
+      // Handle specific error codes with redirects or specific messages
+      if (isApiError(err)) {
+        const status = err.status;
+        
+        if (status === 403) {
+          // Access denied - redirect to /app with error message
+          console.warn('Access denied when submitting turn, redirecting to /app');
+          navigate('/app', {
+            replace: true,
+            state: {
+              message: 'Access denied. You do not have permission to interact with this character.',
+              severity: 'error'
+            }
+          });
+          return;
+        } else if (status === 404) {
+          setSubmitError('Character not found. It may have been deleted.');
+        } else {
+          setSubmitError(message);
+        }
       } else {
-        setSubmitError(err instanceof Error ? err.message : 'Failed to submit action. Please try again.');
+        setSubmitError(message);
       }
     } finally {
       setIsSubmitting(false);
@@ -274,8 +280,7 @@ export default function GamePage() {
   if (loadingState === 'loading' || loadingState === 'idle') {
     return (
       <div className="loading-container">
-        <div className="loading-spinner" />
-        <p>Loading last turn...</p>
+        <LoadingSpinner size="large" label="Loading game state..." />
       </div>
     );
   }
@@ -283,15 +288,16 @@ export default function GamePage() {
   if (loadingState === 'error') {
     return (
       <div className="error-state">
-        <h2>Unable to Load Last Turn</h2>
-        <p className="error-message">{error}</p>
-        {error?.includes('Unauthorized') ? (
-          <button onClick={() => navigate('/login')} className="retry-button">
+        <ErrorNotice
+          title="Unable to Load Game"
+          message={error || 'An unexpected error occurred'}
+          severity="error"
+          variant="inline"
+          onRetry={error?.includes('log in') ? undefined : handleRetry}
+        />
+        {error?.includes('log in') && (
+          <button onClick={() => navigate('/login')} className="cta-button" style={{ marginTop: '16px' }}>
             Go to Login
-          </button>
-        ) : (
-          <button onClick={handleRetry} className="retry-button">
-            Retry
           </button>
         )}
       </div>
@@ -362,15 +368,23 @@ export default function GamePage() {
           <h2>What do you do?</h2>
           
           {submitError && (
-            <div className="submit-error-message">
-              <strong>Error:</strong> {submitError}
-            </div>
+            <ErrorNotice
+              title="Action Failed"
+              message={submitError}
+              severity="error"
+              variant="inline"
+              onDismiss={() => setSubmitError(null)}
+            />
           )}
           
           {persistWarning && (
-            <div className="persist-warning-message">
-              <strong>Warning:</strong> {persistWarning}
-            </div>
+            <ErrorNotice
+              title="Save Warning"
+              message={persistWarning}
+              severity="warning"
+              variant="inline"
+              onDismiss={() => setPersistWarning(null)}
+            />
           )}
 
           <div className="action-input-form">
@@ -391,8 +405,8 @@ export default function GamePage() {
               >
                 {isSubmitting ? (
                   <>
-                    <span className="button-spinner" />
-                    Processing...
+                    <LoadingSpinner size="small" />
+                    <span style={{ marginLeft: '8px' }}>Processing...</span>
                   </>
                 ) : (
                   'Act'

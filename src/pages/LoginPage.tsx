@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { ErrorNotice } from '@/components';
+import { ErrorNotice, LoadingSpinner } from '@/components';
 
 type AuthMode = 'signin' | 'signup';
 
@@ -175,7 +175,15 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
-          {error && <div className="error-message">{error}</div>}
+          {error && (
+            <ErrorNotice
+              title="Authentication Error"
+              message={error}
+              severity="error"
+              variant="inline"
+              onDismiss={() => setError(null)}
+            />
+          )}
           
           <div className="form-group">
             <label htmlFor="email">Email</label>
@@ -202,7 +210,12 @@ export default function LoginPage() {
           </div>
 
           <button type="submit" className="submit-button" disabled={loading}>
-            {loading ? 'Please wait...' : mode === 'signin' ? 'Sign In' : 'Sign Up'}
+            {loading ? (
+              <>
+                <LoadingSpinner size="small" />
+                <span style={{ marginLeft: '8px' }}>Please wait...</span>
+              </>
+            ) : mode === 'signin' ? 'Sign In' : 'Sign Up'}
           </button>
         </form>
 

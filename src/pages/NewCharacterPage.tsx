@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { createCharacter } from '@/api';
 import type { CharacterCreationRequest } from '@/api';
+import { ErrorNotice, LoadingSpinner } from '@/components';
+import { getFriendlyErrorMessage } from '@/lib/http/errors';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -115,13 +117,14 @@ export default function NewCharacterPage() {
       console.error('Character creation failed:', err);
       setLoadingState('error');
 
+      // Use centralized error handling
+      const { message } = getFriendlyErrorMessage(err, 'Character creation failed');
+      
       // Handle specific error types
       if (err && typeof err === 'object' && 'status' in err) {
         const status = (err as { status: number }).status;
         
-        if (status === 401 || status === 403) {
-          setErrors({ submit: 'Authentication failed. Please log in again.' });
-        } else if (status === 422) {
+        if (status === 422) {
           // Validation error from server
           const body = (err as { body?: { detail?: string | Array<{ msg: string; loc: string[] }> } }).body;
           if (body?.detail) {
@@ -142,17 +145,12 @@ export default function NewCharacterPage() {
           } else {
             setErrors({ submit: 'Validation failed. Please check your input.' });
           }
-        } else if (status === 429) {
-          setErrors({ submit: 'Too many requests. Please try again later.' });
-        } else if (status >= 500) {
-          setErrors({ submit: 'Server error. Please try again later or contact support.' });
         } else {
-          setErrors({ submit: 'Failed to create character. Please try again.' });
+          // Use centralized error message for other HTTP errors
+          setErrors({ submit: message });
         }
-      } else if (err instanceof Error) {
-        setErrors({ submit: err.message });
       } else {
-        setErrors({ submit: 'An unexpected error occurred. Please try again.' });
+        setErrors({ submit: message });
       }
     }
   };
@@ -285,9 +283,13 @@ export default function NewCharacterPage() {
 
         {/* Submit Error */}
         {errors.submit && (
-          <div className="form-error-banner" role="alert">
-            <strong>Error:</strong> {errors.submit}
-          </div>
+          <ErrorNotice
+            title="Failed to Create Character"
+            message={errors.submit}
+            severity="error"
+            variant="inline"
+            onDismiss={() => setErrors(prev => ({ ...prev, submit: undefined }))}
+          />
         )}
 
         {/* Form Actions */}
@@ -307,8 +309,8 @@ export default function NewCharacterPage() {
           >
             {loadingState === 'loading' ? (
               <>
-                <span className="button-spinner" />
-                Creating...
+                <LoadingSpinner size="small" />
+                <span style={{ marginLeft: '8px' }}>Creating...</span>
               </>
             ) : (
               'Create Adventure'
