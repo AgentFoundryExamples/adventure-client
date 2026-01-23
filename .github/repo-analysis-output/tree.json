@@ -666,6 +666,10 @@
               "children": [
                 {
                   "type": "file",
+                  "name": "DebugPage.test.tsx"
+                },
+                {
+                  "type": "file",
                   "name": "LoginPage.test.tsx"
                 }
               ]
@@ -673,6 +677,10 @@
             {
               "type": "file",
               "name": "AppPage.tsx"
+            },
+            {
+              "type": "file",
+              "name": "DebugPage.tsx"
             },
             {
               "type": "file",
