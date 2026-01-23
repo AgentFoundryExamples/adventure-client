@@ -140,7 +140,6 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               disabled={loading}
-              required
             />
           </div>
 
@@ -153,7 +152,6 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               disabled={loading}
-              required
             />
           </div>
 
