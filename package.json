@@ -12,8 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "generate:api": "npm run generate:api:dungeon-master && npm run generate:api:journey-log",
-    "generate:api:dungeon-master": "openapi --input dungeon-master.openapi.json --output src/api/dungeonMaster --client fetch --useOptions --useUnionTypes",
-    "generate:api:journey-log": "openapi --input journey-log.openapi.json --output src/api/journeyLog --client fetch --useOptions --useUnionTypes"
+    "generate:api:dungeon-master": "rm -rf src/api/dungeonMaster && openapi --input dungeon-master.openapi.json --output src/api/dungeonMaster --client fetch --useOptions --useUnionTypes",
+    "generate:api:journey-log": "rm -rf src/api/journeyLog && openapi --input journey-log.openapi.json --output src/api/journeyLog --client fetch --useOptions --useUnionTypes"
   },
   "dependencies": {
     "firebase": "^12.8.0",

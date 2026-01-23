@@ -150,6 +150,100 @@ The application will be available at `http://localhost:5173` by default.
 | `npm run format` | Format code with Prettier |
 | `npm run test` | Run tests with Vitest (single run, CI mode) |
 | `npm run test:watch` | Run tests in watch mode for development |
+| `npm run generate:api` | Generate TypeScript API clients from OpenAPI specs |
+| `npm run generate:api:dungeon-master` | Generate only dungeon-master API client |
+| `npm run generate:api:journey-log` | Generate only journey-log API client |
+
+### API Client Generation
+
+The project uses [openapi-typescript-codegen](https://github.com/ferdikoomen/openapi-typescript-codegen) to generate TypeScript API clients from OpenAPI specifications. This provides type-safe interfaces for communicating with backend services.
+
+#### Generated Clients
+
+Two API clients are generated from OpenAPI specs:
+
+1. **Dungeon Master API** (`src/api/dungeonMaster/`)
+   - Source: `dungeon-master.openapi.json`
+   - Services: Game orchestration, turn processing, character creation
+   
+2. **Journey Log API** (`src/api/journeyLog/`)
+   - Source: `journey-log.openapi.json`
+   - Services: Character management, narrative tracking, quest/combat state
+
+#### Regenerating Clients
+
+To regenerate API clients after spec changes:
+
+```bash
+# Regenerate all clients
+npm run generate:api
+
+# Or regenerate individually
+npm run generate:api:dungeon-master
+npm run generate:api:journey-log
+```
+
+**Important Notes:**
+- Generated files are committed to the repository for immediate use
+- Re-running generation scripts will **completely remove and regenerate** the output directories, cleaning up any stale or orphaned files
+- The generation process automatically removes `src/api/dungeonMaster/` and `src/api/journeyLog/` before regenerating to ensure clean output
+- Never manually edit files in `src/api/dungeonMaster/` or `src/api/journeyLog/` as changes will be lost
+- If generation fails, ensure OpenAPI spec files are valid JSON
+
+#### Using Generated Clients
+
+Import services and types from the generated clients:
+
+```typescript
+import { GameService } from '@/api/dungeonMaster';
+import { CharactersService } from '@/api/journeyLog';
+import type { TurnRequest, TurnResponse } from '@/api/dungeonMaster';
+import type { CreateCharacterRequest } from '@/api/journeyLog';
+
+// Example: Process a turn
+const response = await GameService.processTurnTurnPost({
+  requestBody: {
+    character_id: 'uuid',
+    action: 'explore the cave',
+  },
+});
+
+// Example: Create a character
+const character = await CharactersService.createCharacterCharactersPost({
+  requestBody: {
+    name: 'Aria',
+    character_class: 'Wizard',
+  },
+});
+```
+
+#### Configuring API Base URLs
+
+Generated clients use a configurable base URL. To set the base URL for API calls:
+
+```typescript
+import { OpenAPI as DungeonMasterAPI } from '@/api/dungeonMaster';
+import { OpenAPI as JourneyLogAPI } from '@/api/journeyLog';
+import { config } from '@/config/env';
+
+// Configure base URLs (typically in app initialization)
+DungeonMasterAPI.BASE = config.dungeonMasterApiUrl;
+JourneyLogAPI.BASE = config.journeyLogApiUrl;
+
+// Optional: Add authentication headers
+DungeonMasterAPI.HEADERS = async () => ({
+  'Authorization': `Bearer ${await getAuthToken()}`,
+});
+```
+
+#### Generator Configuration
+
+The generator is configured with the following options:
+- `--client fetch`: Uses native Fetch API (no external HTTP dependencies)
+- `--useOptions`: Groups parameters into options objects for cleaner APIs
+- `--useUnionTypes`: Generates union types instead of enums for better type safety
+
+For more configuration options, see the [openapi-typescript-codegen documentation](https://github.com/ferdikoomen/openapi-typescript-codegen#options).
 
 ### Code Quality
 

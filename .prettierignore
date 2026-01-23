@@ -19,3 +19,7 @@ Dockerfile
 package-lock.json
 pnpm-lock.yaml
 *.openapi.json
+
+# Generated API clients
+src/api/dungeonMaster
+src/api/journeyLog
