@@ -402,7 +402,20 @@ npm run dev
 # Navigate to http://localhost:5173/debug
 ```
 
-**Note**: This page is intended for development and debugging only. Consider restricting access or removing it in production builds.
+**Security Note**: This page is intended for development and debugging only. 
+
+**Production Considerations**:
+- Remove the `/debug` route from production builds
+- Or restrict access using authentication checks and environment-based routing
+- Never expose sensitive debugging information in production environments
+- Example protection:
+  ```typescript
+  // In router configuration
+  {
+    path: '/debug',
+    element: import.meta.env.MODE === 'production' ? <NotFound /> : <DebugPage />
+  }
+  ```
 
 #### What the Diagnostic Page Tests
 
@@ -452,6 +465,13 @@ The debug page performs the following health checks:
 - **Error Details**: Failed requests show error messages and status codes
 - **Persistent Results**: Last 10 test results are kept in the UI
 - **Verbose Logging**: Toggle console logging for detailed request/response debugging
+
+**Secure Logging Practices**:
+- Never log full authentication tokens in production code
+- Use token masking (showing only first/last few characters) when logging is necessary for debugging
+- Avoid logging sensitive user data (passwords, personal information, full tokens)
+- Disable verbose debugging logs in production builds
+- Review console output before sharing logs publicly
 
 #### Troubleshooting Common API Issues
 

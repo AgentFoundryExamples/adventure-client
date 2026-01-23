@@ -366,51 +366,74 @@ When the app initializes, it configures both API clients with authentication usi
 
 ```typescript
 // Dungeon Master API: Only needs Authorization header
-OpenAPI.TOKEN = async () => {
+DungeonMasterOpenAPI.TOKEN = async () => {
   const token = await authProvider.getIdToken();
   if (!token) {
-    throw new Error('User must be authenticated to make API calls');
+    throw new Error('Authentication required but no token available');
   }
   return token;
 };
 
 // Journey Log API: Needs both Authorization + X-User-Id headers
-JourneyLogAPI.TOKEN = async () => {
+JourneyLogOpenAPI.TOKEN = async () => {
   const token = await authProvider.getIdToken();
   if (!token) {
-    throw new Error('User must be authenticated to make API calls');
+    throw new Error('Authentication required but no token available');
   }
   return token;
 };
 
-JourneyLogAPI.HEADERS = async () => {
-  if (!authProvider.uid) {
-    throw new Error('User ID is required for Journey Log API calls');
+JourneyLogOpenAPI.HEADERS = async () => {
+  const headers: Record<string, string> = {};
+  if (authProvider.uid) {
+    headers['X-User-Id'] = authProvider.uid;
   }
-  return {
-    'X-User-Id': authProvider.uid,
-  };
+  return headers;
 };
 ```
 
-**Important**: Users must be authenticated before making API calls. If no token is available, an error is thrown.
+**Important**: Users must be authenticated before making API calls. If no token is available, an error is thrown. The X-User-Id header is only included when a user ID is available.
 
-**3. Resulting HTTP Headers**:
+**3. Application Initialization** (`src/main.tsx` or `src/App.tsx`):
+
+The `configureApiClients()` function must be called during application startup, typically in the `AuthProvider` effect or in the main app initialization:
+
+```typescript
+// Example: In AuthContext or App initialization
+useEffect(() => {
+  if (user) {
+    // Configure API clients when user is authenticated
+    configureApiClients({
+      getIdToken: async (forceRefresh) => user.getIdToken(forceRefresh),
+      uid: user.uid,
+    });
+  } else {
+    // Clear API configuration when user logs out
+    configureApiClients(null);
+  }
+}, [user]);
+```
+
+**Important**: Without calling `configureApiClients()`, API requests will not include authentication headers and will fail with 401 errors.
+
+**4. Resulting HTTP Headers**:
 
 For **Dungeon Master API** requests:
 ```http
 GET /api/health HTTP/1.1
 Host: localhost:8001
-Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...
+Authorization: Bearer <firebase-id-token>
 ```
 
 For **Journey Log API** requests:
 ```http
 GET /api/characters HTTP/1.1
 Host: localhost:8002
-Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6Ij...
-X-User-Id: abc123def456xyz789
+Authorization: Bearer <firebase-id-token>
+X-User-Id: <firebase-user-uid>
 ```
+
+**Note**: Actual tokens are JWT strings beginning with `eyJ...`. They should never be logged in production code.
 
 ### Token Lifecycle and Refresh
 
@@ -447,7 +470,11 @@ const makeRequest = async (url: string, options: RequestInit, retryCount = 0) =>
   if (response.status === 401 && retryCount === 0) {
     // Token might be expired, refresh and retry once
     const newToken = await authProvider.getIdToken(true);
+    
+    // Critical: Verify token actually changed to prevent infinite loops
     if (newToken && newToken !== token) {
+      // Retry with the new token by recursing with incremented retry count
+      // This will use forceRefresh=true on the next call
       return makeRequest(url, options, retryCount + 1);
     }
   }
@@ -455,6 +482,8 @@ const makeRequest = async (url: string, options: RequestInit, retryCount = 0) =>
   return response;
 };
 ```
+
+**Important**: The token comparison (`newToken !== token`) is essential to prevent infinite loops if token refresh fails or returns the same expired token.
 
 **Important Notes**:
 - Only ONE retry attempt is made to avoid infinite loops
