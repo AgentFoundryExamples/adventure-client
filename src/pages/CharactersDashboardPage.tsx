@@ -1,14 +1,39 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { getUserCharacters } from '@/api/journeyLog';
 import type { CharacterMetadata } from '@/api/journeyLog';
+import { ErrorNotice } from '@/components';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
+
+interface LocationState {
+  message?: string;
+  severity?: 'error' | 'warning' | 'info';
+}
 
 export default function CharactersDashboardPage() {
   const [characters, setCharacters] = useState<CharacterMetadata[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>('loading');
   const [error, setError] = useState<string | null>(null);
+  const location = useLocation();
+  const [flashMessage, setFlashMessage] = useState<{ message: string; severity: 'error' | 'warning' | 'info' } | null>(null);
+
+  // Handle flash messages from navigation state
+  useEffect(() => {
+    const state = location.state as LocationState | undefined;
+    if (state?.message) {
+      // Intentionally setting state in effect: this is a synchronous initialization from
+      // navigation state on mount, not a cascading render
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setFlashMessage({
+        message: state.message,
+        severity: state.severity || 'info'
+      });
+      /* eslint-enable react-hooks/set-state-in-effect */
+      // Clear the location state to prevent re-showing on refresh
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
 
   const fetchCharacters = useCallback(async () => {
     setLoadingState('loading');
@@ -68,6 +93,16 @@ export default function CharactersDashboardPage() {
 
   return (
     <div className="characters-dashboard">
+      {flashMessage && (
+        <ErrorNotice
+          title={flashMessage.severity === 'error' ? 'Error' : flashMessage.severity === 'warning' ? 'Warning' : 'Notice'}
+          message={flashMessage.message}
+          severity={flashMessage.severity}
+          variant="toast"
+          autoDismissMs={5000}
+          onDismiss={() => setFlashMessage(null)}
+        />
+      )}
       <header className="dashboard-header">
         <h1>Your Characters</h1>
         <p>{characters.length} character{characters.length !== 1 ? 's' : ''}</p>
