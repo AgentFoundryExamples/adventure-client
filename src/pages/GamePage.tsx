@@ -37,9 +37,10 @@ export default function GamePage() {
       console.error('Failed to fetch last turn:', err);
       
       // Handle specific error codes
-      if ((err as { status?: number })?.status === 404) {
+      const status = (err as { status?: number })?.status;
+      if (status === 404) {
         setError('Character not found');
-      } else if ((err as { status?: number })?.status === 401 || (err as { status?: number })?.status === 403) {
+      } else if (status === 401 || status === 403) {
         setError('Unauthorized. Please log in again.');
       } else {
         setError(err instanceof Error ? err.message : 'Failed to load last turn');
