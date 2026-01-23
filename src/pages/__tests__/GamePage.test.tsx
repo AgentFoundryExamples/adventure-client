@@ -1102,10 +1102,8 @@ describe('GamePage', () => {
       });
     });
 
-    it('limits turn history to MAX_HISTORY_SIZE', async () => {
-      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
-      
-      // Create a character with many turns already
+    it('limits turn history to MAX_HISTORY_SIZE and removes the oldest turns', async () => {
+      // MAX_HISTORY_SIZE is 20. We'll start with 25 turns.
       const manyTurns: NarrativeTurn[] = Array.from({ length: 25 }, (_, i) => ({
         turn_id: `turn-${i}`,
         turn_number: i + 1,
@@ -1118,16 +1116,10 @@ describe('GamePage', () => {
 
       mockGetNarrativeTurns.mockResolvedValue({
         turns: manyTurns,
-        metadata: {
-          requested_n: 10,
-          returned_count: 25,
-          total_available: 25,
-        },
+        metadata: { requested_n: 25, returned_count: 25, total_available: 25 },
       });
 
-      mockSubmitTurn.mockResolvedValue({
-        narrative: 'New action response',
-      });
+      mockSubmitTurn.mockResolvedValue({ narrative: 'New action response' });
 
       renderWithRoute();
 
@@ -1137,22 +1129,28 @@ describe('GamePage', () => {
 
       const textarea = screen.getByPlaceholderText(/Describe your action/);
       
-      // Submit one more action to exceed MAX_HISTORY_SIZE (20)
+      // Submit one more action. The history will be capped at 20.
       fireEvent.change(textarea, { target: { value: 'Final action' } });
       fireEvent.click(screen.getByText('Act'));
 
       await waitFor(() => {
-        const newResponse = screen.getAllByText('New action response');
-        expect(newResponse.length).toBeGreaterThan(0);
+        expect(screen.getAllByText('New action response').length).toBeGreaterThan(0);
       });
 
-      // Check that history is capped - oldest entries should be removed
-      // We can verify by checking the history section has at most 20 entries
+      // After adding one turn to 25, the list is sliced to 20.
+      // The oldest turns should be gone.
+      // Total turns are now 26. The slice should be from turn 6 to 25.
+      expect(screen.queryByText('Action 0')).not.toBeInTheDocument();
+      expect(screen.queryByText('Action 5')).not.toBeInTheDocument();
+      
+      // A newer turn that should remain.
+      expect(screen.getByText('Action 24')).toBeInTheDocument();
+      // The newest turn from the submission.
+      expect(screen.getByText('Final action')).toBeInTheDocument();
+
       const historySection = document.querySelector('.turn-history-log');
-      if (historySection) {
-        const turnEntries = historySection.querySelectorAll('.history-turn-entry');
-        expect(turnEntries.length).toBeLessThanOrEqual(20);
-      }
+      const turnEntries = historySection!.querySelectorAll('.history-turn-entry');
+      expect(turnEntries.length).toBe(20);
     });
   });
 

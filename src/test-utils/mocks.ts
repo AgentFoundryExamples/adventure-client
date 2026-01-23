@@ -147,18 +147,23 @@ export const mockConfig = {
  * Useful for testing loading states and race conditions
  */
 export function createControllablePromise<T>() {
-  let resolve: (value: T) => void;
-  let reject: (reason?: unknown) => void;
+  let resolveFunction: ((value: T) => void) | undefined;
+  let rejectFunction: ((reason?: unknown) => void) | undefined;
   
   const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
+    resolveFunction = res;
+    rejectFunction = rej;
   });
+  
+  // Runtime check to ensure functions were assigned
+  if (!resolveFunction || !rejectFunction) {
+    throw new Error('Promise executor did not synchronously assign resolve/reject functions');
+  }
   
   return {
     promise,
-    resolve: resolve!,
-    reject: reject!,
+    resolve: resolveFunction,
+    reject: rejectFunction,
   };
 }
 

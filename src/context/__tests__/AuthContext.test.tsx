@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AuthProvider } from '../AuthContext';
 import { useAuth } from '@/hooks/useAuth';
@@ -486,18 +486,26 @@ describe('AuthContext', () => {
       });
     });
 
-    it('clears token refresh promise on logout', async () => {
-      mockGetIdToken.mockResolvedValue('mock-token');
+    it('clears token refresh promise on logout and handles late resolution', async () => {
+      let resolveTokenRefresh: (value: string) => void;
+      const slowPromise = new Promise<string>(resolve => {
+        resolveTokenRefresh = resolve;
+      });
+      mockGetIdToken.mockReturnValue(slowPromise);
       mockSignOut.mockResolvedValue(undefined);
-      
+
       const mockUser: Partial<FirebaseUser> = {
         uid: 'test-uid',
         email: 'test@example.com',
         getIdToken: mockGetIdToken,
       };
 
+      type AuthStateCallback = (user: Partial<FirebaseUser> | null) => void;
+      let capturedCallback: AuthStateCallback | undefined;
+      
       mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
-        callback(mockUser);
+        capturedCallback = callback as AuthStateCallback;
+        callback(mockUser); // Initial login
         return unsubscribe;
       });
 
@@ -511,24 +519,40 @@ describe('AuthContext', () => {
         expect(screen.getByTestId('user')).toHaveTextContent('test-uid');
       });
 
-      // Start a token refresh
+      // Start a slow token refresh
       const getTokenButton = screen.getByText('Get Token');
-      getTokenButton.click();
-
+      fireEvent.click(getTokenButton);
       await waitFor(() => {
         expect(mockGetIdToken).toHaveBeenCalledTimes(1);
       });
 
-      // Trigger logout
+      // Trigger logout mid-flight
       const signOutButton = screen.getByText('Sign Out');
-      signOutButton.click();
-
+      fireEvent.click(signOutButton);
       await waitFor(() => {
         expect(mockSignOut).toHaveBeenCalled();
       });
       
-      // Token refresh promise should be cleared on logout
-      // Next token request should start fresh (verified by implementation)
+      // Simulate onAuthStateChanged firing with null
+      if (capturedCallback) {
+        await act(async () => {
+          capturedCallback!(null);
+          await new Promise(resolve => setTimeout(resolve, 0));
+        });
+      }
+
+      // Wait for logout to be reflected
+      await waitFor(() => {
+        expect(screen.getByTestId('user')).toHaveTextContent('null');
+      });
+
+      // Now, resolve the original promise after logout has completed
+      // This should not cause any state updates or errors.
+      resolveTokenRefresh!('stale-token');
+      await new Promise(resolve => setImmediate(resolve)); // Allow microtasks to run
+
+      // Final state should still be logged out
+      expect(screen.getByTestId('user')).toHaveTextContent('null');
     });
   });
 });
