@@ -48,6 +48,13 @@ headers: {
 - Always call `getIdToken()` immediately before making API requests
 - Handle 401 Unauthorized responses by re-authenticating the user
 
+**Security Best Practices:**
+- **Never log or expose tokens**: Do not log ID tokens in console, analytics, or error messages
+- **Use HTTPS only**: All API requests must use HTTPS in production (tokens are bearer tokens)
+- **Token storage**: The Firebase SDK handles secure token storage; do not manually store tokens in localStorage or cookies
+- **Validate token freshness**: Always call `getIdToken()` before requests to ensure token is valid and not expired
+- **Handle token refresh failures**: If `getIdToken()` fails, prompt user to re-authenticate immediately
+
 ### Required Headers
 
 **dungeon-master API:**
@@ -56,14 +63,24 @@ headers: {
 
 **journey-log API:**
 - `X-User-Id: <user-id>` (required for write operations, optional for read operations)
-  - Must match the character's `owner_user_id` for access control
-  - If provided but empty/whitespace-only, returns 400 error
-  - If omitted on GET requests, allows anonymous read access
+  - **For POST/write operations**: Required; must match the character's `owner_user_id`
+    - If missing: Returns 400 Bad Request
+    - If empty/whitespace-only: Returns 400 Bad Request
+    - If doesn't match character owner: Returns 403 Forbidden
+  - **For GET/read operations**: Optional
+    - If omitted entirely: Allows anonymous read access (no validation)
+    - If provided but empty/whitespace-only: Returns 400 Bad Request
+    - If provided and doesn't match character owner: Returns 403 Forbidden
 
 **User ID Source:**
 ```typescript
 // Get Firebase user ID for X-User-Id header
 const userId = auth.currentUser?.uid;
+
+// Validation: Ensure user ID is non-empty before sending
+if (!userId || userId.trim().length === 0) {
+  throw new Error('User ID is required for this operation');
+}
 ```
 
 ### Environment Configuration
@@ -495,6 +512,14 @@ This endpoint provides a comprehensive payload including:
 - World POIs sample (optional via `include_pois` parameter)
 
 **Use Case:** The dungeon-master service automatically calls this endpoint when processing turns. The client typically does not need to call this directly unless implementing custom context display or debugging.
+
+**Service-to-Service Authentication:**
+When dungeon-master calls this endpoint during turn processing:
+- The dungeon-master service uses its own backend service credentials (not the client's Firebase token)
+- The client does NOT need to provide X-User-Id or any authentication headers in the `/turn` request for this internal call
+- Service-to-service authentication is handled transparently by the backend services
+- The client's responsibility is only to authenticate to dungeon-master via the `Authorization: Bearer <firebase-id-token>` header
+- Dungeon-master independently authenticates to journey-log using backend service credentials configured on the server
 
 ### HTTP Method and Path
 
@@ -1013,15 +1038,20 @@ async function handlePlayerAction(characterId: string, userAction: string) {
       try {
         await new Promise(resolve => setTimeout(resolve, 1000));
         await persistTurn(characterId, userAction, turnResult.narrative);
-        break; // Success
+        // On success, return the result immediately
+        return turnResult;
       } catch (retryError) {
         retries--;
         if (retries === 0) {
+          // All retries failed
           // Option 2: Store in local storage for later retry
           storeFailedPersistence(characterId, userAction, turnResult.narrative);
           
           // Option 3: Show warning to user
           showWarning('Your action was processed but may not be saved. Please check your connection.');
+          
+          // Finally, re-throw the original error to signal failure to the caller
+          throw persistError;
         }
       }
     }
@@ -1153,10 +1183,28 @@ async function handlePlayerAction(characterId: string, userAction: string) {
   
   turnInProgress = true;
   try {
-    return await processTurn(characterId, userAction);
+    // The complete turn flow, including processing and persisting
+    return await completeTurnFlow(characterId, userAction);
   } finally {
     turnInProgress = false;
   }
+}
+
+// Complete turn flow implementation from earlier in the doc
+async function completeTurnFlow(characterId: string, userAction: string) {
+  // Step 1: Process turn with dungeon-master
+  const turnResult = await processTurnWithRetry(characterId, userAction);
+  
+  // Step 2: Persist turn to journey-log
+  try {
+    await persistTurn(characterId, userAction, turnResult.narrative);
+  } catch (persistError) {
+    console.error('Critical: Turn processed but not persisted', persistError);
+    // Handle persistence failure (e.g., with retries, user notification)
+    // Could implement the retry logic from "Persistence Failure Handling" section
+  }
+  
+  return turnResult;
 }
 ```
 
