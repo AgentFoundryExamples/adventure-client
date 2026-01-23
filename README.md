@@ -808,10 +808,126 @@ src/
 ├── types/           # TypeScript type definitions
 │   └── auth.ts      # Authentication types
 ├── pages/           # Page components
+├── components/      # Reusable UI components
+│   ├── common/      # Common/shared components
+│   │   ├── LoadingSpinner.tsx  # Loading spinner component
+│   │   ├── Skeleton.tsx        # Skeleton loading component
+│   │   └── ErrorNotice.tsx     # Error/warning/info notification component
+│   └── index.ts     # Component exports
 ├── layouts/         # Layout components
 ├── router/          # Routing configuration
 └── styles/          # Global styles
 ```
+
+### Common Components
+
+The application provides reusable UI components for consistent loading states, error handling, and user feedback:
+
+#### LoadingSpinner
+
+A configurable loading spinner with accessibility support.
+
+**Usage:**
+```tsx
+import { LoadingSpinner } from '@/components';
+
+// Inline spinner (small)
+<LoadingSpinner size="small" label="Loading..." />
+
+// Default spinner (medium)
+<LoadingSpinner />
+
+// Full-screen overlay
+<LoadingSpinner size="large" fullscreen={true} label="Loading application..." />
+```
+
+**Props:**
+- `size`: `'small' | 'medium' | 'large'` - Size variant (default: 'medium')
+- `label`: `string` - Optional visible label
+- `fullscreen`: `boolean` - Whether to display as full-screen overlay (default: false)
+- `ariaLabel`: `string` - Accessible label for screen readers (default: 'Loading')
+
+#### Skeleton
+
+A skeleton loading component for placeholder UI while content loads.
+
+**Usage:**
+```tsx
+import { Skeleton } from '@/components';
+
+// Text line skeleton
+<Skeleton variant="text" width="80%" />
+
+// Avatar skeleton
+<Skeleton variant="avatar" width={40} height={40} />
+
+// Card placeholder
+<Skeleton variant="rounded" width="100%" height={200} />
+
+// Multiple lines
+<div>
+  <Skeleton variant="title" />
+  <Skeleton variant="text" />
+  <Skeleton variant="text" width="60%" />
+</div>
+```
+
+**Props:**
+- `variant`: `'text' | 'title' | 'avatar' | 'rectangle' | 'rounded'` - Visual variant (default: 'text')
+- `width`: `number | string` - Width (number in px or string with unit)
+- `height`: `number | string` - Height (number in px or string with unit)
+
+#### ErrorNotice
+
+A notification component for errors, warnings, and informational messages.
+
+**Usage:**
+```tsx
+import { ErrorNotice } from '@/components';
+
+// Inline error with retry
+<ErrorNotice
+  title="Failed to load data"
+  message="Unable to fetch characters from the server."
+  severity="error"
+  variant="inline"
+  onRetry={() => refetch()}
+/>
+
+// Toast warning with auto-dismiss
+<ErrorNotice
+  title="Session expiring soon"
+  message="Your session will expire in 5 minutes."
+  severity="warning"
+  variant="toast"
+  onDismiss={() => setShowWarning(false)}
+  autoDismissMs={5000}
+/>
+
+// Info message
+<ErrorNotice
+  title="Maintenance scheduled"
+  message="The service will be unavailable tomorrow from 2-4 AM."
+  severity="info"
+/>
+```
+
+**Props:**
+- `title`: `string` - Title/heading of the notice (required)
+- `message`: `string` - Detailed message or description (required)
+- `severity`: `'error' | 'warning' | 'info'` - Severity level affecting color scheme (default: 'error')
+- `variant`: `'inline' | 'toast'` - Display variant (default: 'inline')
+- `onRetry`: `() => void` - Callback when retry button is clicked
+- `onDismiss`: `() => void` - Callback when dismiss button is clicked
+- `autoDismissMs`: `number` - Auto-dismiss after milliseconds (only for toast variant)
+
+**When to use:**
+- Use **LoadingSpinner** when the structure of the loading content is unknown or for action-level loading
+- Use **Skeleton** when the layout structure is known and you want to show placeholders that match the final content
+- Use **ErrorNotice** inline for contextual errors within forms or sections
+- Use **ErrorNotice** toast for non-blocking notifications that appear at the top-right
+
+
 
 ## Architecture
 
