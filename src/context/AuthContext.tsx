@@ -103,6 +103,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Cleanup subscription on unmount
     return () => unsubscribe();
+    // Dependencies are intentionally empty to ensure auth listener is only created once on mount.
+    // navigate is captured from the closure and doesn't need to be in dependencies since
+    // we want a stable subscription that doesn't re-subscribe when router context changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
