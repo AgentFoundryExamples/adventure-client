@@ -6,8 +6,33 @@ import type { GetNarrativeResponse, NarrativeTurn } from '@/api';
 
 // Mock the API
 const mockGetCharacterLastTurn = vi.fn();
+const mockSubmitTurn = vi.fn();
+const mockGetNarrativeTurns = vi.fn();
+const mockAppendNarrativeTurn = vi.fn();
+
 vi.mock('@/api', () => ({
   getCharacterLastTurn: (characterId: string) => mockGetCharacterLastTurn(characterId),
+  submitTurn: (request: any) => mockSubmitTurn(request),
+  CharactersService: {
+    getNarrativeTurnsCharactersCharacterIdNarrativeGet: (params: any) => mockGetNarrativeTurns(params),
+    appendNarrativeTurnCharactersCharacterIdNarrativePost: (params: any) => mockAppendNarrativeTurn(params),
+  },
+}));
+
+// Mock useAuth hook
+const mockGetIdToken = vi.fn();
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({
+    user: { uid: 'test-user-id', email: 'test@example.com' },
+    uid: 'test-user-id',
+    loading: false,
+    error: null,
+    getIdToken: mockGetIdToken,
+    signInWithEmailPassword: vi.fn(),
+    signUpWithEmailPassword: vi.fn(),
+    signOutUser: vi.fn(),
+    signInWithGoogle: vi.fn(),
+  }),
 }));
 
 // Mock navigate
@@ -90,11 +115,19 @@ const mockResponseEmpty: GetNarrativeResponse = {
 describe('GamePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetIdToken.mockResolvedValue('test-firebase-token');
+    
+    // Set default mock behaviors
+    mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+    mockAppendNarrativeTurn.mockResolvedValue({
+      turn: mockTurn,
+      total_turns: 6,
+    });
   });
 
   describe('Parameter Validation', () => {
     it('redirects to /app when characterId is missing', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       
       window.history.pushState({}, '', '/game/');
       render(
@@ -110,30 +143,34 @@ describe('GamePage', () => {
       });
     });
 
-    it('calls getCharacterLastTurn with valid characterId', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+    it('calls CharactersService with valid characterId', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       
       renderWithRoute('char-valid-123');
 
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-valid-123');
+        expect(mockGetNarrativeTurns).toHaveBeenCalledWith({
+          characterId: 'char-valid-123',
+          n: 10,
+          xUserId: 'test-user-id',
+        });
       });
     });
 
     it('fetches data exactly once per characterId', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       
       renderWithRoute('char-123');
 
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledTimes(1);
+        expect(mockGetNarrativeTurns).toHaveBeenCalledTimes(1);
       });
     });
   });
 
   describe('Loading State', () => {
     it('displays loading spinner while fetching turn', async () => {
-      mockGetCharacterLastTurn.mockImplementation(
+      mockGetNarrativeTurns.mockImplementation(
         () => new Promise(() => {}) // Never resolves
       );
 
@@ -147,7 +184,7 @@ describe('GamePage', () => {
   describe('Error State', () => {
     it('displays error message when fetch fails', async () => {
       const errorMessage = 'Network error';
-      mockGetCharacterLastTurn.mockRejectedValue(new Error(errorMessage));
+      mockGetNarrativeTurns.mockRejectedValue(new Error(errorMessage));
 
       renderWithRoute();
 
@@ -158,7 +195,7 @@ describe('GamePage', () => {
     });
 
     it('displays generic error message for non-Error exceptions', async () => {
-      mockGetCharacterLastTurn.mockRejectedValue('Unknown error');
+      mockGetNarrativeTurns.mockRejectedValue('Unknown error');
 
       renderWithRoute();
 
@@ -171,7 +208,7 @@ describe('GamePage', () => {
     it('handles 404 error with specific message', async () => {
       const error404 = new Error('Not found') as Error & { status: number };
       error404.status = 404;
-      mockGetCharacterLastTurn.mockRejectedValue(error404);
+      mockGetNarrativeTurns.mockRejectedValue(error404);
 
       renderWithRoute();
 
@@ -183,7 +220,7 @@ describe('GamePage', () => {
     it('handles 401 error with auth prompt', async () => {
       const error401 = new Error('Unauthorized') as Error & { status: number };
       error401.status = 401;
-      mockGetCharacterLastTurn.mockRejectedValue(error401);
+      mockGetNarrativeTurns.mockRejectedValue(error401);
 
       renderWithRoute();
 
@@ -196,7 +233,7 @@ describe('GamePage', () => {
     it('handles 403 error with auth prompt', async () => {
       const error403 = new Error('Forbidden') as Error & { status: number };
       error403.status = 403;
-      mockGetCharacterLastTurn.mockRejectedValue(error403);
+      mockGetNarrativeTurns.mockRejectedValue(error403);
 
       renderWithRoute();
 
@@ -209,7 +246,7 @@ describe('GamePage', () => {
     it('navigates to login on auth error button click', async () => {
       const error401 = new Error('Unauthorized') as Error & { status: number };
       error401.status = 401;
-      mockGetCharacterLastTurn.mockRejectedValue(error401);
+      mockGetNarrativeTurns.mockRejectedValue(error401);
 
       renderWithRoute();
 
@@ -224,7 +261,7 @@ describe('GamePage', () => {
     });
 
     it('allows retry after error', async () => {
-      mockGetCharacterLastTurn
+      mockGetNarrativeTurns
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce(mockResponseWithTurn);
 
@@ -241,17 +278,17 @@ describe('GamePage', () => {
 
       // Should show loading then success
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
-        expect(screen.getByText('Last Dungeon Master Response')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+        expect(screen.getByText('Current Scene')).toBeInTheDocument();
       });
 
-      expect(mockGetCharacterLastTurn).toHaveBeenCalledTimes(2);
+      expect(mockGetNarrativeTurns).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('Empty State', () => {
     it('displays empty state when no turns exist', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseEmpty);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseEmpty);
 
       renderWithRoute();
 
@@ -266,7 +303,7 @@ describe('GamePage', () => {
     });
 
     it('navigates back to app on back button click', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseEmpty);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseEmpty);
 
       renderWithRoute();
 
@@ -283,34 +320,34 @@ describe('GamePage', () => {
 
   describe('Success State - Turn Display', () => {
     it('renders DM response and player action correctly', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
-      // Check DM section
-      expect(screen.getByText('Last Dungeon Master Response')).toBeInTheDocument();
-      expect(screen.getByText(mockTurn.gm_response)).toBeInTheDocument();
+      // Check current scenario is displayed
+      expect(screen.getByText('Current Scene')).toBeInTheDocument();
+      const dmResponses = screen.getAllByText(mockTurn.gm_response);
+      expect(dmResponses.length).toBeGreaterThan(0); // Can appear in both current scene and history
 
-      // Check Player section
-      expect(screen.getByText('Your Last Action')).toBeInTheDocument();
+      // Check turn history shows player action and DM response
+      expect(screen.getByText('Recent Actions')).toBeInTheDocument();
       expect(screen.getByText(mockTurn.player_action)).toBeInTheDocument();
     });
 
     it('displays timestamp when provided', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
-      // Check timestamp is displayed and formatted
-      expect(screen.getByText('Time:')).toBeInTheDocument();
+      // Check timestamp is displayed and formatted in history
       const timestampElements = screen.getAllByText(/Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/);
       expect(timestampElements.length).toBeGreaterThan(0);
     });
@@ -321,7 +358,7 @@ describe('GamePage', () => {
         player_action: '',
       };
       
-      mockGetCharacterLastTurn.mockResolvedValue({
+      mockGetNarrativeTurns.mockResolvedValue({
         turns: [turnWithoutPlayerAction],
         metadata: mockResponseWithTurn.metadata,
       });
@@ -329,20 +366,20 @@ describe('GamePage', () => {
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
-      // Check placeholder message
-      expect(screen.getByText('No player action recorded for this turn.')).toBeInTheDocument();
+      // When there's no player action, history section should not appear
+      expect(screen.queryByText('Recent Actions')).not.toBeInTheDocument();
     });
 
     it('displays back to characters button in header', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
       const backButtons = screen.getAllByText('Back to Characters');
@@ -360,7 +397,7 @@ describe('GamePage', () => {
         timestamp: 'invalid-timestamp',
       };
       
-      mockGetCharacterLastTurn.mockResolvedValue({
+      mockGetNarrativeTurns.mockResolvedValue({
         turns: [turnWithInvalidTimestamp],
         metadata: mockResponseWithTurn.metadata,
       });
@@ -368,7 +405,7 @@ describe('GamePage', () => {
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
       // Should display the raw string if formatting fails
@@ -383,7 +420,7 @@ describe('GamePage', () => {
         metadata: null,
       };
       
-      mockGetCharacterLastTurn.mockResolvedValue({
+      mockGetNarrativeTurns.mockResolvedValue({
         turns: [turnWithNullFields],
         metadata: mockResponseWithTurn.metadata,
       });
@@ -391,69 +428,314 @@ describe('GamePage', () => {
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
-        expect(screen.getByText(mockTurn.gm_response)).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+        const dmResponses = screen.getAllByText(mockTurn.gm_response);
+        expect(dmResponses.length).toBeGreaterThan(0);
       });
     });
 
     it('handles component unmount gracefully', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       const { unmount } = renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
       expect(() => unmount()).not.toThrow();
     });
 
     it('prevents multiple fetches for same characterId', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute('char-123');
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
       // Should only call once despite multiple renders
-      expect(mockGetCharacterLastTurn).toHaveBeenCalledTimes(1);
-      expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+      expect(mockGetNarrativeTurns).toHaveBeenCalledTimes(1);
+      expect(mockGetNarrativeTurns).toHaveBeenCalledWith({ characterId: 'char-123', n: 10, xUserId: 'test-user-id' });
+    });
+  });
+
+  describe('Action Submission', () => {
+    it('allows submitting an action when textarea has content', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      mockSubmitTurn.mockResolvedValue({
+        narrative: 'You pick up the amulet. It glows with an ancient power.',
+      });
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      const actButton = screen.getByText('Act');
+
+      // Button should be disabled when textarea is empty
+      expect(actButton).toBeDisabled();
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I pick up the amulet' } });
+
+      // Button should now be enabled
+      await waitFor(() => {
+        expect(actButton).not.toBeDisabled();
+      });
+
+      // Click the Act button
+      fireEvent.click(actButton);
+
+      // Should show loading state
+      await waitFor(() => {
+        expect(screen.getByText('Processing...')).toBeInTheDocument();
+      });
+
+      // Should call submitTurn with correct parameters
+      await waitFor(() => {
+        expect(mockSubmitTurn).toHaveBeenCalledWith({
+          character_id: 'char-123',
+          user_action: 'I pick up the amulet',
+        });
+      });
+
+      // Should update the scenario with new narrative
+      await waitFor(() => {
+        const newNarrative = screen.getAllByText('You pick up the amulet. It glows with an ancient power.');
+        expect(newNarrative.length).toBeGreaterThan(0);
+      });
+
+      // Textarea should be cleared
+      expect(textarea).toHaveValue('');
+    });
+
+    it('submits action with Ctrl+Enter keyboard shortcut', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      mockSubmitTurn.mockResolvedValue({
+        narrative: 'You examine the amulet closely.',
+      });
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I examine the amulet' } });
+
+      // Press Ctrl+Enter
+      fireEvent.keyDown(textarea, { key: 'Enter', ctrlKey: true });
+
+      // Should call submitTurn
+      await waitFor(() => {
+        expect(mockSubmitTurn).toHaveBeenCalledWith({
+          character_id: 'char-123',
+          user_action: 'I examine the amulet',
+        });
+      });
+    });
+
+    it('prevents submission while request is in progress', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      let resolveSubmit: (value: any) => void;
+      const submitPromise = new Promise((resolve) => {
+        resolveSubmit = resolve;
+      });
+      mockSubmitTurn.mockReturnValue(submitPromise);
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      const actButton = screen.getByText('Act');
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I attack the goblin' } });
+
+      // Click the Act button
+      fireEvent.click(actButton);
+
+      // Button should be disabled during submission
+      await waitFor(() => {
+        expect(screen.getByText('Processing...')).toBeInTheDocument();
+      });
+
+      // Try to click again - should not trigger another submission
+      fireEvent.click(actButton);
+
+      // Should only have been called once
+      expect(mockSubmitTurn).toHaveBeenCalledTimes(1);
+
+      // Resolve the promise
+      resolveSubmit!({ narrative: 'You strike the goblin!' });
+
+      await waitFor(() => {
+        const newNarrative = screen.getAllByText('You strike the goblin!');
+        expect(newNarrative.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('handles submission error gracefully', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      mockSubmitTurn.mockRejectedValue(new Error('Failed to process turn'));
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      const actButton = screen.getByText('Act');
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I cast a spell' } });
+
+      // Click the Act button
+      fireEvent.click(actButton);
+
+      // Should show error message
+      await waitFor(() => {
+        expect(screen.getByText(/Failed to process turn/)).toBeInTheDocument();
+      });
+
+      // Textarea should still contain the action (not cleared)
+      expect(textarea).toHaveValue('I cast a spell');
+
+      // Previous scenario should still be displayed
+      const dmResponses = screen.getAllByText(mockTurn.gm_response);
+      expect(dmResponses.length).toBeGreaterThan(0);
+    });
+
+    it('handles authentication error during submission', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      const authError = new Error('Unauthorized') as Error & { status: number };
+      authError.status = 401;
+      mockSubmitTurn.mockRejectedValue(authError);
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I open the door' } });
+
+      // Submit
+      fireEvent.click(screen.getByText('Act'));
+
+      // Should show auth error message
+      await waitFor(() => {
+        expect(screen.getByText(/Authentication failed/)).toBeInTheDocument();
+      });
+    });
+
+    it('handles rate limit error during submission', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      const rateLimitError = new Error('Too many requests') as Error & { status: number };
+      rateLimitError.status = 429;
+      mockSubmitTurn.mockRejectedValue(rateLimitError);
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I run away' } });
+
+      // Submit
+      fireEvent.click(screen.getByText('Act'));
+
+      // Should show rate limit error message
+      await waitFor(() => {
+        expect(screen.getByText(/Too many requests/)).toBeInTheDocument();
+      });
+    });
+
+    it('adds new turn to history after successful submission', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+      mockSubmitTurn.mockResolvedValue({
+        narrative: 'You successfully pick up the amulet.',
+      });
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      // Should show existing turn in history
+      expect(screen.getByText(mockTurn.player_action)).toBeInTheDocument();
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+
+      // Submit new action
+      fireEvent.change(textarea, { target: { value: 'I pick up the amulet' } });
+      fireEvent.click(screen.getByText('Act'));
+
+      // Wait for submission to complete
+      await waitFor(() => {
+        const newNarrative = screen.getAllByText('You successfully pick up the amulet.');
+        expect(newNarrative.length).toBeGreaterThan(0);
+      });
+
+      // Both actions should now be in history
+      expect(screen.getByText(mockTurn.player_action)).toBeInTheDocument();
+      expect(screen.getByText('I pick up the amulet')).toBeInTheDocument();
     });
   });
 
   describe('Turn Sections Structure', () => {
-    it('renders both turn sections with correct CSS classes', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+    it('renders gameplay sections with correct structure', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
-      const dmSection = document.querySelector('.dm-section');
-      const playerSection = document.querySelector('.player-section');
+      const scenarioSection = document.querySelector('.current-scenario-section');
+      const historySection = document.querySelector('.turn-history-section');
+      const actionSection = document.querySelector('.action-input-section');
       
-      expect(dmSection).toBeInTheDocument();
-      expect(playerSection).toBeInTheDocument();
+      expect(scenarioSection).toBeInTheDocument();
+      expect(historySection).toBeInTheDocument();
+      expect(actionSection).toBeInTheDocument();
     });
 
-    it('renders turn content with proper structure', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+    it('renders action input form with textarea and button', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
-      const turnContainer = document.querySelector('.turn-container');
-      expect(turnContainer).toBeInTheDocument();
+      const textarea = document.querySelector('.action-textarea');
+      const actButton = screen.getByText('Act');
       
-      const turnSections = document.querySelectorAll('.turn-section');
-      expect(turnSections).toHaveLength(2);
+      expect(textarea).toBeInTheDocument();
+      expect(actButton).toBeInTheDocument();
     });
   });
 
@@ -468,13 +750,13 @@ describe('GamePage', () => {
 
       // Should display the initial scenario immediately
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
       expect(screen.getByText(initialScenario.narrative)).toBeInTheDocument();
       
       // Should NOT call the API since we have initial scenario
-      expect(mockGetCharacterLastTurn).not.toHaveBeenCalled();
+      expect(mockGetNarrativeTurns).not.toHaveBeenCalled();
     });
 
     it('clears navigation state after using initial scenario', async () => {
@@ -486,7 +768,7 @@ describe('GamePage', () => {
       renderWithRoute('char-123', { initialScenario });
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
       // Should have cleared the state by calling navigate with null state
@@ -504,37 +786,39 @@ describe('GamePage', () => {
         character_id: 'char-different',
       };
 
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute('char-123', { initialScenario });
 
       // Should fetch from API since character_id doesn't match
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+        expect(mockGetNarrativeTurns).toHaveBeenCalledWith({ characterId: 'char-123', n: 10, xUserId: 'test-user-id' });
       });
 
       // Should display the fetched turn, not the initial scenario
       await waitFor(() => {
-        expect(screen.getByText(mockTurn.gm_response)).toBeInTheDocument();
+        const dmResponses = screen.getAllByText(mockTurn.gm_response);
+        expect(dmResponses.length).toBeGreaterThan(0);
       });
     });
 
     it('falls back to API fetch when initial scenario is missing', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute('char-123');
 
       // Should fetch from API
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+        expect(mockGetNarrativeTurns).toHaveBeenCalledWith({ characterId: 'char-123', n: 10, xUserId: 'test-user-id' });
       });
 
       await waitFor(() => {
-        expect(screen.getByText(mockTurn.gm_response)).toBeInTheDocument();
+        const dmResponses = screen.getAllByText(mockTurn.gm_response);
+        expect(dmResponses.length).toBeGreaterThan(0);
       });
     });
 
-    it('displays no player action placeholder for initial scenario', async () => {
+    it('displays no turn history for initial scenario', async () => {
       const initialScenario = {
         narrative: 'You awaken in a mysterious forest.',
         character_id: 'char-123',
@@ -543,11 +827,11 @@ describe('GamePage', () => {
       renderWithRoute('char-123', { initialScenario });
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
-      // Initial scenario has no player action, should show placeholder
-      expect(screen.getByText('No player action recorded for this turn.')).toBeInTheDocument();
+      // Initial scenario has no player action, should not show history
+      expect(screen.queryByText('Recent Actions')).not.toBeInTheDocument();
     });
 
     it('prevents duplicate journey-log requests when initial scenario provided', async () => {
@@ -559,11 +843,11 @@ describe('GamePage', () => {
       renderWithRoute('char-123', { initialScenario });
 
       await waitFor(() => {
-        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
       });
 
       // Verify the initial scenario was used without API call
-      expect(mockGetCharacterLastTurn).not.toHaveBeenCalled();
+      expect(mockGetNarrativeTurns).not.toHaveBeenCalled();
       
       // Verify navigate was called to clear the state
       expect(mockNavigate).toHaveBeenCalledWith(
@@ -582,13 +866,13 @@ describe('GamePage', () => {
       };
 
       const error = new Error('Failed to fetch turns');
-      mockGetCharacterLastTurn.mockRejectedValue(error);
+      mockGetNarrativeTurns.mockRejectedValue(error);
 
       renderWithRoute('char-123', { initialScenario });
 
       // Should attempt to fetch from API since character_id doesn't match
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+        expect(mockGetNarrativeTurns).toHaveBeenCalledWith({ characterId: 'char-123', n: 10, xUserId: 'test-user-id' });
       });
 
       // Should display error state
@@ -602,7 +886,7 @@ describe('GamePage', () => {
     });
 
     it('handles empty journey-log response after fallback', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue({
+      mockGetNarrativeTurns.mockResolvedValue({
         turns: [],
         metadata: {
           requested_n: 1,
@@ -615,7 +899,7 @@ describe('GamePage', () => {
 
       // Should fetch from API
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+        expect(mockGetNarrativeTurns).toHaveBeenCalledWith({ characterId: 'char-123', n: 10, xUserId: 'test-user-id' });
       });
 
       // Should display empty state
