@@ -13,12 +13,16 @@
 // limitations under the License.
 /**
  * Firebase initialization module
- * Provides singleton Firebase app and auth instances configured from environment variables
+ * Provides lazy-initialized singleton Firebase app and auth instances configured from environment variables
  */
 
 import { initializeApp, getApps, type FirebaseApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, type Auth } from 'firebase/auth';
 import { config } from '../config/env';
+
+// Cache for lazy-initialized instances
+let _firebaseApp: FirebaseApp | null = null;
+let _auth: Auth | null = null;
 
 /**
  * Initializes Firebase app with configuration from environment variables.
@@ -35,16 +39,20 @@ function initializeFirebaseApp(): FirebaseApp {
     return existingApps[0];
   }
 
-  // Validate that we have the required configuration
-  if (!config.firebase.apiKey || !config.firebase.projectId) {
-    throw new Error(
-      'Firebase configuration is incomplete. ' +
-        'Please ensure VITE_FIREBASE_API_KEY and VITE_FIREBASE_PROJECT_ID are set. ' +
-        'See .env.example for all required Firebase variables.'
-    );
-  }
-
   try {
+    // Validate that we have the required configuration
+    if (
+      !config.firebase.apiKey ||
+      !config.firebase.projectId ||
+      !config.firebase.authDomain ||
+      !config.firebase.appId
+    ) {
+      throw new Error(
+        'Firebase configuration is incomplete. ' +
+          'Ensure VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID, VITE_FIREBASE_AUTH_DOMAIN, and VITE_FIREBASE_APP_ID are set.'
+      );
+    }
+
     // Initialize Firebase with configuration from env
     const app = initializeApp({
       apiKey: config.firebase.apiKey,
@@ -57,7 +65,7 @@ function initializeFirebaseApp(): FirebaseApp {
     });
 
     if (config.isDevelopment) {
-      console.log('✅ Firebase initialized successfully:', {
+      console.info('✅ Firebase initialized successfully:', {
         projectId: config.firebase.projectId,
         authDomain: config.firebase.authDomain,
       });
@@ -69,19 +77,61 @@ function initializeFirebaseApp(): FirebaseApp {
       error instanceof Error ? error.message : 'Unknown error';
     throw new Error(
       `Failed to initialize Firebase: ${errorMessage}\n` +
-        'Please check your Firebase configuration in .env file.'
+        'Please check your Firebase configuration in your environment variables.'
     );
   }
 }
 
 /**
- * Singleton Firebase app instance.
- * Initialized once at module load time with configuration from environment variables.
+ * Gets the singleton Firebase app instance.
+ * Lazily initializes on first access with configuration from environment variables.
+ * 
+ * @returns Initialized Firebase app instance
+ * @throws Error if Firebase configuration is invalid or incomplete
+ * 
+ * @example
+ * import { getFirebaseApp } from '@/lib/firebase';
+ * const app = getFirebaseApp();
  */
-export const firebaseApp = initializeFirebaseApp();
+export function getFirebaseApp(): FirebaseApp {
+  if (!_firebaseApp) {
+    _firebaseApp = initializeFirebaseApp();
+  }
+  return _firebaseApp;
+}
+
+/**
+ * Gets the singleton Firebase Auth instance.
+ * Lazily initializes on first access.
+ * 
+ * @returns Configured Firebase Auth instance
+ * @throws Error if Firebase configuration is invalid or incomplete
+ * 
+ * @example
+ * import { getFirebaseAuth } from '@/lib/firebase';
+ * import { signInWithEmailAndPassword } from 'firebase/auth';
+ * const auth = getFirebaseAuth();
+ * await signInWithEmailAndPassword(auth, email, password);
+ */
+export function getFirebaseAuth(): Auth {
+  if (!_auth) {
+    _auth = getAuth(getFirebaseApp());
+  }
+  return _auth;
+}
+
+// Convenience exports that maintain backward compatibility
+// Note: These will still initialize immediately on module import
+// For true lazy initialization, use getFirebaseApp() and getFirebaseAuth() instead
+
+/**
+ * Singleton Firebase app instance.
+ * @deprecated This initializes Firebase immediately on import. Use getFirebaseApp() for lazy initialization.
+ */
+export const firebaseApp = getFirebaseApp();
 
 /**
  * Singleton Firebase Auth instance.
- * Configured to use the initialized Firebase app.
+ * @deprecated This initializes Firebase immediately on import. Use getFirebaseAuth() for lazy initialization.
  */
-export const auth = getAuth(firebaseApp);
+export const auth = getFirebaseAuth();
