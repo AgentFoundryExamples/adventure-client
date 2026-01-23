@@ -802,6 +802,16 @@
         },
         {
           "type": "directory",
+          "name": "test-utils",
+          "children": [
+            {
+              "type": "file",
+              "name": "mocks.ts"
+            }
+          ]
+        },
+        {
+          "type": "directory",
           "name": "types",
           "children": [
             {

@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 103,
+  "total_files": 104,
   "files": [
     {
       "schema_version": "2.0",
@@ -1355,8 +1355,8 @@
       "summary": "TypeScript core implementation",
       "summary_text": "TypeScript core implementation",
       "metrics": {
-        "size_bytes": 6842,
-        "loc": 179,
+        "size_bytes": 13852,
+        "loc": 351,
         "todo_count": 0
       }
     },
@@ -1399,6 +1399,20 @@
       "metrics": {
         "size_bytes": 1355,
         "loc": 19,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/test-utils/mocks.ts",
+      "language": "TypeScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "TypeScript core implementation",
+      "summary_text": "TypeScript core implementation",
+      "metrics": {
+        "size_bytes": 6501,
+        "loc": 195,
         "todo_count": 0
       }
     },

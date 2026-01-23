@@ -937,6 +937,19 @@
       }
     },
     {
+      "id": "src/test-utils/mocks.ts",
+      "path": "src/test-utils/mocks.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/lib/http/errors",
+          "firebase/auth",
+          "vitest"
+        ]
+      }
+    },
+    {
       "id": "src/types/auth.ts",
       "path": "src/types/auth.ts",
       "type": "file",
@@ -1518,6 +1531,7 @@
       "@/config/env",
       "@/context/AuthContext",
       "@/lib/http/client",
+      "@/lib/http/errors",
       "@eslint/js",
       "@testing-library/jest-dom",
       "@vitejs/plugin-react",
@@ -1535,6 +1549,6 @@
       "vitest/config"
     ],
     "stdlib_count": 1,
-    "third-party_count": 18
+    "third-party_count": 19
   }
 }
