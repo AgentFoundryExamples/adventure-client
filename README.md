@@ -158,6 +158,19 @@ The application will be available at `http://localhost:5173` by default.
 
 The project uses [openapi-typescript-codegen](https://github.com/ferdikoomen/openapi-typescript-codegen) to generate TypeScript API clients from OpenAPI specifications. This provides type-safe interfaces for communicating with backend services.
 
+#### Why openapi-typescript-codegen?
+
+We chose `openapi-typescript-codegen` for the following reasons:
+
+- **Zero Runtime Dependencies**: Uses native Fetch API (no axios or other HTTP libraries required)
+- **Type Safety**: Generates full TypeScript types from OpenAPI schemas
+- **Modern JavaScript**: Produces clean, ES6+ compatible code
+- **Maintainability**: Auto-generation ensures API clients stay in sync with backend specs
+- **Flexibility**: Supports multiple configuration options for different project needs
+- **Active Maintenance**: Well-maintained with regular updates
+
+**Alternatives Considered**: Other tools like `openapi-generator` (requires Java) and `swagger-codegen` were evaluated but required additional runtime dependencies or JVM installation.
+
 #### Generated Clients
 
 Two API clients are generated from OpenAPI specs:
@@ -183,6 +196,15 @@ npm run generate:api:dungeon-master
 npm run generate:api:journey-log
 ```
 
+**Workflow for Updating Clients**:
+
+1. **Update OpenAPI Specs**: Obtain updated `dungeon-master.openapi.json` or `journey-log.openapi.json` files from backend teams
+2. **Place Specs in Root**: Replace existing spec files in the project root directory
+3. **Run Generation**: Execute `npm run generate:api` to regenerate clients
+4. **Review Changes**: Check `git diff` to see what changed in the generated code
+5. **Test Integration**: Run the application and verify API calls work correctly
+6. **Commit Changes**: Commit both the updated spec files and generated client code
+
 **Important Notes:**
 - Generated files are committed to the repository for immediate use
 - Re-running generation scripts will **completely remove and regenerate** the output directories, cleaning up any stale or orphaned files
@@ -190,6 +212,29 @@ npm run generate:api:journey-log
 - Never manually edit files in `src/api/dungeonMaster/` or `src/api/journeyLog/` as changes will be lost (files are auto-generated)
 - If generation fails, ensure OpenAPI spec files are valid JSON
 - The generated code includes error handling and HTTP client logic from the generator; customizations should be done via the OpenAPI configuration objects
+
+#### Troubleshooting Generation Issues
+
+**Issue: Generation command fails with syntax error**
+- **Cause**: Invalid JSON in OpenAPI spec file
+- **Solution**: Validate spec files using a JSON validator or `npx openapi-generator-cli validate -i <spec-file>`
+
+**Issue: Generated code has TypeScript errors**
+- **Cause**: OpenAPI spec contains unsupported types or circular references
+- **Solution**: Review spec file for issues, ensure schemas are properly defined, avoid deep circular references
+
+**Issue: `rimraf` command not found (Windows)**
+- **Cause**: npm dependencies not installed
+- **Solution**: Run `npm install` to install all dependencies including `rimraf`
+
+**Issue: Permission denied when writing generated files**
+- **Cause**: File permissions or directory doesn't exist
+- **Solution**: Ensure you have write permissions to `src/api/` directories, or delete the directories manually and re-run
+
+**Platform-Specific Notes**:
+- **Windows**: The generator works on PowerShell, CMD, and Git Bash. Use PowerShell or Git Bash for best compatibility.
+- **macOS/Linux**: No special requirements, all scripts work out of the box.
+- **CI/CD**: Generation is not run automatically in CI; commit generated files to avoid build-time dependencies.
 
 #### Using Generated Clients
 
@@ -220,22 +265,77 @@ const character = await CharactersService.createCharacterCharactersPost({
 
 #### Configuring API Base URLs
 
-Generated clients use a configurable base URL. To set the base URL for API calls:
+Generated clients use a configurable base URL. The application automatically configures these during initialization in `src/api/index.ts`:
 
 ```typescript
 import { OpenAPI as DungeonMasterAPI } from '@/api/dungeonMaster';
 import { OpenAPI as JourneyLogAPI } from '@/api/journeyLog';
 import { config } from '@/config/env';
 
-// Configure base URLs (typically in app initialization)
-DungeonMasterAPI.BASE = config.dungeonMasterApiUrl;
-JourneyLogAPI.BASE = config.journeyLogApiUrl;
-
-// Optional: Add authentication headers
-DungeonMasterAPI.HEADERS = async () => ({
-  'Authorization': `Bearer ${await getAuthToken()}`,
-});
+// Configure base URLs (done automatically in src/api/index.ts)
+DungeonMasterAPI.BASE = config.dungeonMasterApiUrl;  // from VITE_DUNGEON_MASTER_API_BASE_URL
+JourneyLogAPI.BASE = config.journeyLogApiUrl;        // from VITE_JOURNEY_LOG_API_BASE_URL
 ```
+
+**Environment-Specific Base URLs**:
+
+| Environment | Dungeon Master URL | Journey Log URL |
+|-------------|-------------------|-----------------|
+| **Local Development** | `http://localhost:8001` | `http://localhost:8002` |
+| **Staging** | `https://dungeon-master-staging-xxx.run.app` | `https://journey-log-staging-xxx.run.app` |
+| **Production** | `https://dungeon-master-xxx.run.app` | `https://journey-log-xxx.run.app` |
+
+Set these URLs in your environment files (`.env.local` for dev, or Docker `--build-arg` for production).
+
+#### Authentication and Headers
+
+API requests are automatically authenticated using Firebase Authentication tokens. The application configures authentication providers for both APIs:
+
+**Dungeon Master API**:
+```typescript
+// Configured in src/api/index.ts
+DungeonMasterAPI.TOKEN = async () => {
+  const token = await authProvider.getIdToken();
+  return token || '';
+};
+
+// Resulting headers:
+// Authorization: Bearer <firebase-id-token>
+```
+
+**Journey Log API**:
+```typescript
+// Configured in src/api/index.ts
+JourneyLogAPI.TOKEN = async () => {
+  const token = await authProvider.getIdToken();
+  return token || '';
+};
+
+JourneyLogAPI.HEADERS = async () => ({
+  'X-User-Id': authProvider.uid || '',
+});
+
+// Resulting headers:
+// Authorization: Bearer <firebase-id-token>
+// X-User-Id: <firebase-user-uid>
+```
+
+**How It Works**:
+
+1. **Authentication Provider**: The `AuthProvider` context (`src/context/AuthContext.tsx`) provides `getIdToken()` and `uid` methods
+2. **Automatic Configuration**: On app initialization, `configureApiClients(authProvider)` sets up token and header resolvers
+3. **Token Refresh**: Firebase SDK automatically refreshes expired tokens; the application requests a fresh token on 401 responses
+4. **401 Retry Logic**: The HTTP client (`src/lib/http/client.ts`) implements single-attempt token refresh on 401 errors:
+   - Receives 401 response
+   - Calls `getIdToken(forceRefresh: true)` to refresh token
+   - Retries request once with new token
+   - Returns error if retry also fails
+
+**Important**: 
+- Users must be authenticated (logged in) for API calls to succeed
+- Tokens are short-lived JWT tokens issued by Firebase Authentication
+- The `X-User-Id` header is required by Journey Log API for user-specific operations
+- Both backends validate tokens against Firebase Authentication
 
 #### Generator Configuration
 
@@ -284,6 +384,159 @@ npm run test:watch
 ```
 
 Tests are located in `src/components/__tests__/` and follow the pattern `*.test.tsx`.
+
+### API Diagnostics and Debugging
+
+The application includes a diagnostic page for testing API connectivity and authentication in development environments.
+
+#### Accessing the Debug Page
+
+The debug/diagnostic page is available at `/debug` when running the development server:
+
+```bash
+npm run dev
+# Navigate to http://localhost:5173/debug
+```
+
+**Note**: This page is intended for development and debugging only. Consider restricting access or removing it in production builds.
+
+#### What the Diagnostic Page Tests
+
+The debug page performs the following health checks:
+
+1. **Dungeon Master API**:
+   - Tests `/health` endpoint
+   - Displays response status and data
+   - Shows headers sent with the request (including Authorization token)
+
+2. **Journey Log API**:
+   - Tests `/health` endpoint  
+   - Tests `/info` endpoint
+   - Displays response status and data for each
+   - Shows headers sent (Authorization + X-User-Id)
+
+3. **Authentication Status**:
+   - Displays current user authentication state
+   - Shows user ID if authenticated
+   - Indicates if user needs to log in
+
+#### Using the Diagnostic Page
+
+1. **Start Backend Services**: Ensure both backend APIs are running:
+   ```bash
+   # Terminal 1: Start Dungeon Master API on port 8001
+   # Terminal 2: Start Journey Log API on port 8002
+   ```
+
+2. **Navigate to Debug Page**: Open `http://localhost:5173/debug` in your browser
+
+3. **Authenticate**: If not logged in, click the login link and authenticate with Firebase
+
+4. **Run Health Checks**: Click the test buttons to check each API endpoint:
+   - "Test Dungeon Master Health"
+   - "Test Journey Log Health"  
+   - "Test Journey Log Info"
+
+5. **Review Results**: The page displays:
+   - ✅ Success: Green success message with response data
+   - ❌ Error: Red error message with error details
+   - Headers: Shows Authorization token (masked for security) and X-User-Id
+
+**Features**:
+- **Token Masking**: Authorization tokens are displayed as `abcd...wxyz` (first 4 and last 4 characters) for security
+- **Response Display**: Full JSON responses are shown for successful requests
+- **Error Details**: Failed requests show error messages and status codes
+- **Persistent Results**: Last 10 test results are kept in the UI
+- **Verbose Logging**: Toggle console logging for detailed request/response debugging
+
+#### Troubleshooting Common API Issues
+
+Use the diagnostic page to identify and resolve common integration issues:
+
+**Issue: "Missing UID" or "User not authenticated"**
+- **Symptom**: API calls fail with authentication errors
+- **Cause**: User is not logged in or token is expired
+- **Solution**: 
+  1. Click the login link on the debug page
+  2. Sign in with valid credentials
+  3. Retry the API test
+  4. If still failing, sign out and sign in again to refresh token
+
+**Issue: "Network Error" or "Failed to fetch"**
+- **Symptom**: All API calls fail immediately
+- **Cause**: Backend service is not running or URL is incorrect
+- **Solution**:
+  1. Verify backend services are running on expected ports
+  2. Check `.env.local` has correct API URLs:
+     - `VITE_DUNGEON_MASTER_API_BASE_URL=http://localhost:8001`
+     - `VITE_JOURNEY_LOG_API_BASE_URL=http://localhost:8002`
+  3. Ensure no firewall is blocking localhost connections
+  4. Try accessing API URLs directly in browser (e.g., `http://localhost:8001/health`)
+
+**Issue: "401 Unauthorized" after initial success**
+- **Symptom**: API calls work initially, then start failing with 401 errors
+- **Cause**: Firebase token expired (tokens expire after 1 hour)
+- **Solution**:
+  1. The application should automatically refresh tokens
+  2. If auto-refresh fails, sign out and sign in again
+  3. Check browser console for token refresh errors
+
+**Issue: "404 Not Found" on specific endpoints**
+- **Symptom**: Health checks work but specific endpoints fail
+- **Cause**: Endpoint doesn't exist or backend version mismatch
+- **Solution**:
+  1. Verify backend is running the expected version
+  2. Check if OpenAPI specs match backend implementation
+  3. Regenerate API clients: `npm run generate:api`
+  4. Review backend logs for endpoint errors
+
+**Issue: "CORS Error" in browser console**
+- **Symptom**: Requests blocked by browser CORS policy
+- **Cause**: Backend doesn't allow requests from frontend origin
+- **Solution**:
+  1. Ensure backend CORS configuration allows `http://localhost:5173`
+  2. Check backend logs for CORS-related errors
+  3. Verify backend allows credentials (needed for Authorization headers)
+
+**Issue: Backend temporarily unavailable**
+- **Symptom**: One backend is down but development must continue
+- **Solution**:
+  1. Comment out or skip tests for unavailable API on debug page
+  2. Mock API responses in development if needed
+  3. Use `try-catch` blocks in code to handle unavailable services gracefully
+  4. Consider using a backend stub or mock server
+
+**Deployment-Specific Considerations**:
+
+| Issue | Development | Staging | Production |
+|-------|------------|---------|------------|
+| **API URLs** | `localhost:800X` | Cloud Run URLs | Cloud Run URLs |
+| **Authentication** | Test Firebase project | Staging Firebase project | Production Firebase project |
+| **CORS** | Usually not an issue | Must configure Cloud Run CORS | Must configure Cloud Run CORS |
+| **Tokens** | Short-lived OK | Monitor expiration | Implement token refresh |
+| **Diagnostics** | Use debug page freely | Limit access | Remove or protect endpoint |
+
+**Debug Logging**:
+
+Enable verbose HTTP client logging in `.env.local` for detailed request/response debugging:
+```bash
+# Add to .env.local
+VITE_DEBUG_HTTP=true
+```
+
+This will log all API requests and responses to the browser console, including:
+- Request URL and method
+- Request headers (with token masking)
+- Request body
+- Response status and data
+- Errors and retry attempts
+
+**Best Practices**:
+- Always test API integration using the debug page before deploying
+- Keep backend services running during frontend development
+- Use separate Firebase projects for dev/staging/production
+- Monitor token expiration and refresh behavior
+- Document any API changes that require frontend updates
 
 ## Building for Production
 
