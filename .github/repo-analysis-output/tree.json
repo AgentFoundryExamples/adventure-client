@@ -156,6 +156,16 @@
           "children": [
             {
               "type": "directory",
+              "name": "__tests__",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "firebase.test.ts"
+                }
+              ]
+            },
+            {
+              "type": "directory",
               "name": "http",
               "children": [
                 {
@@ -163,6 +173,10 @@
                   "name": "client.ts"
                 }
               ]
+            },
+            {
+              "type": "file",
+              "name": "firebase.ts"
             }
           ]
         },

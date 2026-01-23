@@ -4,7 +4,7 @@ Heuristic summaries of source files based on filenames, extensions, and paths.
 
 Schema Version: 2.0
 
-Total files: 8
+Total files: 10
 
 ## eslint.config.js
 **Language:** JavaScript  
@@ -31,6 +31,24 @@ Total files: 8
 **Summary:** TypeScript core implementation  
 **Size:** 1.40 KB  
 **LOC:** 33  
+**TODOs/FIXMEs:** 0  
+
+## src/lib/__tests__/firebase.test.ts
+**Language:** TypeScript  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Summary:** TypeScript core implementation  
+**Size:** 1.75 KB  
+**LOC:** 35  
+**TODOs/FIXMEs:** 0  
+
+## src/lib/firebase.ts
+**Language:** TypeScript  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Summary:** TypeScript core implementation  
+**Size:** 4.54 KB  
+**LOC:** 105  
 **TODOs/FIXMEs:** 0  
 
 ## src/lib/http/client.ts

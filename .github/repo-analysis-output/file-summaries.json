@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 8,
+  "total_files": 10,
   "files": [
     {
       "schema_version": "2.0",
@@ -41,6 +41,34 @@
       "metrics": {
         "size_bytes": 1436,
         "loc": 33,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/lib/__tests__/firebase.test.ts",
+      "language": "TypeScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "TypeScript core implementation",
+      "summary_text": "TypeScript core implementation",
+      "metrics": {
+        "size_bytes": 1796,
+        "loc": 35,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/lib/firebase.ts",
+      "language": "TypeScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "TypeScript core implementation",
+      "summary_text": "TypeScript core implementation",
+      "metrics": {
+        "size_bytes": 4650,
+        "loc": 105,
         "todo_count": 0
       }
     },

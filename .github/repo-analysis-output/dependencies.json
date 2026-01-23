@@ -39,6 +39,29 @@
       }
     },
     {
+      "id": "src/lib/__tests__/firebase.test.ts",
+      "path": "src/lib/__tests__/firebase.test.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/lib/firebase.ts",
+      "path": "src/lib/firebase.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "firebase/app",
+          "firebase/auth"
+        ]
+      }
+    },
+    {
       "id": "src/lib/http/client.ts",
       "path": "src/lib/http/client.ts",
       "type": "file",
@@ -98,7 +121,16 @@
       }
     }
   ],
-  "edges": [],
+  "edges": [
+    {
+      "source": "src/lib/__tests__/firebase.test.ts",
+      "target": "src/lib/firebase.ts"
+    },
+    {
+      "source": "src/lib/firebase.ts",
+      "target": "src/config/env.ts"
+    }
+  ],
   "external_dependencies_summary": {
     "stdlib": [
       "path"
@@ -113,13 +145,16 @@
       "eslint-plugin-react-hooks",
       "eslint-plugin-react-refresh",
       "eslint/config",
+      "firebase/app",
+      "firebase/auth",
       "globals",
       "react",
       "typescript-eslint",
       "vite",
+      "vitest",
       "vitest/config"
     ],
     "stdlib_count": 1,
-    "third-party_count": 14
+    "third-party_count": 17
   }
 }

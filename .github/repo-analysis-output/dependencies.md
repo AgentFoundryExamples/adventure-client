@@ -8,10 +8,10 @@ Includes classification of external dependencies as stdlib vs third-party.
 
 ## Statistics
 
-- **Total files**: 8
-- **Intra-repo dependencies**: 0
+- **Total files**: 10
+- **Intra-repo dependencies**: 2
 - **External stdlib dependencies**: 1
-- **External third-party dependencies**: 14
+- **External third-party dependencies**: 17
 
 ## External Dependencies
 
@@ -23,7 +23,7 @@ Total: 1 unique modules
 
 ### Third-Party Packages
 
-Total: 14 unique packages
+Total: 17 unique packages
 
 - `@/config/env`
 - `@/context/AuthContext`
@@ -34,8 +34,21 @@ Total: 14 unique packages
 - `eslint-plugin-react-hooks`
 - `eslint-plugin-react-refresh`
 - `eslint/config`
+- `firebase/app`
+- `firebase/auth`
 - `globals`
 - `react`
 - `typescript-eslint`
 - `vite`
+- `vitest`
 - `vitest/config`
+
+## Most Depended Upon Files (Intra-Repo)
+
+- `src/lib/firebase.ts` (1 dependents)
+- `src/config/env.ts` (1 dependents)
+
+## Files with Most Dependencies (Intra-Repo)
+
+- `src/lib/__tests__/firebase.test.ts` (1 dependencies)
+- `src/lib/firebase.ts` (1 dependencies)

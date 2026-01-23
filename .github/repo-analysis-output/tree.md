@@ -32,8 +32,11 @@
   ├── layouts
     └── AppLayout.tsx
   ├── lib
-    └── http
+    ├── __tests__
+      └── firebase.test.ts
+    ├── http
       └── client.ts
+    └── firebase.ts
   ├── pages
     ├── AppPage.tsx
     ├── GamePage.tsx
