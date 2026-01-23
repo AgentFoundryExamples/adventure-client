@@ -69,6 +69,43 @@ export type CharacterCreationRequest = {
 
 **Note:** The field is named `class_name` (not `class`) to avoid conflicts with JavaScript/TypeScript reserved keywords.
 
+**Character Limits & Constraints:**
+
+The backend enforces strict validation on all character creation fields:
+
+| Limit Type | Value | Enforced By | User Impact |
+|------------|-------|-------------|-------------|
+| **Name Length** | 1-100 chars | Backend validation | 422 error if exceeded; UI should show character counter |
+| **Race Length** | 1-50 chars | Backend validation | 422 error if exceeded; recommend dropdown with predefined options |
+| **Class Length** | 1-50 chars | Backend validation | 422 error if exceeded; recommend dropdown with predefined options |
+| **Custom Prompt** | 0-2000 chars | Backend validation | 422 error if exceeded; UI should show character counter |
+| **Empty Fields** | Not allowed | Backend validation | 422 error; all required fields must have non-empty values |
+
+**Validation Error Example:**
+
+If constraints are violated, the API returns 422 with detailed error information:
+
+```json
+{
+  "detail": [
+    {
+      "loc": ["body", "name"],
+      "msg": "ensure this value has at most 100 characters",
+      "type": "value_error.any_str.max_length"
+    }
+  ]
+}
+```
+
+**UI Recommendations:**
+
+- Show character counters for `name` and `custom_prompt` fields
+- Disable submit button when limits are exceeded
+- Provide predefined dropdown lists for `race` and `class_name` to prevent typos
+- Display validation errors inline below each field
+- Example races: Human, Elf, Dwarf, Orc, Halfling, Gnome, Tiefling
+- Example classes: Warrior, Rogue, Wizard, Cleric, Ranger, Paladin, Bard
+
 ### Response Model: CharacterCreationResponse
 
 **TypeScript Interface:**

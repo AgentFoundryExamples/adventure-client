@@ -1223,7 +1223,7 @@ async function completeTurnFlow(characterId: string, userAction: string) {
 
 **Handling:**
 - Implement exponential backoff retry
-- Max retries: 3-5 attempts
+- Default: 5 retry attempts (configurable based on error severity)
 - Display error message if all retries fail
 
 ### 10. Invalid Character Ownership
@@ -1239,6 +1239,343 @@ if (response.status === 403) {
   navigate('/dashboard');
 }
 ```
+
+### Token Expiry Handling
+
+**Overview:**
+Firebase ID tokens expire after 1 hour. The application handles token expiry through automatic refresh and retry mechanisms.
+
+**Automatic Refresh:**
+- Firebase SDK automatically refreshes tokens when calling `getIdToken()`
+- If token is <5 minutes from expiry, SDK refreshes it transparently
+- No action required from application code for normal refresh
+
+**Token Expiry Detection:**
+- Backend services return 401 Unauthorized when token is expired or invalid
+- HTTP client detects 401 response and triggers retry logic
+
+**Retry Flow:**
+```mermaid
+sequenceDiagram
+    participant UI
+    participant HttpClient
+    participant AuthContext
+    participant Firebase
+    participant API
+    
+    UI->>HttpClient: Make API request (attempt 1)
+    HttpClient->>API: Request with old token
+    API-->>HttpClient: 401 Unauthorized
+    HttpClient->>AuthContext: getIdToken(forceRefresh=true)
+    AuthContext->>Firebase: Refresh token
+    Firebase-->>AuthContext: New token
+    HttpClient->>HttpClient: Compare old vs new token
+    alt Token changed
+        HttpClient->>API: Retry request with new token (attempt 2)
+        API-->>UI: Success or error
+    else Token unchanged
+        HttpClient-->>UI: Throw 401 (prevent infinite loop)
+    end
+```
+
+**Implementation Details:**
+1. **Single Retry Policy**: Only ONE retry attempt per request
+2. **Force Refresh**: Uses `getIdToken(forceRefresh: true)` to bypass cache
+3. **Token Comparison**: Prevents infinite loops by comparing old vs new token
+4. **Deduplication**: Concurrent requests reuse in-flight refresh promises
+5. **Failure Handling**: If refresh fails or token unchanged, user is logged out
+
+**Forced Logout:**
+If token refresh fails or produces same token, the user is redirected to `/login` with:
+- Message: "Your session has expired. Please log in again."
+- Location state preserving the "from" pathname for post-login redirect
+- Error reason code for UI logic
+
+**Testing Token Expiry (QA):**
+See [docs/firebase-setup.md](docs/firebase-setup.md) for instructions on simulating expired tokens without compromising security.
+
+### Distinguishing Dungeon Master vs Journey Log Errors
+
+The application handles errors differently based on which service fails:
+
+**Dungeon Master Service Errors:**
+
+| Error | Cause | Impact | User Experience |
+|-------|-------|--------|-----------------|
+| **401** | Invalid/expired token | Blocks turn submission | Automatic retry with token refresh; logout if fails |
+| **422** | Invalid action format | Blocks turn submission | Inline error: "Invalid action. Please try again." |
+| **500** | LLM (OpenAI) failure | Blocks turn submission | Error: "AI service unavailable. Please retry." |
+| **503** | Service unavailable | Blocks turn submission | Error: "Service temporarily unavailable." |
+
+**Journey Log Service Errors:**
+
+| Error | Cause | Impact | User Experience |
+|-------|-------|--------|-----------------|
+| **401** | Invalid/expired token | Blocks state access | Automatic retry with token refresh; logout if fails |
+| **403** | User doesn't own character | Blocks access to character | Redirect to dashboard: "Access denied. You do not have permission to view this character." |
+| **404** | Character not found | Blocks access | Error: "Character not found. It may have been deleted." |
+| **500** | Firestore/backend error | Blocks persistence | Warning: "Failed to save turn. Your turn was generated but not saved to history. Retry?" |
+
+**Key Distinctions:**
+
+1. **Blocking vs Non-Blocking:**
+   - Dungeon Master failure = No narrative generated = Can't continue gameplay
+   - Journey Log failure (after DM success) = Narrative exists but not saved = Can display narrative with warning
+
+2. **Retry Behavior:**
+   - **401 errors**: Always automatic retry (both services)
+   - **500 errors (DM)**: Manual retry (user clicks "Try Again")
+   - **500 errors (JL persistence)**: Automatic retry with exponential backoff (default: 5 attempts, configurable)
+
+3. **Error Display:**
+   - **Dungeon Master**: Inline error in game interface (blocks action input)
+   - **Journey Log (load)**: Error notice in navigation bar with "Retry" button
+   - **Journey Log (save)**: Warning badge on turn with "Retry Save" button
+
+**Split Persistence Error:**
+
+Most critical scenario is when dungeon-master succeeds but journey-log fails:
+
+```typescript
+try {
+  // Step 1: Generate narrative (dungeon-master)
+  const turnResult = await GameService.submitTurnTurnPost({
+    requestBody: { character_id, user_action }
+  });
+  
+  // Step 2: Persist to history (journey-log)
+  try {
+    await CharactersService.appendNarrativeTurnCharactersCharacterIdNarrativePost({
+      characterId: character_id,
+      xUserId: userId,
+      requestBody: { user_action, narrative_response: turnResult.narrative }
+    });
+  } catch (persistError) {
+    // Narrative generated but not saved
+    console.error('Turn processed but not persisted:', persistError);
+    
+    // Show narrative with warning
+    displayNarrative(turnResult.narrative, { 
+      warning: 'Turn saved to dungeon-master, but failed to persist to history. Retry?',
+      retryable: true 
+    });
+    
+    // Don't block user from seeing the narrative
+    return { ...turnResult, persistFailed: true };
+  }
+} catch (dmError) {
+  // Narrative generation failed - safe to retry from scratch
+  throw dmError;
+}
+```
+
+**User Experience:**
+- User submits action
+- Spinner shows "Generating narrative..."
+- Narrative appears with orange warning badge
+- Warning text: "Turn saved to dungeon-master, but failed to persist to history"
+- "Retry Save" button appears
+- User can continue playing or retry save
+- Next turn includes previous context even if persistence failed
+
+### Retry Strategies by Error Type
+
+**Automatic Retries (Handled by HTTP Client):**
+
+| Error | Retry Count | Retry Strategy | Notes |
+|-------|-------------|----------------|-------|
+| **401 Unauthorized** | 1 retry | Immediate retry with token refresh | Only if token changes after refresh |
+
+**Manual Retries (Handled by UI):**
+
+| Error | UI Action | Recommended Pattern |
+|-------|-----------|---------------------|
+| **403 Forbidden** | No retry | Redirect to dashboard (permission denied) |
+| **404 Not Found** | No retry | Show error message (resource doesn't exist) |
+| **422 Validation** | No retry | Show validation errors (user must fix input) |
+| **429 Rate Limit** | Delayed retry | Disable input for `retry_after_seconds` |
+| **500 Server Error (DM)** | Manual retry | Show "Try Again" button |
+| **500 Server Error (JL)** | Auto-retry up to 5x | Exponential backoff (default 5, configurable), then manual |
+| **Network Error** | Manual retry | Show "Retry" button |
+
+**Exponential Backoff Implementation (for Journey Log persistence):**
+
+```typescript
+async function persistWithRetry(
+  characterId: string,
+  userAction: string,
+  narrative: string,
+  maxRetries: number = 5
+): Promise<void> {
+  let attempt = 0;
+  let delay = 1000; // Start with 1 second
+  
+  while (attempt < maxRetries) {
+    try {
+      await CharactersService.appendNarrativeTurnCharactersCharacterIdNarrativePost({
+        characterId,
+        xUserId: userId,
+        requestBody: { user_action: userAction, narrative_response: narrative }
+      });
+      return; // Success!
+    } catch (error) {
+      attempt++;
+      
+      if (attempt >= maxRetries) {
+        throw error; // All retries exhausted
+      }
+      
+      // Only retry on transient errors (500, 502, 503, network errors)
+      if (!isTransientError(error)) {
+        throw error; // Don't retry permanent errors
+      }
+      
+      // Wait before retry (exponential backoff)
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2; // Double the delay for next attempt
+    }
+  }
+}
+```
+
+**Transient Error Detection:**
+
+```typescript
+function isTransientError(error: any): boolean {
+  // Network errors
+  if (error.name === 'TypeError' || error.name === 'NetworkError') {
+    return true;
+  }
+  
+  // HTTP status codes that are likely transient
+  if (error.status) {
+    return [500, 502, 503, 504].includes(error.status);
+  }
+  
+  return false;
+}
+```
+
+### Concurrent Request Handling
+
+**Token Refresh Deduplication:**
+
+The application prevents multiple concurrent token refresh operations:
+
+```typescript
+// In AuthContext
+const tokenRefreshPromiseRef = useRef<Promise<string> | null>(null);
+
+async function getIdToken(forceRefresh: boolean = false): Promise<string> {
+  // If refresh already in progress, reuse the promise
+  if (tokenRefreshPromiseRef.current) {
+    return tokenRefreshPromiseRef.current;
+  }
+  
+  // Start new refresh operation
+  const refreshPromise = auth.currentUser!.getIdToken(forceRefresh);
+  tokenRefreshPromiseRef.current = refreshPromise;
+  
+  try {
+    const token = await refreshPromise;
+    return token;
+  } finally {
+    // Clear promise after completion
+    tokenRefreshPromiseRef.current = null;
+  }
+}
+```
+
+**Benefits:**
+- Multiple simultaneous API calls share one token refresh
+- Prevents Firebase SDK rate limiting
+- Reduces server load and latency
+- Maintains request order consistency
+
+**Turn Submission Locking:**
+
+To prevent duplicate turn submissions:
+
+```typescript
+let turnSubmissionInProgress = false;
+
+async function submitTurn(characterId: string, userAction: string) {
+  if (turnSubmissionInProgress) {
+    console.warn('Turn submission already in progress');
+    return;
+  }
+  
+  turnSubmissionInProgress = true;
+  try {
+    return await processAndPersistTurn(characterId, userAction);
+  } finally {
+    turnSubmissionInProgress = false;
+  }
+}
+```
+
+**UI Considerations:**
+- Disable submit button while turn is processing
+- Show loading spinner
+- Prevent keyboard shortcuts (Enter key) from double-submitting
+
+### 403 Forbidden Special Handling
+
+**Scenario:** User attempts to access another user's character (or own character with invalid token)
+
+**Key Point:** 403 is a **permission error**, NOT an authentication failure.
+
+**Critical Distinction:**
+- **401 (Unauthorized)**: Auth token is invalid/expired → Retry with refresh → Logout if fails
+- **403 (Forbidden)**: Auth token is valid, but user lacks permission → NO retry → NO logout
+
+**Handling in GamePage:**
+
+```typescript
+try {
+  const turns = await CharactersService.getNarrativeTurnsCharactersCharacterIdNarrativeGet({
+    characterId,
+    n: 20,
+    xUserId: userId
+  });
+  setNarrativeHistory(turns);
+} catch (error) {
+  if (isApiError(error) && error.status === 403) {
+    // User doesn't own this character
+    navigate('/app', {
+      replace: true, // Don't allow back button to retry
+      state: {
+        error: {
+          message: 'Access denied. You do not have permission to view this character.',
+          severity: 'error',
+          reason: 'forbidden'
+        }
+      }
+    });
+    return; // Stop execution
+  }
+  // Handle other errors...
+}
+```
+
+**Why `replace: true`:**
+- Prevents user from using back button to re-trigger 403 error
+- Clears URL history of forbidden character ID
+- Cleaner user experience
+
+**Error Notice Display:**
+- Shows in navigation bar (from location state)
+- Red background (error severity)
+- Message: "Access denied. You do not have permission to view this character."
+- Auto-dismisses after 5 seconds or manual dismiss
+
+**Testing 403 Scenarios:**
+1. Create character as User A
+2. Copy character ID from URL
+3. Log in as User B
+4. Navigate to `/game/{character_id_from_user_a}`
+5. Should redirect to `/app` with access denied message
+6. User B remains logged in (no session termination)
 
 ## Summary
 
