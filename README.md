@@ -14,6 +14,7 @@ A React-based web client for the Adventure Game platform, built with TypeScript 
 - [Project Structure](#project-structure)
 - [Architecture](#architecture)
 - [User Journey: Dashboard and Game Flow](#user-journey-dashboard-and-game-flow)
+- [Documentation](#documentation)
 
 ## Prerequisites
 
@@ -1463,6 +1464,28 @@ This is critical for:
 - If API calls fail with CORS errors, verify backend CORS settings
 - Check that `Access-Control-Allow-Origin` includes the frontend domain
 - Ensure `Access-Control-Allow-Methods` includes GET, POST, PUT, DELETE as needed
+
+## Documentation
+
+Comprehensive guides for development and implementation:
+
+- **[Firebase Setup Guide](docs/firebase-setup.md)** - Complete Firebase configuration and authentication setup
+- **[Character Creation Guide](docs/character-creation.md)** - Character creation flow documentation
+- **[Gameplay API Contracts](docs/gameplay.md)** - Dungeon-master and journey-log API contracts for the gameplay loop
+
+### Gameplay API Documentation
+
+The [Gameplay API Contracts](docs/gameplay.md) document provides detailed specifications for implementing the game's turn-based gameplay loop, including:
+
+- **Dungeon Master API**: The `POST /turn` endpoint for processing player actions and generating AI narrative responses
+- **Journey Log API**: Endpoints for fetching narrative history (`GET /characters/{character_id}/narrative`) and persisting turns (`POST /characters/{character_id}/narrative`)
+- **Context Retrieval**: The `GET /characters/{character_id}/context` endpoint for aggregated character state
+- **Authentication**: Firebase Bearer token usage and X-User-Id header requirements
+- **Complete Flow**: Step-by-step implementation guide for the `/game/:characterId` sequence
+- **Error Handling**: Comprehensive error scenarios and retry strategies
+- **Edge Cases**: Handling empty history, rate limits, persistence failures, and more
+
+This documentation is essential for implementing or understanding the gameplay flow in the Adventure Client.
 
 ## Additional Resources
 
