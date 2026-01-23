@@ -1145,6 +1145,22 @@
       "target": "src/api/journeyLog/core/OpenAPI.ts"
     },
     {
+      "source": "src/api/journeyLog/index.ts",
+      "target": "src/api/journeyLog/models/ListCharactersResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/index.ts",
+      "target": "src/api/journeyLog/models/GetNarrativeResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/index.ts",
+      "target": "src/api/journeyLog/services/CharactersService.ts"
+    },
+    {
+      "source": "src/api/journeyLog/index.ts",
+      "target": "src/api/journeyLog/core/OpenAPI.ts"
+    },
+    {
       "source": "src/api/journeyLog/models/AppendNarrativeResponse.ts",
       "target": "src/api/journeyLog/models/NarrativeTurn.ts"
     },

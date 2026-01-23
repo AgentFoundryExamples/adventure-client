@@ -25,8 +25,8 @@
       "summary": "TypeScript core implementation",
       "summary_text": "TypeScript core implementation",
       "metrics": {
-        "size_bytes": 4414,
-        "loc": 85,
+        "size_bytes": 12851,
+        "loc": 279,
         "todo_count": 0
       }
     },
@@ -459,8 +459,8 @@
       "summary": "TypeScript main entry point (role: entry-point)",
       "summary_text": "TypeScript main entry point (role: entry-point)",
       "metrics": {
-        "size_bytes": 2619,
-        "loc": 52,
+        "size_bytes": 2772,
+        "loc": 55,
         "todo_count": 0
       }
     },
@@ -557,8 +557,8 @@
       "summary": "TypeScript main entry point (role: entry-point)",
       "summary_text": "TypeScript main entry point (role: entry-point)",
       "metrics": {
-        "size_bytes": 4252,
-        "loc": 57,
+        "size_bytes": 7127,
+        "loc": 131,
         "todo_count": 0
       }
     },

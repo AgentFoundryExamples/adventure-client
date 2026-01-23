@@ -20,8 +20,8 @@ Total files: 101
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
 **Summary:** TypeScript core implementation  
-**Size:** 4.31 KB  
-**LOC:** 85  
+**Size:** 12.55 KB  
+**LOC:** 279  
 **TODOs/FIXMEs:** 0  
 
 ## src/api/dungeonMaster/core/ApiError.ts
@@ -299,8 +299,8 @@ Total files: 101
 **Role:** entry-point  
 **Role Justification:** common entry point name 'index'  
 **Summary:** TypeScript main entry point (role: entry-point)  
-**Size:** 2.56 KB  
-**LOC:** 52  
+**Size:** 2.71 KB  
+**LOC:** 55  
 **TODOs/FIXMEs:** 0  
 
 ## src/api/journeyLog/core/ApiError.ts
@@ -362,8 +362,8 @@ Total files: 101
 **Role:** entry-point  
 **Role Justification:** common entry point name 'index'  
 **Summary:** TypeScript main entry point (role: entry-point)  
-**Size:** 4.15 KB  
-**LOC:** 57  
+**Size:** 6.96 KB  
+**LOC:** 131  
 **TODOs/FIXMEs:** 0  
 
 ## src/api/journeyLog/models/AppendNarrativeRequest.ts
