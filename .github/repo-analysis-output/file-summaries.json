@@ -473,7 +473,7 @@
       "summary": "TypeScript main entry point (role: entry-point)",
       "summary_text": "TypeScript main entry point (role: entry-point)",
       "metrics": {
-        "size_bytes": 8387,
+        "size_bytes": 8414,
         "loc": 191,
         "todo_count": 0
       }

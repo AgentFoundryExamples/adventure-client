@@ -308,7 +308,7 @@ Total files: 102
 **Role:** entry-point  
 **Role Justification:** common entry point name 'index'  
 **Summary:** TypeScript main entry point (role: entry-point)  
-**Size:** 8.19 KB  
+**Size:** 8.22 KB  
 **LOC:** 191  
 **TODOs/FIXMEs:** 0  
 
