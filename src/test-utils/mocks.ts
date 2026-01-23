@@ -212,5 +212,5 @@ export const TRANSIENT_ERROR_CODES = [
  * Checks if an HTTP status code represents a transient error
  */
 export function isTransientError(status: number): boolean {
-  return TRANSIENT_ERROR_CODES.includes(status);
+  return (TRANSIENT_ERROR_CODES as readonly number[]).includes(status);
 }

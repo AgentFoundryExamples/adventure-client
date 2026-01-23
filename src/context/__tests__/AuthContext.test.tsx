@@ -331,9 +331,11 @@ describe('AuthContext', () => {
       };
 
       // Start with authenticated user
-      let authCallback: ((user: Partial<FirebaseUser> | null) => void) | null = null;
+      type AuthStateCallback = (user: Partial<FirebaseUser> | null) => void;
+      let capturedCallback: AuthStateCallback | undefined;
+      
       mockOnAuthStateChanged.mockImplementation((_auth, callback) => {
-        authCallback = callback;
+        capturedCallback = callback as AuthStateCallback;
         callback(mockUser); // Initial authenticated state
         return unsubscribe;
       });
@@ -350,8 +352,8 @@ describe('AuthContext', () => {
       });
 
       // Simulate Firebase detecting logout (user becomes null mid-session)
-      if (authCallback) {
-        authCallback(null);
+      if (capturedCallback) {
+        capturedCallback(null);
       }
 
       // Should update to null user and show logout error
