@@ -891,6 +891,107 @@ p {
   background-color: #535bf2;
 }
 
+/* Game Page Styles */
+.game-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.game-header h1 {
+  font-size: 2rem;
+  color: #1a1a1a;
+}
+
+.back-button {
+  padding: 0.75rem 1.5rem;
+  background-color: #6c757d;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.back-button:hover {
+  background-color: #5a6268;
+}
+
+.turn-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.turn-section {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.turn-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: #1a1a1a;
+}
+
+.dm-section {
+  border-left: 4px solid #646cff;
+}
+
+.player-section {
+  border-left: 4px solid #28a745;
+}
+
+.turn-content {
+  background-color: #fff;
+  padding: 1.25rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
+.turn-text {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: #333;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.turn-text.placeholder {
+  color: #6c757d;
+  font-style: italic;
+}
+
+.turn-metadata {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-top: 0.5rem;
+}
+
+.timestamp-label {
+  font-weight: 600;
+}
+
+.timestamp-value {
+  color: #495057;
+}
+
 /* Character Creation Page Styles */
 .character-creation-page {
   max-width: 600px;

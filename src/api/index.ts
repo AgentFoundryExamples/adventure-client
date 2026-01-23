@@ -78,4 +78,5 @@ export type {
   CharacterDocument,
   ListCharactersResponse,
   GetNarrativeResponse,
+  NarrativeTurn,
 } from './journeyLog';
