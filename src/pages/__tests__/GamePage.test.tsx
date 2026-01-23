@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import GamePage from '../GamePage';
 import type { GetNarrativeResponse, NarrativeTurn } from '@/api';
 
@@ -30,7 +30,24 @@ function TestApp() {
   );
 }
 
-function renderWithRoute(characterId: string = 'char-123') {
+function renderWithRoute(characterId: string = 'char-123', state?: any) {
+  if (state) {
+    // Use MemoryRouter when we need to pass state
+    const initialEntry = {
+      pathname: `/game/${characterId}`,
+      state: state
+    };
+    
+    return render(
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <Routes>
+          <Route path="/game/:characterId" element={<GamePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  }
+  
+  // Use standard BrowserRouter for regular tests
   window.history.pushState({}, '', `/game/${characterId}`);
   return render(<TestApp />);
 }
@@ -430,6 +447,125 @@ describe('GamePage', () => {
       
       const turnSections = document.querySelectorAll('.turn-section');
       expect(turnSections).toHaveLength(2);
+    });
+  });
+
+  describe('Initial Scenario from Navigation State', () => {
+    it('displays initial scenario from navigation state without fetching', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest, sunlight filtering through ancient trees.',
+        character_id: 'char-123',
+      };
+
+      renderWithRoute('char-123', { initialScenario });
+
+      // Should display the initial scenario immediately
+      await waitFor(() => {
+        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(initialScenario.narrative)).toBeInTheDocument();
+      
+      // Should NOT call the API since we have initial scenario
+      expect(mockGetCharacterLastTurn).not.toHaveBeenCalled();
+    });
+
+    it('clears navigation state after using initial scenario', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest.',
+        character_id: 'char-123',
+      };
+
+      renderWithRoute('char-123', { initialScenario });
+
+      await waitFor(() => {
+        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+      });
+
+      // Should have cleared the state by calling navigate with null state
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith(
+          '/game/char-123',
+          { replace: true, state: null }
+        );
+      });
+    });
+
+    it('ignores initial scenario if character_id does not match', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest.',
+        character_id: 'char-different',
+      };
+
+      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+
+      renderWithRoute('char-123', { initialScenario });
+
+      // Should fetch from API since character_id doesn't match
+      await waitFor(() => {
+        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+      });
+
+      // Should display the fetched turn, not the initial scenario
+      await waitFor(() => {
+        expect(screen.getByText(mockTurn.gm_response)).toBeInTheDocument();
+      });
+    });
+
+    it('falls back to API fetch when initial scenario is missing', async () => {
+      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+
+      renderWithRoute('char-123');
+
+      // Should fetch from API
+      await waitFor(() => {
+        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(mockTurn.gm_response)).toBeInTheDocument();
+      });
+    });
+
+    it('displays no player action placeholder for initial scenario', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest.',
+        character_id: 'char-123',
+      };
+
+      renderWithRoute('char-123', { initialScenario });
+
+      await waitFor(() => {
+        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+      });
+
+      // Initial scenario has no player action, should show placeholder
+      expect(screen.getByText('No player action recorded for this turn.')).toBeInTheDocument();
+    });
+
+    it('prevents duplicate journey-log requests when initial scenario provided', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest.',
+        character_id: 'char-123',
+      };
+
+      const { rerender } = renderWithRoute('char-123', { initialScenario });
+
+      await waitFor(() => {
+        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+      });
+
+      // Force a re-render (won't change the state)
+      rerender(
+        <MemoryRouter initialEntries={[{ pathname: '/game/char-123', state: { initialScenario } }]}>
+          <Routes>
+            <Route path="/game/:characterId" element={<GamePage />} />
+          </Routes>
+        </MemoryRouter>
+      );
+
+      // Should still not have called the API
+      expect(mockGetCharacterLastTurn).not.toHaveBeenCalled();
     });
   });
 });
