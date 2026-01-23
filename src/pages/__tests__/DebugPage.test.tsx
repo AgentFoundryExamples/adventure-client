@@ -7,7 +7,6 @@ import DebugPage from '../DebugPage';
 const mockHealthCheckHealthGet = vi.fn();
 const mockHealthHealthGet = vi.fn();
 const mockInfoInfoGet = vi.fn();
-const mockTestFirestorePost = vi.fn();
 
 vi.mock('@/api', () => ({
   GameService: {
@@ -16,9 +15,6 @@ vi.mock('@/api', () => ({
   DefaultService: {
     healthHealthGet: () => mockHealthHealthGet(),
     infoInfoGet: () => mockInfoInfoGet(),
-  },
-  OperationsService: {
-    testFirestorePostFirestoreTestPost: () => mockTestFirestorePost(),
   },
 }));
 
@@ -86,31 +82,7 @@ describe('DebugPage', () => {
     expect(screen.getByRole('button', { name: /Test Dungeon Master \/health/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Test Journey Log \/health/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Test Journey Log \/info/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Test Firestore Connectivity/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Clear Results/i })).toBeInTheDocument();
-  });
-
-  it('disables Firestore test button when user is not signed in', () => {
-    render(<TestApp />);
-    const firestoreButton = screen.getByRole('button', { name: /Test Firestore Connectivity/i });
-    expect(firestoreButton).toBeDisabled();
-  });
-
-  it('enables Firestore test button when user is signed in', () => {
-    mockUseAuth.mockReturnValue({
-      user: {
-        uid: 'test-uid',
-        email: 'test@example.com',
-      },
-      uid: 'test-uid',
-      loading: false,
-      error: null,
-      getIdToken: vi.fn().mockResolvedValue('test-token'),
-    });
-
-    render(<TestApp />);
-    const firestoreButton = screen.getByRole('button', { name: /Test Firestore Connectivity/i });
-    expect(firestoreButton).not.toBeDisabled();
   });
 
   it('renders verbose logging toggle', () => {

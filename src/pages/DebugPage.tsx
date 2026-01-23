@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { GameService, DefaultService, OperationsService } from '@/api';
+import { GameService, DefaultService } from '@/api';
 
 interface ApiCallResult {
   service: string;
@@ -55,9 +55,9 @@ export default function DebugPage() {
 
     try {
       const token = await getIdToken();
-      const headers: Record<string, string> = {};
+      const displayHeaders: Record<string, string> = {};
       if (token) {
-        headers['Authorization'] = `Bearer ${maskToken(token)}`;
+        displayHeaders['Authorization'] = `Bearer ${maskToken(token)}`;
       }
 
       const response = await GameService.healthCheckHealthGet();
@@ -67,7 +67,7 @@ export default function DebugPage() {
         status: 'success',
         statusCode: 200,
         data: response,
-        headers,
+        headers: displayHeaders,
       };
       logResult(successResult);
     } catch (error) {
@@ -91,12 +91,12 @@ export default function DebugPage() {
 
     try {
       const token = await getIdToken();
-      const headers: Record<string, string> = {};
+      const displayHeaders: Record<string, string> = {};
       if (token) {
-        headers['Authorization'] = `Bearer ${maskToken(token)}`;
+        displayHeaders['Authorization'] = `Bearer ${maskToken(token)}`;
       }
       if (uid) {
-        headers['X-User-Id'] = uid;
+        displayHeaders['X-User-Id'] = uid;
       }
 
       const response = await DefaultService.healthHealthGet();
@@ -106,7 +106,7 @@ export default function DebugPage() {
         status: 'success',
         statusCode: 200,
         data: response,
-        headers,
+        headers: displayHeaders,
       };
       logResult(successResult);
     } catch (error) {
@@ -130,12 +130,12 @@ export default function DebugPage() {
 
     try {
       const token = await getIdToken();
-      const headers: Record<string, string> = {};
+      const displayHeaders: Record<string, string> = {};
       if (token) {
-        headers['Authorization'] = `Bearer ${maskToken(token)}`;
+        displayHeaders['Authorization'] = `Bearer ${maskToken(token)}`;
       }
       if (uid) {
-        headers['X-User-Id'] = uid;
+        displayHeaders['X-User-Id'] = uid;
       }
 
       const response = await DefaultService.infoInfoGet();
@@ -145,46 +145,7 @@ export default function DebugPage() {
         status: 'success',
         statusCode: 200,
         data: response,
-        headers,
-      };
-      logResult(successResult);
-    } catch (error) {
-      const errorResult: ApiCallResult = {
-        ...result,
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-      logResult(errorResult);
-    }
-  };
-
-  const callFirestoreTest = async () => {
-    const result: ApiCallResult = {
-      service: 'Journey Log',
-      endpoint: '/firestore-test (POST)',
-      status: 'loading',
-      timestamp: new Date(),
-    };
-    logResult(result);
-
-    try {
-      const token = await getIdToken();
-      const headers: Record<string, string> = {};
-      if (token) {
-        headers['Authorization'] = `Bearer ${maskToken(token)}`;
-      }
-      if (uid) {
-        headers['X-User-Id'] = uid;
-      }
-
-      const response = await OperationsService.testFirestorePostFirestoreTestPost();
-      
-      const successResult: ApiCallResult = {
-        ...result,
-        status: 'success',
-        statusCode: 200,
-        data: response,
-        headers,
+        headers: displayHeaders,
       };
       logResult(successResult);
     } catch (error) {
@@ -266,14 +227,6 @@ export default function DebugPage() {
           </button>
           <button onClick={callJourneyLogInfo} className="debug-button">
             Test Journey Log /info
-          </button>
-          <button 
-            onClick={callFirestoreTest} 
-            className="debug-button" 
-            disabled={!user}
-            title="Authentication required to test Firestore connectivity"
-          >
-            Test Firestore Connectivity
           </button>
           <button onClick={clearResults} className="debug-button debug-button-secondary">
             Clear Results
