@@ -9,7 +9,7 @@ Includes classification of external dependencies as stdlib vs third-party.
 ## Statistics
 
 - **Total files**: 102
-- **Intra-repo dependencies**: 132
+- **Intra-repo dependencies**: 133
 - **External stdlib dependencies**: 1
 - **External third-party dependencies**: 18
 
@@ -68,4 +68,4 @@ Total: 18 unique packages
 - `src/api/journeyLog/models/CharacterDocument.ts` (5 dependencies)
 - `src/api/journeyLog/models/PlayerState.ts` (5 dependencies)
 - `src/api/journeyLog/services/OperationsService.ts` (5 dependencies)
-- `src/api/journeyLog/index.ts` (4 dependencies)
+- `src/api/__tests__/index.test.ts` (4 dependencies)

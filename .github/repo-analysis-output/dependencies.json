@@ -989,6 +989,10 @@
       "target": "src/api/journeyLog/index.ts"
     },
     {
+      "source": "src/api/__tests__/index.test.ts",
+      "target": "src/config/env.ts"
+    },
+    {
       "source": "src/api/dungeonMaster/core/ApiError.ts",
       "target": "src/api/dungeonMaster/core/ApiRequestOptions.ts"
     },
