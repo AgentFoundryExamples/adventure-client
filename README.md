@@ -80,6 +80,47 @@ For production deployments, environment variables should be:
 
 **Security Note**: Never commit real Firebase credentials or production API keys to version control. Use `.env.local` for local secrets (already in `.gitignore`).
 
+#### Firebase Setup
+
+The application uses Firebase SDK v12+ (modular API) for authentication and other Firebase services. Firebase is initialized via `src/lib/firebase.ts`, which reads configuration from environment variables.
+
+**To set up Firebase for your project:**
+
+1. **Create a Firebase Project**:
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create a new project or use an existing one
+   - Enable Authentication and any other services you need
+
+2. **Get Your Configuration**:
+   - In Firebase Console, go to Project Settings > General
+   - Under "Your apps", add a Web app or select an existing one
+   - Copy the Firebase configuration values (apiKey, authDomain, etc.)
+
+3. **Configure Environment Variables**:
+   - For development: Update `.env.local` with your Firebase config
+   - For production: Set environment variables via CI/CD or Cloud Run
+   - See `.env.example` for all required variables
+
+4. **Initialization Details**:
+   - Firebase is initialized automatically when the app loads via `src/lib/firebase.ts`
+   - The initialization is singleton-safe (handles hot reloads gracefully)
+   - Both `firebaseApp` and `auth` instances are exported for use throughout the app
+   - Missing or invalid configuration will fail fast at startup with descriptive errors
+
+**Example usage in your components:**
+```typescript
+import { auth } from '@/lib/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+
+// Use the auth instance for Firebase operations
+await signInWithEmailAndPassword(auth, email, password);
+```
+
+**Important**: All Firebase environment variables must be set at build time (not runtime) because Vite bundles them into the static assets. This means:
+- Production builds require Firebase config during the Docker build step
+- Environment variables are visible in the client-side bundle (don't store sensitive backend secrets here)
+- Use separate Firebase projects for development, staging, and production
+
 
 ## Development
 
@@ -382,6 +423,7 @@ src/
 ├── hooks/           # Custom React hooks
 │   └── useAuth.ts   # Auth context consumer hook
 ├── lib/             # Utility libraries
+│   ├── firebase.ts  # Firebase initialization (app & auth)
 │   └── http/        # HTTP client utilities
 │       └── client.ts # Centralized fetch wrapper
 ├── types/           # TypeScript type definitions
@@ -412,12 +454,41 @@ const apiUrl = config.dungeonMasterApiUrl;
 const isDevMode = config.isDevelopment;
 ```
 
+### Firebase Integration
+
+The application uses Firebase SDK v12+ (modular API) for authentication and other Firebase services. Firebase is initialized via `src/lib/firebase.ts`.
+
+**Key Features:**
+- **Singleton Pattern**: Firebase app is initialized once and reused throughout the application
+- **Hot Reload Safe**: Handles Vite's HMR without creating duplicate Firebase instances
+- **Environment-Driven**: All configuration comes from environment variables (no hardcoded secrets)
+- **Fail-Fast**: Missing or invalid configuration throws descriptive errors at startup
+- **Type-Safe**: Exports fully-typed `firebaseApp` and `auth` instances
+
+**Usage:**
+```typescript
+import { auth, firebaseApp } from '@/lib/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+
+// Use the pre-initialized auth instance
+async function login(email: string, password: string) {
+  const userCredential = await signInWithEmailAndPassword(auth, email, password);
+  return userCredential.user;
+}
+```
+
+**Implementation Details:**
+- Initialized at module load time (top-level)
+- Uses `getApps()` to check if Firebase is already initialized
+- Logs successful initialization in development mode
+- All configuration sourced from `config.firebase` (from env.ts)
+
 ### Authentication Context
 
 Authentication state is managed via React Context (`src/context/AuthContext.tsx`):
 
 - **Current Implementation:** Mock authentication for development
-- **Future:** Will integrate with Firebase Authentication
+- **Firebase Ready:** Firebase Authentication is now available via `src/lib/firebase.ts`
 - Provides global auth state accessible from any component
 - Exposes `login`, `logout`, and `register` methods
 
