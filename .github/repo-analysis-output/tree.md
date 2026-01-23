@@ -17,7 +17,8 @@
     └── af_maintenance.yml
 ├── docs
   ├── character-creation.md
-  └── firebase-setup.md
+  ├── firebase-setup.md
+  └── gameplay.md
 ├── public
   └── vite.svg
 ├── src

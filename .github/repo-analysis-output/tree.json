@@ -81,6 +81,10 @@
         {
           "type": "file",
           "name": "firebase-setup.md"
+        },
+        {
+          "type": "file",
+          "name": "gameplay.md"
         }
       ]
     },
