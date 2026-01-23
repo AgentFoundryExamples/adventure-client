@@ -4,6 +4,25 @@ import { BrowserRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import GamePage from '../GamePage';
 import type { GetNarrativeResponse, NarrativeTurn } from '@/api';
 
+// Mock config module - must be defined inline for vi.mock hoisting
+vi.mock('@/config/env', () => ({
+  config: {
+    dungeonMasterApiUrl: 'http://localhost:8000',
+    journeyLogApiUrl: 'http://localhost:8001',
+    firebase: {
+      apiKey: 'test-api-key',
+      authDomain: 'test-auth-domain.firebaseapp.com',
+      projectId: 'test-project-id',
+      storageBucket: 'test-bucket.appspot.com',
+      messagingSenderId: '123456789',
+      appId: 'test-app-id',
+      measurementId: 'test-measurement-id',
+    },
+    isDevelopment: true,
+    isProduction: false,
+  },
+}));
+
 // Mock the API
 const mockGetCharacterLastTurn = vi.fn();
 const mockSubmitTurn = vi.fn();
@@ -176,8 +195,10 @@ describe('GamePage', () => {
 
       renderWithRoute();
 
-      expect(screen.getByText('Loading last turn...')).toBeInTheDocument();
-      expect(document.querySelector('.loading-spinner')).toBeInTheDocument();
+      expect(screen.getByText('Loading game state...')).toBeInTheDocument();
+      // Loading spinner has the class, not an explicit element
+      const loadingContainer = document.querySelector('.loading-container');
+      expect(loadingContainer).toBeInTheDocument();
     });
   });
 
@@ -189,8 +210,9 @@ describe('GamePage', () => {
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Unable to Load Last Turn')).toBeInTheDocument();
-        expect(screen.getByText(errorMessage)).toBeInTheDocument();
+        expect(screen.getByText('Unable to Load Game')).toBeInTheDocument();
+        // getFriendlyErrorMessage adds context prefix "Failed to load game state:"
+        expect(screen.getByText(/Network error\. Please check your internet connection\./)).toBeInTheDocument();
       });
     });
 
@@ -200,8 +222,9 @@ describe('GamePage', () => {
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Unable to Load Last Turn')).toBeInTheDocument();
-        expect(screen.getByText('Failed to load last turn')).toBeInTheDocument();
+        expect(screen.getByText('Unable to Load Game')).toBeInTheDocument();
+        // getFriendlyErrorMessage returns a generic message for unknown errors
+        expect(screen.getByText(/An unexpected error occurred\./)).toBeInTheDocument();
       });
     });
 
@@ -213,7 +236,8 @@ describe('GamePage', () => {
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Character not found')).toBeInTheDocument();
+        expect(screen.getByText('Unable to Load Game')).toBeInTheDocument();
+        expect(screen.getByText(/Character not found/)).toBeInTheDocument();
       });
     });
 
@@ -225,7 +249,9 @@ describe('GamePage', () => {
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Unauthorized. Please log in again.')).toBeInTheDocument();
+        expect(screen.getByText('Unable to Load Game')).toBeInTheDocument();
+        // getFriendlyErrorMessage maps 401 to "Authentication failed"
+        expect(screen.getByText(/Authentication failed/)).toBeInTheDocument();
         expect(screen.getByText('Go to Login')).toBeInTheDocument();
       });
     });
@@ -274,7 +300,7 @@ describe('GamePage', () => {
 
       // Wait for error to appear
       await waitFor(() => {
-        expect(screen.getByText('Unable to Load Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Unable to Load Game')).toBeInTheDocument();
       });
 
       // Click retry button
@@ -882,8 +908,9 @@ describe('GamePage', () => {
 
       // Should display error state
       await waitFor(() => {
-        expect(screen.getByText('Unable to Load Last Turn')).toBeInTheDocument();
-        expect(screen.getByText('Failed to fetch turns')).toBeInTheDocument();
+        expect(screen.getByText('Unable to Load Game')).toBeInTheDocument();
+        // The error message is transformed by getFriendlyErrorMessage
+        expect(screen.getByText(/Network error\. Please check your internet connection\./)).toBeInTheDocument();
       });
 
       // Should show retry button

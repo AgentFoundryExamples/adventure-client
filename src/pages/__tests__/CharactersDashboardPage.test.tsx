@@ -4,6 +4,25 @@ import { BrowserRouter } from 'react-router-dom';
 import CharactersDashboardPage from '../CharactersDashboardPage';
 import type { CharacterMetadata, ListCharactersResponse } from '@/api/journeyLog';
 
+// Mock config module - must be defined inline for vi.mock hoisting
+vi.mock('@/config/env', () => ({
+  config: {
+    dungeonMasterApiUrl: 'http://localhost:8000',
+    journeyLogApiUrl: 'http://localhost:8001',
+    firebase: {
+      apiKey: 'test-api-key',
+      authDomain: 'test-auth-domain.firebaseapp.com',
+      projectId: 'test-project-id',
+      storageBucket: 'test-bucket.appspot.com',
+      messagingSenderId: '123456789',
+      appId: 'test-app-id',
+      measurementId: 'test-measurement-id',
+    },
+    isDevelopment: true,
+    isProduction: false,
+  },
+}));
+
 // Mock the journey-log API
 const mockGetUserCharacters = vi.fn();
 vi.mock('@/api/journeyLog', () => ({
@@ -52,7 +71,9 @@ describe('CharactersDashboardPage', () => {
       render(<TestApp />);
 
       expect(screen.getByText('Loading your characters...')).toBeInTheDocument();
-      expect(document.querySelector('.loading-spinner')).toBeInTheDocument();
+      // Loading spinner has the class, not an explicit element
+      const loadingContainer = document.querySelector('.loading-container');
+      expect(loadingContainer).toBeInTheDocument();
     });
   });
 
@@ -65,7 +86,8 @@ describe('CharactersDashboardPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
-        expect(screen.getByText(errorMessage)).toBeInTheDocument();
+        // getFriendlyErrorMessage adds context prefix
+        expect(screen.getByText(/Network error\. Please check your internet connection\./)).toBeInTheDocument();
       });
     });
 
@@ -76,7 +98,8 @@ describe('CharactersDashboardPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText('Unable to Load Characters')).toBeInTheDocument();
-        expect(screen.getByText('Failed to load characters')).toBeInTheDocument();
+        // getFriendlyErrorMessage returns a generic message for unknown errors
+        expect(screen.getByText(/An unexpected error occurred\./)).toBeInTheDocument();
       });
     });
 
