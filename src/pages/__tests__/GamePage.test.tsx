@@ -230,7 +230,7 @@ describe('GamePage', () => {
       });
     });
 
-    it('handles 403 error with auth prompt', async () => {
+    it('handles 403 error by redirecting to /app', async () => {
       const error403 = new Error('Forbidden') as Error & { status: number };
       error403.status = 403;
       mockGetNarrativeTurns.mockRejectedValue(error403);
@@ -238,8 +238,13 @@ describe('GamePage', () => {
       renderWithRoute();
 
       await waitFor(() => {
-        expect(screen.getByText('Unauthorized. Please log in again.')).toBeInTheDocument();
-        expect(screen.getByText('Go to Login')).toBeInTheDocument();
+        expect(mockNavigate).toHaveBeenCalledWith('/app', {
+          replace: true,
+          state: {
+            message: 'Access denied. You do not have permission to view this character.',
+            severity: 'error'
+          }
+        });
       });
     });
 

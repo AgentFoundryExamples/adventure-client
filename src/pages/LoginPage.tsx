@@ -1,9 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { ErrorNotice } from '@/components';
 
 type AuthMode = 'signin' | 'signup';
+
+interface LocationState {
+  message?: string;
+  reason?: string;
+  from?: string;
+}
 
 const getFirebaseErrorMessage = (error: Error): string => {
   const errorCode = (error as { code?: string }).code;
@@ -38,16 +45,34 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [flashMessage, setFlashMessage] = useState<string | null>(null);
   const isMountedRef = useRef(true);
   const navigate = useNavigate();
+  const location = useLocation();
   const { signInWithEmailPassword, signUpWithEmailPassword, signInWithGoogle, user } = useAuth();
+
+  // Handle flash messages from navigation state (e.g., session expired)
+  useEffect(() => {
+    const state = location.state as LocationState | undefined;
+    if (state?.message) {
+      // Intentionally setting state in effect: this is a synchronous initialization from
+      // navigation state on mount, not a cascading render
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setFlashMessage(state.message);
+      /* eslint-enable react-hooks/set-state-in-effect */
+      // Clear the location state to prevent re-showing on refresh
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
-      navigate('/app');
+      const state = location.state as LocationState | undefined;
+      const destination = state?.from || '/app';
+      navigate(destination);
     }
-  }, [user, navigate]);
+  }, [user, navigate, location.state]);
 
   // Cleanup on unmount to prevent state updates
   useEffect(() => {
@@ -121,6 +146,16 @@ export default function LoginPage() {
     <div className="login-page">
       <div className="login-container">
         <h1>{mode === 'signin' ? 'Sign In' : 'Sign Up'}</h1>
+        
+        {flashMessage && (
+          <ErrorNotice
+            title="Session Expired"
+            message={flashMessage}
+            severity="warning"
+            variant="inline"
+            onDismiss={() => setFlashMessage(null)}
+          />
+        )}
         
         <div className="auth-mode-toggle">
           <button

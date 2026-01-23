@@ -314,10 +314,11 @@ describe('AuthContext', () => {
     const getTokenButton = screen.getByText('Get Token');
     getTokenButton.click();
 
-    // Should throw and update error state
+    // Should throw and update error state with retry failure message
     await waitFor(() => {
       expect(mockGetIdToken).toHaveBeenCalled();
-      expect(screen.getByTestId('error')).toHaveTextContent('Token error');
+      // Now expects retry failure message since we attempt refresh once
+      expect(screen.getByTestId('error')).toHaveTextContent('Failed to refresh authentication token');
     });
   });
 });

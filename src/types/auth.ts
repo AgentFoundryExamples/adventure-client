@@ -17,11 +17,17 @@
 
 import type { User as FirebaseUser } from 'firebase/auth';
 
+export interface AuthError {
+  message: string;
+  code?: string;
+  reason?: 'token-refresh-failed' | 'token-expired' | 'no-user' | 'firebase-error' | 'network-error';
+}
+
 export interface AuthState {
   user: FirebaseUser | null;
   uid: string | null;
   loading: boolean;
-  error: Error | null;
+  error: AuthError | null;
 }
 
 export interface AuthContextValue extends AuthState {

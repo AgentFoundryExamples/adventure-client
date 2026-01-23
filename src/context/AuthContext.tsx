@@ -5,7 +5,7 @@
 
 /* eslint-disable react-refresh/only-export-components */
 
-import { createContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import {
   onAuthStateChanged,
@@ -16,8 +16,19 @@ import {
   signInWithPopup,
   type User as FirebaseUser,
 } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
 import { getFirebaseAuth } from '@/lib/firebase';
-import type { AuthContextValue } from '@/types/auth';
+import type { AuthContextValue, AuthError } from '@/types/auth';
+
+// Safe navigation hook that doesn't throw if not in router context
+function useSafeNavigate() {
+  try {
+    return useNavigate();
+  } catch {
+    // If not in a router context (e.g., in tests), return a no-op function
+    return () => {};
+  }
+}
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -28,26 +39,59 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [error, setError] = useState<AuthError | null>(null);
+  const navigate = useSafeNavigate();
+  
+  // Track ongoing token refresh to prevent multiple overlapping attempts
+  const tokenRefreshPromiseRef = useRef<Promise<string | null> | null>(null);
+
+  // Helper to create structured auth errors
+  const createAuthError = useCallback((message: string, reason: AuthError['reason'], code?: string): AuthError => {
+    console.error(`[AuthContext] ${message}`, { reason, code });
+    return { message, code, reason };
+  }, []);
 
   // Subscribe to auth state changes
   useEffect(() => {
     const auth = getFirebaseAuth();
     let isInitialLoad = true;
+    let previousUser: FirebaseUser | null = null;
     
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {
-        setUser(firebaseUser);
-        if (isInitialLoad) {
-          setLoading(false);
-          isInitialLoad = false;
+        // If user becomes null mid-session (not initial load), cleanup and redirect
+        if (!firebaseUser && previousUser !== null && !isInitialLoad) {
+          console.warn('[AuthContext] User became null mid-session, redirecting to login');
+          setUser(null);
+          setError({
+            message: 'Session expired or user logged out',
+            reason: 'no-user'
+          });
+          // Clear any pending token refresh promises
+          tokenRefreshPromiseRef.current = null;
+          navigate('/login', { 
+            replace: true,
+            state: { message: 'Your session has expired. Please log in again.' }
+          });
+        } else {
+          setUser(firebaseUser);
+          if (isInitialLoad) {
+            setLoading(false);
+            isInitialLoad = false;
+          }
+          setError(null);
         }
-        setError(null);
+        previousUser = firebaseUser;
       },
       (err) => {
-        console.error('Auth state change error:', err);
-        setError(err as Error);
+        console.error('[AuthContext] Auth state change error:', err);
+        const authError: AuthError = {
+          message: err instanceof Error ? err.message : 'Authentication state error',
+          reason: 'firebase-error',
+          code: err instanceof Error && 'code' in err ? (err as { code: string }).code : undefined
+        };
+        setError(authError);
         if (isInitialLoad) {
           setLoading(false);
           isInitialLoad = false;
@@ -57,6 +101,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     // Cleanup subscription on unmount
     return () => unsubscribe();
+    // Dependencies are intentionally empty to ensure auth listener is only created once on mount.
+    // navigate is captured from the closure and doesn't need to be in dependencies since
+    // we want a stable subscription that doesn't re-subscribe when router context changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const signInWithEmailPassword = useCallback(async (email: string, password: string) => {
@@ -66,11 +114,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await signInWithEmailAndPassword(auth, email, password);
       // Auth state will be updated by onAuthStateChanged listener
     } catch (err) {
-      const authError = err as Error;
+      const authError = createAuthError(
+        err instanceof Error ? err.message : 'Failed to sign in',
+        'firebase-error',
+        err instanceof Error && 'code' in err ? (err as { code: string }).code : undefined
+      );
       setError(authError);
       throw authError;
     }
-  }, []);
+  }, [createAuthError]);
 
   const signUpWithEmailPassword = useCallback(async (email: string, password: string) => {
     setError(null);
@@ -79,24 +131,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await createUserWithEmailAndPassword(auth, email, password);
       // Auth state will be updated by onAuthStateChanged listener
     } catch (err) {
-      const authError = err as Error;
+      const authError = createAuthError(
+        err instanceof Error ? err.message : 'Failed to sign up',
+        'firebase-error',
+        err instanceof Error && 'code' in err ? (err as { code: string }).code : undefined
+      );
       setError(authError);
       throw authError;
     }
-  }, []);
+  }, [createAuthError]);
 
   const signOutUser = useCallback(async () => {
     setError(null);
     try {
       const auth = getFirebaseAuth();
+      // Clear refresh tracking on logout
+      tokenRefreshPromiseRef.current = null;
       await signOut(auth);
       // Auth state will be updated by onAuthStateChanged listener
     } catch (err) {
-      const authError = err as Error;
+      const authError = createAuthError(
+        err instanceof Error ? err.message : 'Failed to sign out',
+        'firebase-error',
+        err instanceof Error && 'code' in err ? (err as { code: string }).code : undefined
+      );
       setError(authError);
       throw authError;
     }
-  }, []);
+  }, [createAuthError]);
 
   const signInWithGoogle = useCallback(async () => {
     setError(null);
@@ -106,24 +168,71 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await signInWithPopup(auth, provider);
       // Auth state will be updated by onAuthStateChanged listener
     } catch (err) {
-      const authError = err as Error;
+      const authError = createAuthError(
+        err instanceof Error ? err.message : 'Failed to sign in with Google',
+        'firebase-error',
+        err instanceof Error && 'code' in err ? (err as { code: string }).code : undefined
+      );
       setError(authError);
       throw authError;
     }
-  }, []);
+  }, [createAuthError]);
 
   const getIdToken = useCallback(async (forceRefresh = false): Promise<string | null> => {
     if (!user) {
       return null;
     }
-    try {
-      return await user.getIdToken(forceRefresh);
-    } catch (err) {
-      const tokenError = err as Error;
-      setError(tokenError);
-      throw tokenError;
+
+    // If there's already an ongoing token refresh, return that promise
+    // This prevents multiple overlapping refresh attempts
+    if (tokenRefreshPromiseRef.current && !forceRefresh) {
+      console.log('[AuthContext] Token refresh already in progress, reusing promise');
+      return tokenRefreshPromiseRef.current;
     }
-  }, [user]);
+
+    const refreshPromise = (async () => {
+      let finalError: unknown = null;
+      try {
+        console.log(`[AuthContext] Getting ID token (forceRefresh: ${forceRefresh})`);
+        const token = await user.getIdToken(forceRefresh);
+        tokenRefreshPromiseRef.current = null; // Clear promise on success
+        return token;
+      } catch (err) {
+        console.error('[AuthContext] Failed to get ID token:', err);
+        finalError = err;
+
+        // If not a forced refresh, attempt a single retry with forceRefresh=true
+        if (!forceRefresh) {
+          console.log('[AuthContext] Attempting token refresh after initial failure');
+          try {
+            const token = await user.getIdToken(true);
+            tokenRefreshPromiseRef.current = null; // Clear promise on success
+            return token;
+          } catch (retryErr) {
+            console.error('[AuthContext] Token refresh attempt failed:', retryErr);
+            finalError = retryErr; // Use the retry error for reporting
+          }
+        }
+
+        // All attempts failed. Set error, clear promise, and throw.
+        const authError = createAuthError(
+          'Failed to refresh authentication token',
+          'token-refresh-failed',
+          finalError instanceof Error && 'code' in finalError ? (finalError as { code: string }).code : undefined
+        );
+        setError(authError);
+        tokenRefreshPromiseRef.current = null;
+        throw authError;
+      }
+    })();
+
+    // Store the promise to prevent concurrent refresh attempts
+    if (forceRefresh || !tokenRefreshPromiseRef.current) {
+      tokenRefreshPromiseRef.current = refreshPromise;
+    }
+
+    return refreshPromise;
+  }, [user, createAuthError]);
 
   const value: AuthContextValue = useMemo(
     () => ({

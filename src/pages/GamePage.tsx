@@ -76,12 +76,12 @@ export default function GamePage() {
       // Intentionally setting state in effect: this is a synchronous initialization from
       // navigation state on mount, not a cascading render. The early return prevents
       // any further state updates. This is the recommended pattern for handling router state.
-      /* eslint-disable react-hooks/set-state-in-effect */
+       
       setLastTurn(initialTurn);
       setCurrentScenario(initialScenario.narrative);
       setTurnHistory([]);
       setLoadingState('success');
-      /* eslint-enable react-hooks/set-state-in-effect */
+       
 
       // Clear the location state to prevent re-processing on re-renders or back navigation
       navigate(location.pathname, { replace: true, state: null });
@@ -131,12 +131,24 @@ export default function GamePage() {
         const status = getErrorStatus(err);
         if (status === 404) {
           setError('Character not found');
-        } else if (status === 401 || status === 403) {
+          setLoadingState('error');
+        } else if (status === 403) {
+          // Access denied - redirect to /app with error message
+          console.warn('Access denied to character, redirecting to /app');
+          navigate('/app', {
+            replace: true,
+            state: {
+              message: 'Access denied. You do not have permission to view this character.',
+              severity: 'error'
+            }
+          });
+        } else if (status === 401) {
           setError('Unauthorized. Please log in again.');
+          setLoadingState('error');
         } else {
           setError(err instanceof Error ? err.message : 'Failed to load last turn');
+          setLoadingState('error');
         }
-        setLoadingState('error');
       }
     };
 
@@ -192,7 +204,8 @@ export default function GamePage() {
         // Show warning but don't block - DM response is still displayed
         const status = getErrorStatus(persistErr);
         if (status === 403) {
-          setPersistWarning('Unable to save turn: Access denied. Your progress may not be saved.');
+          setPersistWarning('Unable to save turn: Access denied.');
+          console.warn('Access denied when persisting turn - character may be owned by another user');
         } else {
           setPersistWarning('Warning: Failed to save turn to history. Your progress may not be saved.');
         }
@@ -221,7 +234,17 @@ export default function GamePage() {
       // Handle specific error codes
       const status = getErrorStatus(err);
       
-      if (status === 401 || status === 403) {
+      if (status === 403) {
+        // Access denied - redirect to /app with error message
+        console.warn('Access denied when submitting turn, redirecting to /app');
+        navigate('/app', {
+          replace: true,
+          state: {
+            message: 'Access denied. You do not have permission to interact with this character.',
+            severity: 'error'
+          }
+        });
+      } else if (status === 401) {
         setSubmitError('Authentication failed. Please log in again.');
       } else if (status === 404) {
         setSubmitError('Character not found.');
