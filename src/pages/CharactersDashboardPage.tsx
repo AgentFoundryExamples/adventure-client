@@ -7,7 +7,7 @@ type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
 export default function CharactersDashboardPage() {
   const [characters, setCharacters] = useState<CharacterMetadata[]>([]);
-  const [loadingState, setLoadingState] = useState<LoadingState>('idle');
+  const [loadingState, setLoadingState] = useState<LoadingState>('loading');
   const [error, setError] = useState<string | null>(null);
 
   const fetchCharacters = useCallback(async () => {
