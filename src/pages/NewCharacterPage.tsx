@@ -34,8 +34,6 @@ export default function NewCharacterPage() {
     // Name validation
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
-    } else if (formData.name.trim().length < 1) {
-      newErrors.name = 'Name must be at least 1 character';
     } else if (formData.name.length > 100) {
       newErrors.name = 'Name must be 100 characters or less';
     }
@@ -43,8 +41,6 @@ export default function NewCharacterPage() {
     // Race validation
     if (!formData.race.trim()) {
       newErrors.race = 'Race is required';
-    } else if (formData.race.trim().length < 1) {
-      newErrors.race = 'Race must be at least 1 character';
     } else if (formData.race.length > 50) {
       newErrors.race = 'Race must be 50 characters or less';
     }
@@ -52,8 +48,6 @@ export default function NewCharacterPage() {
     // Class validation
     if (!formData.class.trim()) {
       newErrors.class = 'Class is required';
-    } else if (formData.class.trim().length < 1) {
-      newErrors.class = 'Class must be at least 1 character';
     } else if (formData.class.length > 50) {
       newErrors.class = 'Class must be 50 characters or less';
     }
@@ -194,7 +188,7 @@ export default function NewCharacterPage() {
             aria-describedby={errors.name ? 'name-error' : undefined}
           />
           {errors.name && (
-            <span id="name-error" className="error-message" role="alert">
+            <span id="name-error" className="field-error-message" role="alert">
               {errors.name}
             </span>
           )}
@@ -220,7 +214,7 @@ export default function NewCharacterPage() {
             aria-describedby={errors.race ? 'race-error' : undefined}
           />
           {errors.race && (
-            <span id="race-error" className="error-message" role="alert">
+            <span id="race-error" className="field-error-message" role="alert">
               {errors.race}
             </span>
           )}
@@ -246,7 +240,7 @@ export default function NewCharacterPage() {
             aria-describedby={errors.class ? 'class-error' : undefined}
           />
           {errors.class && (
-            <span id="class-error" className="error-message" role="alert">
+            <span id="class-error" className="field-error-message" role="alert">
               {errors.class}
             </span>
           )}
@@ -272,7 +266,7 @@ export default function NewCharacterPage() {
             aria-describedby={errors.adventurePrompt ? 'adventurePrompt-error' : undefined}
           />
           {errors.adventurePrompt && (
-            <span id="adventurePrompt-error" className="error-message" role="alert">
+            <span id="adventurePrompt-error" className="field-error-message" role="alert">
               {errors.adventurePrompt}
             </span>
           )}
