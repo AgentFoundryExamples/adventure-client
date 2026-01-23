@@ -4,6 +4,7 @@ import HomePage from '@/pages/HomePage';
 import LoginPage from '@/pages/LoginPage';
 import AppPage from '@/pages/AppPage';
 import GamePage from '@/pages/GamePage';
+import CharacterCreationPage from '@/pages/CharacterCreationPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import DebugPage from '@/pages/DebugPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
@@ -26,6 +27,14 @@ export const router = createBrowserRouter([
         element: (
           <ProtectedRoute>
             <AppPage />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        path: '/characters/new',
+        element: (
+          <ProtectedRoute>
+            <CharacterCreationPage />
           </ProtectedRoute>
         ),
       },
