@@ -2,7 +2,6 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BrowserRouter } from 'react-router-dom';
 import LoginPage from '../LoginPage';
-import type { AuthContextValue } from '@/types/auth';
 
 // Mock useAuth hook
 const mockUseAuth = vi.fn();
@@ -68,7 +67,7 @@ describe('LoginPage', () => {
     
     // Get submit button that is type="submit"
     const submitButtons = screen.getAllByRole('button', { name: 'Sign In' });
-    const submitButton = submitButtons.find(btn => btn.type === 'submit');
+    const submitButton = submitButtons.find(btn => (btn as HTMLButtonElement).type === 'submit');
     fireEvent.click(submitButton!);
 
     await waitFor(() => {
@@ -84,7 +83,7 @@ describe('LoginPage', () => {
     
     // Get submit button that is type="submit"
     const submitButtons = screen.getAllByRole('button', { name: 'Sign In' });
-    const submitButton = submitButtons.find(btn => btn.type === 'submit');
+    const submitButton = submitButtons.find(btn => (btn as HTMLButtonElement).type === 'submit');
     fireEvent.click(submitButton!);
 
     await waitFor(() => {
@@ -107,7 +106,7 @@ describe('LoginPage', () => {
     
     // Get submit button that is type="submit"
     const submitButtons = screen.getAllByRole('button', { name: 'Sign Up' });
-    const submitButton = submitButtons.find(btn => btn.type === 'submit');
+    const submitButton = submitButtons.find(btn => (btn as HTMLButtonElement).type === 'submit');
     fireEvent.click(submitButton!);
 
     await waitFor(() => {
@@ -138,7 +137,7 @@ describe('LoginPage', () => {
     
     // Get submit button that is type="submit"
     const submitButtons = screen.getAllByRole('button', { name: 'Sign In' });
-    const submitButton = submitButtons.find(btn => btn.type === 'submit');
+    const submitButton = submitButtons.find(btn => (btn as HTMLButtonElement).type === 'submit');
     fireEvent.click(submitButton!);
 
     await waitFor(() => {
@@ -175,7 +174,7 @@ describe('LoginPage', () => {
     
     // Get submit button from the form
     const submitButtons = screen.getAllByRole('button', { name: 'Sign Up' });
-    const submitButton = submitButtons.find(btn => btn.type === 'submit');
+    const submitButton = submitButtons.find(btn => (btn as HTMLButtonElement).type === 'submit');
     fireEvent.click(submitButton!);
 
     await waitFor(() => {
@@ -210,7 +209,7 @@ describe('LoginPage', () => {
     
     // Get submit button that is type="submit"
     const submitButtons = screen.getAllByRole('button', { name: 'Sign In' });
-    const submitButton = submitButtons.find(btn => btn.type === 'submit');
+    const submitButton = submitButtons.find(btn => (btn as HTMLButtonElement).type === 'submit');
     fireEvent.click(submitButton!);
 
     await waitFor(() => {
@@ -293,7 +292,7 @@ describe('LoginPage', () => {
     
     // Get submit button that is type="submit"
     const submitButtons = screen.getAllByRole('button', { name: 'Sign In' });
-    const submitButton = submitButtons.find(btn => btn.type === 'submit');
+    const submitButton = submitButtons.find(btn => (btn as HTMLButtonElement).type === 'submit');
     fireEvent.click(submitButton!);
 
     await waitFor(() => {

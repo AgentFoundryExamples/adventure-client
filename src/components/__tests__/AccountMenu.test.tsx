@@ -1,7 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AccountMenu from '../AccountMenu';
-import type { AuthContextValue } from '@/types/auth';
 
 // Mock useAuth hook
 const mockUseAuth = vi.fn();
