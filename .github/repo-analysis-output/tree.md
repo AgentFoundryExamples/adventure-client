@@ -153,6 +153,7 @@
     ├── __tests__
       ├── CharactersDashboardPage.test.tsx
       ├── DebugPage.test.tsx
+      ├── GamePage.test.tsx
       └── LoginPage.test.tsx
     ├── AppPage.tsx
     ├── CharacterCreationPage.tsx

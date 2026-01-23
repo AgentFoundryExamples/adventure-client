@@ -674,6 +674,10 @@
                 },
                 {
                   "type": "file",
+                  "name": "GamePage.test.tsx"
+                },
+                {
+                  "type": "file",
                   "name": "LoginPage.test.tsx"
                 }
               ]

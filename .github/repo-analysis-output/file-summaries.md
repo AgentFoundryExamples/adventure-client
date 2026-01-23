@@ -299,8 +299,8 @@ Total files: 101
 **Role:** entry-point  
 **Role Justification:** common entry point name 'index'  
 **Summary:** TypeScript main entry point (role: entry-point)  
-**Size:** 2.71 KB  
-**LOC:** 55  
+**Size:** 2.72 KB  
+**LOC:** 56  
 **TODOs/FIXMEs:** 0  
 
 ## src/api/journeyLog/core/ApiError.ts
