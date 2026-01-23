@@ -46,8 +46,13 @@ export default function GamePage() {
         player_action: '',
         timestamp: new Date().toISOString(),
       };
+      // Intentionally setting state in effect: this is a synchronous initialization from
+      // navigation state on mount, not a cascading render. The early return prevents
+      // any further state updates. This is the recommended pattern for handling router state.
+      /* eslint-disable react-hooks/set-state-in-effect */
       setLastTurn(initialTurn);
       setLoadingState('success');
+      /* eslint-enable react-hooks/set-state-in-effect */
 
       // Clear the location state to prevent re-processing on re-renders or back navigation
       navigate(location.pathname, { replace: true, state: null });
@@ -55,7 +60,6 @@ export default function GamePage() {
       return;
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingState('loading');
     setError(null);
 

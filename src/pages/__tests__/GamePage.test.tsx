@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BrowserRouter, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, MemoryRouter, Route, Routes } from 'react-router-dom';
 import GamePage from '../GamePage';
 import type { GetNarrativeResponse, NarrativeTurn } from '@/api';
 
@@ -30,7 +30,31 @@ function TestApp() {
   );
 }
 
-function renderWithRoute(characterId: string = 'char-123') {
+interface LocationStateForTest {
+  initialScenario?: {
+    narrative: string;
+    character_id: string;
+  };
+}
+
+function renderWithRoute(characterId: string = 'char-123', state?: LocationStateForTest) {
+  if (state) {
+    // Use MemoryRouter when we need to pass state
+    const initialEntry = {
+      pathname: `/game/${characterId}`,
+      state: state
+    };
+    
+    return render(
+      <MemoryRouter initialEntries={[initialEntry]}>
+        <Routes>
+          <Route path="/game/:characterId" element={<GamePage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+  }
+  
+  // Use standard BrowserRouter for regular tests
   window.history.pushState({}, '', `/game/${characterId}`);
   return render(<TestApp />);
 }
@@ -430,6 +454,175 @@ describe('GamePage', () => {
       
       const turnSections = document.querySelectorAll('.turn-section');
       expect(turnSections).toHaveLength(2);
+    });
+  });
+
+  describe('Initial Scenario from Navigation State', () => {
+    it('displays initial scenario from navigation state without fetching', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest, sunlight filtering through ancient trees.',
+        character_id: 'char-123',
+      };
+
+      renderWithRoute('char-123', { initialScenario });
+
+      // Should display the initial scenario immediately
+      await waitFor(() => {
+        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(initialScenario.narrative)).toBeInTheDocument();
+      
+      // Should NOT call the API since we have initial scenario
+      expect(mockGetCharacterLastTurn).not.toHaveBeenCalled();
+    });
+
+    it('clears navigation state after using initial scenario', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest.',
+        character_id: 'char-123',
+      };
+
+      renderWithRoute('char-123', { initialScenario });
+
+      await waitFor(() => {
+        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+      });
+
+      // Should have cleared the state by calling navigate with null state
+      await waitFor(() => {
+        expect(mockNavigate).toHaveBeenCalledWith(
+          '/game/char-123',
+          { replace: true, state: null }
+        );
+      });
+    });
+
+    it('ignores initial scenario if character_id does not match', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest.',
+        character_id: 'char-different',
+      };
+
+      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+
+      renderWithRoute('char-123', { initialScenario });
+
+      // Should fetch from API since character_id doesn't match
+      await waitFor(() => {
+        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+      });
+
+      // Should display the fetched turn, not the initial scenario
+      await waitFor(() => {
+        expect(screen.getByText(mockTurn.gm_response)).toBeInTheDocument();
+      });
+    });
+
+    it('falls back to API fetch when initial scenario is missing', async () => {
+      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+
+      renderWithRoute('char-123');
+
+      // Should fetch from API
+      await waitFor(() => {
+        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(mockTurn.gm_response)).toBeInTheDocument();
+      });
+    });
+
+    it('displays no player action placeholder for initial scenario', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest.',
+        character_id: 'char-123',
+      };
+
+      renderWithRoute('char-123', { initialScenario });
+
+      await waitFor(() => {
+        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+      });
+
+      // Initial scenario has no player action, should show placeholder
+      expect(screen.getByText('No player action recorded for this turn.')).toBeInTheDocument();
+    });
+
+    it('prevents duplicate journey-log requests when initial scenario provided', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest.',
+        character_id: 'char-123',
+      };
+
+      renderWithRoute('char-123', { initialScenario });
+
+      await waitFor(() => {
+        expect(screen.getByText('Last Turn')).toBeInTheDocument();
+      });
+
+      // Verify the initial scenario was used without API call
+      expect(mockGetCharacterLastTurn).not.toHaveBeenCalled();
+      
+      // Verify navigate was called to clear the state
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/game/char-123',
+        { replace: true, state: null }
+      );
+      
+      // Since the state is cleared and memoized, subsequent renders won't re-trigger the effect
+      // The useMemo with location.state dependency ensures the initial scenario is only processed once
+    });
+
+    it('handles journey-log fetch error after ignoring mismatched character_id', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest.',
+        character_id: 'char-different',
+      };
+
+      const error = new Error('Failed to fetch turns');
+      mockGetCharacterLastTurn.mockRejectedValue(error);
+
+      renderWithRoute('char-123', { initialScenario });
+
+      // Should attempt to fetch from API since character_id doesn't match
+      await waitFor(() => {
+        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+      });
+
+      // Should display error state
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Failed to fetch turns')).toBeInTheDocument();
+      });
+
+      // Should show retry button
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    it('handles empty journey-log response after fallback', async () => {
+      mockGetCharacterLastTurn.mockResolvedValue({
+        turns: [],
+        metadata: {
+          requested_n: 1,
+          returned_count: 0,
+          total_available: 0,
+        },
+      });
+
+      renderWithRoute('char-123');
+
+      // Should fetch from API
+      await waitFor(() => {
+        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+      });
+
+      // Should display empty state
+      await waitFor(() => {
+        expect(screen.getByText('No Turns Yet')).toBeInTheDocument();
+        expect(screen.getByText("This character doesn't have any recorded turns yet.")).toBeInTheDocument();
+      });
     });
   });
 });
