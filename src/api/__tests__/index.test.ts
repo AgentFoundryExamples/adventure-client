@@ -11,6 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { configureApiClients } from '../index';
 import { OpenAPI as DungeonMasterOpenAPI } from '../dungeonMaster';
@@ -359,6 +360,288 @@ describe('api configuration', () => {
       vi.spyOn(CharactersService, 'getNarrativeTurnsCharactersCharacterIdNarrativeGet').mockRejectedValue(mockError);
 
       await expect(getCharacterLastTurn('char1')).rejects.toThrow(mockError);
+    });
+  });
+
+  describe('submitTurn', () => {
+    it('successfully submits a turn', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { submitTurn } = await import('../index');
+      const { GameService } = await import('../dungeonMaster');
+      
+      const mockResponse = {
+        narrative: 'You enter the dungeon and see a dragon sleeping.',
+        intents: null,
+        subsystem_summary: null
+      };
+
+      vi.spyOn(GameService, 'processTurnTurnPost').mockResolvedValue(mockResponse);
+
+      const result = await submitTurn({
+        character_id: 'char-uuid-123',
+        user_action: 'I enter the dungeon carefully'
+      });
+
+      expect(result).toEqual(mockResponse);
+      expect(result.narrative).toBe('You enter the dungeon and see a dragon sleeping.');
+      expect(GameService.processTurnTurnPost).toHaveBeenCalledWith({
+        requestBody: {
+          character_id: 'char-uuid-123',
+          user_action: 'I enter the dungeon carefully'
+        },
+        xDevUserId: null
+      });
+    });
+
+    it('submits turn with X-Dev-User-Id header in development', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { submitTurn } = await import('../index');
+      const { GameService } = await import('../dungeonMaster');
+      
+      const mockResponse = {
+        narrative: 'Test narrative',
+        intents: null,
+        subsystem_summary: null
+      };
+
+      vi.spyOn(GameService, 'processTurnTurnPost').mockResolvedValue(mockResponse);
+
+      await submitTurn(
+        {
+          character_id: 'char-uuid-123',
+          user_action: 'Test action'
+        },
+        'dev-user-override'
+      );
+
+      expect(GameService.processTurnTurnPost).toHaveBeenCalledWith({
+        requestBody: {
+          character_id: 'char-uuid-123',
+          user_action: 'Test action'
+        },
+        xDevUserId: 'dev-user-override'
+      });
+    });
+
+    it('includes structured intents when returned', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { submitTurn } = await import('../index');
+      const { GameService } = await import('../dungeonMaster');
+      
+      const mockResponse = {
+        narrative: 'You cast a fireball at the enemy.',
+        intents: {
+          combat: { type: 'attack', target: 'enemy', weapon: 'fireball' }
+        },
+        subsystem_summary: {
+          combat: { success: true, damage: 25 }
+        }
+      };
+
+      vi.spyOn(GameService, 'processTurnTurnPost').mockResolvedValue(mockResponse);
+
+      const result = await submitTurn({
+        character_id: 'char-uuid-123',
+        user_action: 'I cast fireball at the enemy'
+      });
+
+      expect(result.intents).toBeDefined();
+      expect(result.subsystem_summary).toBeDefined();
+    });
+
+    it('propagates 400 bad request errors', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { submitTurn } = await import('../index');
+      const { GameService, ApiError } = await import('../dungeonMaster');
+      
+      const mockError = new ApiError(
+        {} as any,
+        {
+          url: '/turn',
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          body: { detail: 'Malformed UUID' }
+        },
+        'Malformed UUID'
+      );
+
+      vi.spyOn(GameService, 'processTurnTurnPost').mockRejectedValue(mockError);
+
+      await expect(submitTurn({
+        character_id: 'invalid-uuid',
+        user_action: 'Test action'
+      })).rejects.toThrow(mockError);
+    });
+
+    it('propagates 404 not found errors', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { submitTurn } = await import('../index');
+      const { GameService, ApiError } = await import('../dungeonMaster');
+      
+      const mockError = new ApiError(
+        {} as any,
+        {
+          url: '/turn',
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          body: { detail: 'Character not found' }
+        },
+        'Character not found'
+      );
+
+      vi.spyOn(GameService, 'processTurnTurnPost').mockRejectedValue(mockError);
+
+      await expect(submitTurn({
+        character_id: 'nonexistent-char',
+        user_action: 'Test action'
+      })).rejects.toThrow(mockError);
+    });
+
+    it('propagates 422 validation errors', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { submitTurn } = await import('../index');
+      const { GameService, ApiError } = await import('../dungeonMaster');
+      
+      const mockError = new ApiError(
+        {} as any,
+        {
+          url: '/turn',
+          ok: false,
+          status: 422,
+          statusText: 'Unprocessable Entity',
+          body: { detail: 'Validation failed' }
+        },
+        'Validation failed'
+      );
+
+      vi.spyOn(GameService, 'processTurnTurnPost').mockRejectedValue(mockError);
+
+      await expect(submitTurn({
+        character_id: '',
+        user_action: ''
+      })).rejects.toThrow(mockError);
+    });
+
+    it('propagates 429 rate limit errors', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { submitTurn } = await import('../index');
+      const { GameService, ApiError } = await import('../dungeonMaster');
+      
+      const mockError = new ApiError(
+        {} as any,
+        {
+          url: '/turn',
+          ok: false,
+          status: 429,
+          statusText: 'Too Many Requests',
+          body: { detail: 'Rate limit exceeded' }
+        },
+        'Rate limit exceeded'
+      );
+
+      vi.spyOn(GameService, 'processTurnTurnPost').mockRejectedValue(mockError);
+
+      await expect(submitTurn({
+        character_id: 'char-uuid-123',
+        user_action: 'Test action'
+      })).rejects.toThrow(mockError);
+    });
+
+    it('propagates 401 authentication errors', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { submitTurn } = await import('../index');
+      const { GameService, ApiError } = await import('../dungeonMaster');
+      
+      const mockError = new ApiError(
+        {} as any,
+        {
+          url: '/turn',
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+          body: { detail: 'Invalid authentication' }
+        },
+        'Invalid authentication'
+      );
+
+      vi.spyOn(GameService, 'processTurnTurnPost').mockRejectedValue(mockError);
+
+      await expect(submitTurn({
+        character_id: 'char-uuid-123',
+        user_action: 'Test action'
+      })).rejects.toThrow(mockError);
+    });
+
+    it('propagates 500 server errors', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { submitTurn } = await import('../index');
+      const { GameService, ApiError } = await import('../dungeonMaster');
+      
+      const mockError = new ApiError(
+        {} as any,
+        {
+          url: '/turn',
+          ok: false,
+          status: 500,
+          statusText: 'Internal Server Error',
+          body: { detail: 'Internal server error' }
+        },
+        'Internal server error'
+      );
+
+      vi.spyOn(GameService, 'processTurnTurnPost').mockRejectedValue(mockError);
+
+      await expect(submitTurn({
+        character_id: 'char-uuid-123',
+        user_action: 'Test action'
+      })).rejects.toThrow(mockError);
     });
   });
 });

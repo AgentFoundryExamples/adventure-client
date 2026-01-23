@@ -135,6 +135,68 @@ export async function createCharacter(
   });
 }
 
+/**
+ * Submit a turn action for a character and receive an AI-generated narrative response.
+ * 
+ * This function calls the dungeon-master service which:
+ * 1. Retrieves character context from journey-log service
+ * 2. Generates an AI narrative response using OpenAI GPT
+ * 3. Automatically persists the turn to journey-log service
+ * 4. Returns the narrative response with optional structured intents and subsystem summaries
+ * 
+ * **Required Parameters:**
+ * - `character_id`: UUID of the character (must be non-empty)
+ * - `user_action`: The player's action or input for this turn (must be non-empty)
+ * 
+ * **Authentication:**
+ * Requires Firebase authentication token (automatically added via configureApiClients).
+ * 
+ * **Headers:**
+ * - `Authorization: Bearer <token>` (automatic)
+ * - `X-Dev-User-Id: <user-id>` (optional, DEVELOPMENT ONLY - must be disabled in production)
+ * 
+ * ⚠️ **SECURITY WARNING:** The xDevUserId parameter should ONLY be used in development.
+ * This bypasses authentication and allows user impersonation. Ensure the backend service
+ * ignores this header in production environments.
+ * 
+ * @param request - Turn request with character_id and user_action
+ * @param xDevUserId - Optional development user ID override (ONLY for development, null in production)
+ * @returns Promise resolving to narrative response with optional intents and subsystem summaries
+ * @throws ApiError with status 400 for invalid request (malformed UUID, etc.)
+ * @throws ApiError with status 404 if character not found
+ * @throws ApiError with status 422 for validation errors
+ * @throws ApiError with status 429 for rate limit exceeded
+ * @throws ApiError with status 401 for authentication failures
+ * @throws ApiError with status 500 for server errors
+ * 
+ * @example
+ * ```typescript
+ * import { submitTurn } from '@/api';
+ * 
+ * const response = await submitTurn({
+ *   character_id: "550e8400-e29b-41d4-a716-446655440000",
+ *   user_action: "I draw my sword and approach the ancient door cautiously."
+ * });
+ * 
+ * console.log(response.narrative);  // "As you approach, ancient runes begin to glow..."
+ * if (response.intents) {
+ *   console.log(response.intents);  // Structured intents from LLM
+ * }
+ * ```
+ * 
+ * @see TurnRequest for request schema
+ * @see TurnResponse for response schema
+ */
+export async function submitTurn(
+  request: TurnRequest,
+  xDevUserId?: string | null
+): Promise<TurnResponse> {
+  return GameService.processTurnTurnPost({
+    requestBody: request,
+    xDevUserId: xDevUserId ?? null,
+  });
+}
+
 // Re-export commonly used types
 export type { 
   TurnRequest, 
