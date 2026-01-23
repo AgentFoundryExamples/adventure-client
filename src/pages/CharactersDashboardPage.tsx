@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getUserCharacters } from '@/api/journeyLog';
 import type { CharacterMetadata } from '@/api/journeyLog';
 import { ErrorNotice } from '@/components';
@@ -16,6 +16,7 @@ export default function CharactersDashboardPage() {
   const [loadingState, setLoadingState] = useState<LoadingState>('loading');
   const [error, setError] = useState<string | null>(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const [flashMessage, setFlashMessage] = useState<{ message: string; severity: 'error' | 'warning' | 'info' } | null>(null);
 
   // Handle flash messages from navigation state
@@ -31,9 +32,9 @@ export default function CharactersDashboardPage() {
       });
       /* eslint-enable react-hooks/set-state-in-effect */
       // Clear the location state to prevent re-showing on refresh
-      window.history.replaceState({}, '');
+      navigate(location.pathname, { replace: true, state: null });
     }
-  }, [location.state]);
+  }, [location.state, location.pathname, navigate]);
 
   const fetchCharacters = useCallback(async () => {
     setLoadingState('loading');

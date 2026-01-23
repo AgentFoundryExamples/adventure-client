@@ -44,7 +44,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   
   // Track ongoing token refresh to prevent multiple overlapping attempts
   const tokenRefreshPromiseRef = useRef<Promise<string | null> | null>(null);
-  const hasAttemptedRefreshRef = useRef<Map<string, boolean>>(new Map());
 
   // Helper to create structured auth errors
   const createAuthError = useCallback((message: string, reason: AuthError['reason'], code?: string): AuthError => {
@@ -71,7 +70,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           });
           // Clear any pending token refresh promises
           tokenRefreshPromiseRef.current = null;
-          hasAttemptedRefreshRef.current.clear();
           navigate('/login', { 
             replace: true,
             state: { message: 'Your session has expired. Please log in again.' }
@@ -149,7 +147,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const auth = getFirebaseAuth();
       // Clear refresh tracking on logout
       tokenRefreshPromiseRef.current = null;
-      hasAttemptedRefreshRef.current.clear();
       await signOut(auth);
       // Auth state will be updated by onAuthStateChanged listener
     } catch (err) {
@@ -193,60 +190,38 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return tokenRefreshPromiseRef.current;
     }
 
-    const refreshKey = `${user.uid}-${Date.now()}`;
-    
     const refreshPromise = (async () => {
+      let finalError: unknown = null;
       try {
         console.log(`[AuthContext] Getting ID token (forceRefresh: ${forceRefresh})`);
         const token = await user.getIdToken(forceRefresh);
-        
-        // Clear the pending promise on success
-        tokenRefreshPromiseRef.current = null;
-        hasAttemptedRefreshRef.current.delete(refreshKey);
-        
+        tokenRefreshPromiseRef.current = null; // Clear promise on success
         return token;
       } catch (err) {
         console.error('[AuthContext] Failed to get ID token:', err);
-        
-        // If this is the first failure and we haven't forced a refresh yet, try once more
-        if (!forceRefresh && !hasAttemptedRefreshRef.current.has(refreshKey)) {
-          hasAttemptedRefreshRef.current.set(refreshKey, true);
+        finalError = err;
+
+        // If not a forced refresh, attempt a single retry with forceRefresh=true
+        if (!forceRefresh) {
           console.log('[AuthContext] Attempting token refresh after initial failure');
-          
           try {
             const token = await user.getIdToken(true);
-            tokenRefreshPromiseRef.current = null;
-            hasAttemptedRefreshRef.current.delete(refreshKey);
+            tokenRefreshPromiseRef.current = null; // Clear promise on success
             return token;
           } catch (retryErr) {
             console.error('[AuthContext] Token refresh attempt failed:', retryErr);
-            
-            // Both attempts failed - set error and clear state
-            // Don't logout/navigate here - let the caller or HTTP client handle it
-            const authError = createAuthError(
-              'Failed to refresh authentication token',
-              'token-refresh-failed',
-              retryErr instanceof Error && 'code' in retryErr ? (retryErr as { code: string }).code : undefined
-            );
-            setError(authError);
-            
-            // Clear state
-            tokenRefreshPromiseRef.current = null;
-            hasAttemptedRefreshRef.current.clear();
-            
-            throw authError;
+            finalError = retryErr; // Use the retry error for reporting
           }
         }
-        
-        // If we already tried refresh or it was explicitly requested to force refresh
+
+        // All attempts failed. Set error, clear promise, and throw.
         const authError = createAuthError(
-          err instanceof Error ? err.message : 'Failed to get authentication token',
-          'token-expired',
-          err instanceof Error && 'code' in err ? (err as { code: string }).code : undefined
+          'Failed to refresh authentication token',
+          'token-refresh-failed',
+          finalError instanceof Error && 'code' in finalError ? (finalError as { code: string }).code : undefined
         );
         setError(authError);
         tokenRefreshPromiseRef.current = null;
-        hasAttemptedRefreshRef.current.delete(refreshKey);
         throw authError;
       }
     })();

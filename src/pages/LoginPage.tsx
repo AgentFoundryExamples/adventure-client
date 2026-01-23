@@ -61,9 +61,9 @@ export default function LoginPage() {
       setFlashMessage(state.message);
       /* eslint-enable react-hooks/set-state-in-effect */
       // Clear the location state to prevent re-showing on refresh
-      window.history.replaceState({}, '');
+      navigate(location.pathname, { replace: true, state: null });
     }
-  }, [location.state]);
+  }, [location.state, location.pathname, navigate]);
 
   // Redirect if already authenticated
   useEffect(() => {
