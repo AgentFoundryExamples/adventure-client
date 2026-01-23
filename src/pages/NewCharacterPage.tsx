@@ -303,7 +303,7 @@ export default function NewCharacterPage() {
             {loadingState === 'loading' ? (
               <>
                 <LoadingSpinner size="small" />
-                <span style={{ marginLeft: '8px' }}>Creating...</span>
+                <span>Creating...</span>
               </>
             ) : (
               'Create Adventure'

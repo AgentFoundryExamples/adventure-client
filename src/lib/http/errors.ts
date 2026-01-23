@@ -118,6 +118,11 @@ export function wrapError(error: unknown, defaultMessage = 'Network request fail
 export function getHttpErrorMessage(statusCode: number, context?: string): string {
   const prefix = context ? `${context}: ` : '';
   
+  // Handle network errors (status 0) separately
+  if (statusCode === 0) {
+    return `${prefix}Network error. Please check your internet connection.`;
+  }
+  
   switch (statusCode) {
     case 400:
       return `${prefix}Invalid request. Please check your input and try again.`;
@@ -144,8 +149,6 @@ export function getHttpErrorMessage(statusCode: number, context?: string): strin
         return `${prefix}Server error (${statusCode}). Please try again later.`;
       } else if (statusCode >= 400) {
         return `${prefix}Request failed (${statusCode}). Please check your input.`;
-      } else if (statusCode === 0) {
-        return `${prefix}Network error. Please check your internet connection.`;
       }
       return `${prefix}An unexpected error occurred (${statusCode}).`;
   }

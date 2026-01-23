@@ -213,7 +213,7 @@ export default function LoginPage() {
             {loading ? (
               <>
                 <LoadingSpinner size="small" />
-                <span style={{ marginLeft: '8px' }}>Please wait...</span>
+                <span>Please wait...</span>
               </>
             ) : mode === 'signin' ? 'Sign In' : 'Sign Up'}
           </button>

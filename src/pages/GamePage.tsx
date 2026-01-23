@@ -279,6 +279,8 @@ export default function GamePage() {
   }
 
   if (loadingState === 'error') {
+    const isAuthError = error && typeof error === 'string' && error.includes('Authentication failed');
+    
     return (
       <div className="error-state">
         <ErrorNotice
@@ -286,10 +288,10 @@ export default function GamePage() {
           message={error || 'An unexpected error occurred'}
           severity="error"
           variant="inline"
-          onRetry={error?.includes('log in') ? undefined : handleRetry}
+          onRetry={isAuthError ? undefined : handleRetry}
         />
-        {error?.includes('log in') && (
-          <button onClick={() => navigate('/login')} className="cta-button" style={{ marginTop: '16px' }}>
+        {isAuthError && (
+          <button onClick={() => navigate('/login')} className="cta-button">
             Go to Login
           </button>
         )}
@@ -399,7 +401,7 @@ export default function GamePage() {
                 {isSubmitting ? (
                   <>
                     <LoadingSpinner size="small" />
-                    <span style={{ marginLeft: '8px' }}>Processing...</span>
+                    <span>Processing...</span>
                   </>
                 ) : (
                   'Act'
