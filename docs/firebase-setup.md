@@ -185,6 +185,14 @@ The application uses three environment files:
 | `.env.production` | Production template (empty placeholders) | ✅ Yes (no secrets) |
 | `.env.local` | Your local overrides (real Firebase config) | ❌ No (in .gitignore) |
 
+**Environment Variables Overview**:
+
+The application requires two types of environment variables:
+1. **API Base URLs**: Backend service endpoints (Dungeon Master API, Journey Log API)
+2. **Firebase Configuration**: Authentication and Firebase service settings
+
+All variables are prefixed with `VITE_` so they can be bundled by Vite at build time.
+
 ### Step 1: Create Your Local Environment File
 
 For local development:
@@ -296,6 +304,327 @@ In GitHub Actions or Cloud Build, store secrets securely:
    - Variables are visible in the client JavaScript bundle
    - This is expected and safe for Firebase configuration
    - Do not store backend secrets in frontend env vars
+
+## API Authentication Integration
+
+The Adventure Client uses Firebase Authentication to secure API requests to both backend services (Dungeon Master API and Journey Log API). This section explains how authentication tokens flow from Firebase to the backend APIs.
+
+### Authentication Architecture
+
+```
+┌──────────────┐      Firebase Auth      ┌──────────────┐
+│   Browser    │ ◄──────────────────────► │   Firebase   │
+│  (Frontend)  │    Login/Token Refresh   │  Auth Server │
+└──────┬───────┘                          └──────────────┘
+       │
+       │ API Request + Headers
+       │ - Authorization: Bearer <token>
+       │ - X-User-Id: <uid>
+       │
+       ├──────────────────────────────────►┌──────────────────┐
+       │                                    │ Dungeon Master   │
+       │         200 OK / 401 Unauthorized  │      API         │
+       │◄───────────────────────────────────┤                  │
+       │                                    │ Validates token  │
+       │                                    │ with Firebase    │
+       │                                    └──────────────────┘
+       │
+       └──────────────────────────────────►┌──────────────────┐
+                                            │  Journey Log     │
+                200 OK / 401 Unauthorized   │      API         │
+       ◄────────────────────────────────────┤                  │
+                                            │ Validates token  │
+                                            │ + checks User-Id │
+                                            └──────────────────┘
+```
+
+### How Authentication Tokens Are Attached
+
+The application automatically attaches authentication headers to all API requests using the OpenAPI generated clients:
+
+**1. Authentication Provider Setup** (`src/context/AuthContext.tsx`):
+
+The application uses an `AuthProvider` interface that provides authentication methods and user state. For API authentication, the key methods are:
+
+```typescript
+// Subset of AuthProvider interface used by API clients
+interface AuthProviderForAPI {
+  getIdToken(forceRefresh?: boolean): Promise<string | null>;
+  uid: string | null;
+}
+```
+
+The full `AuthProvider` (see `src/types/auth.ts`) includes additional methods for user authentication (`signInWithEmailPassword`, `signUpWithEmailPassword`, `signOutUser`, `signInWithGoogle`).
+
+The `AuthContext` provides:
+- `getIdToken()`: Returns current Firebase ID token (JWT)
+- `uid`: Current user's unique Firebase user ID
+
+**2. API Client Configuration** (`src/api/index.ts`):
+
+When the app initializes, it configures both API clients with authentication using the `configureApiClients(authProvider)` function:
+
+```typescript
+// Dungeon Master API: Only needs Authorization header
+DungeonMasterOpenAPI.TOKEN = async () => {
+  const token = await authProvider.getIdToken();
+  if (!token) {
+    throw new Error('Authentication required but no token available');
+  }
+  return token;
+};
+
+// Journey Log API: Needs both Authorization + X-User-Id headers
+JourneyLogOpenAPI.TOKEN = async () => {
+  const token = await authProvider.getIdToken();
+  if (!token) {
+    throw new Error('Authentication required but no token available');
+  }
+  return token;
+};
+
+JourneyLogOpenAPI.HEADERS = async () => {
+  const headers: Record<string, string> = {};
+  if (authProvider.uid) {
+    headers['X-User-Id'] = authProvider.uid;
+  }
+  return headers;
+};
+```
+
+**Important**: Users must be authenticated before making API calls. If no token is available, an error is thrown. The X-User-Id header is only included when a user ID is available.
+
+**3. Application Initialization** (`src/main.tsx` or `src/App.tsx`):
+
+The `configureApiClients()` function must be called during application startup, typically in the `AuthProvider` effect or in the main app initialization:
+
+```typescript
+// Example: In AuthContext or App initialization
+useEffect(() => {
+  if (user) {
+    // Configure API clients when user is authenticated
+    configureApiClients({
+      getIdToken: async (forceRefresh) => user.getIdToken(forceRefresh),
+      uid: user.uid,
+    });
+  } else {
+    // Clear API configuration when user logs out
+    configureApiClients(null);
+  }
+}, [user]);
+```
+
+**Important**: Without calling `configureApiClients()`, API requests will not include authentication headers and will fail with 401 errors.
+
+**4. Resulting HTTP Headers**:
+
+For **Dungeon Master API** requests:
+```http
+GET /api/health HTTP/1.1
+Host: localhost:8001
+Authorization: Bearer <firebase-id-token>
+```
+
+For **Journey Log API** requests:
+```http
+GET /api/characters HTTP/1.1
+Host: localhost:8002
+Authorization: Bearer <firebase-id-token>
+X-User-Id: <firebase-user-uid>
+```
+
+**Note**: Actual tokens are JWT strings beginning with `eyJ...`. They should never be logged in production code.
+
+### Token Lifecycle and Refresh
+
+**Token Expiration**: Firebase ID tokens expire after 1 hour.
+
+**Automatic Refresh**: The application implements automatic token refresh using a 401 retry mechanism in the HTTP client:
+
+1. **Initial Request**: Client sends API request with current token
+2. **401 Response**: Backend returns 401 if token is expired or invalid
+3. **Token Refresh**: Client calls `getIdToken(forceRefresh: true)` to get fresh token from Firebase
+4. **Token Comparison**: Client verifies new token is different from expired token (prevents infinite loops)
+5. **Retry Request**: Client retries the original request with new token (single retry attempt only)
+6. **Final Response**: Returns success or final error to caller
+
+**Implementation Details** (`src/lib/http/client.ts`):
+- Uses a `retryCount` parameter to track retry attempts
+- Forces token refresh when `retryCount > 0`
+- Compares new token with old token to ensure it actually changed
+- Only allows one retry to prevent infinite loops
+- If token doesn't change or retry fails, returns error
+
+```typescript
+// Simplified retry logic from src/lib/http/client.ts
+const makeRequest = async (url: string, options: RequestInit, retryCount = 0) => {
+  const forceRefresh = retryCount > 0;
+  const token = await authProvider.getIdToken(forceRefresh);
+  
+  // Add token to request headers
+  const response = await fetch(url, {
+    ...options,
+    headers: { ...options.headers, Authorization: `Bearer ${token}` },
+  });
+  
+  if (response.status === 401 && retryCount === 0) {
+    // Token might be expired, refresh and retry once
+    const newToken = await authProvider.getIdToken(true);
+    
+    // Critical: Verify token actually changed to prevent infinite loops
+    if (newToken && newToken !== token) {
+      // Retry with the new token by recursing with incremented retry count
+      // This will use forceRefresh=true on the next call
+      return makeRequest(url, options, retryCount + 1);
+    }
+  }
+  
+  return response;
+};
+```
+
+**Important**: The token comparison (`newToken !== token`) is essential to prevent infinite loops if token refresh fails or returns the same expired token.
+
+**Important Notes**:
+- Only ONE retry attempt is made to avoid infinite loops
+- Token refresh happens in the background (user doesn't see it)
+- If retry fails, user sees authentication error
+- Users can manually refresh by signing out and back in
+
+### Backend Token Validation
+
+Both backend services validate tokens using the Firebase Admin SDK:
+
+1. **Extract Token**: Backend extracts `Authorization: Bearer <token>` header
+2. **Verify with Firebase**: Backend calls Firebase Admin SDK to verify token signature and claims
+3. **Check Expiration**: Firebase verifies token hasn't expired
+4. **Extract User ID**: Backend extracts `uid` claim from verified token
+5. **Authorize Request**: Backend checks if user has permission for the requested resource
+
+**Token Validation Failures**:
+- Expired token → 401 Unauthorized (triggers frontend refresh)
+- Invalid signature → 401 Unauthorized (user must re-authenticate)
+- Missing token → 401 Unauthorized (user must log in)
+- Wrong Firebase project → 401 Unauthorized (configuration mismatch)
+
+### Header Requirements by Service
+
+| Service | Authorization Header | X-User-Id Header | Notes |
+|---------|---------------------|------------------|-------|
+| **Dungeon Master API** | ✅ Required | ❌ Not used | Token contains all user info |
+| **Journey Log API** | ✅ Required | ✅ Required | Needs explicit User-Id for queries |
+
+**Why X-User-Id?**
+
+The Journey Log API requires the `X-User-Id` header for:
+- Efficiently querying user-specific data without parsing JWT
+- Validating that the requesting user matches the resource owner
+- Simplifying database queries and access control logic
+
+The backend validates that the `X-User-Id` matches the `uid` claim in the token.
+
+### Authentication Requirements for API Calls
+
+**User Must Be Authenticated**:
+All API endpoints (except `/health`) require a valid Firebase authentication token. Users must:
+
+1. Sign up or sign in via the login page (`/login`)
+2. Obtain a Firebase ID token (happens automatically after login)
+3. Have the token attached to API requests (happens automatically)
+
+**Protected Routes**:
+The application uses `ProtectedRoute` to ensure users are authenticated before accessing API-dependent pages:
+
+```typescript
+<Route path="/app" element={
+  <ProtectedRoute>
+    <AppLayout />
+  </ProtectedRoute>
+} />
+```
+
+**Unauthenticated Access**:
+If a user tries to access a protected page without authentication:
+1. `ProtectedRoute` detects no authenticated user
+2. User is redirected to `/login`
+3. After successful login, user is redirected back to the original page
+
+### Testing API Authentication
+
+Use the **Debug/Diagnostic Page** (`/debug`) to test API authentication:
+
+1. **Start both backend services**:
+   ```bash
+   # Dungeon Master API on port 8001
+   # Journey Log API on port 8002
+   ```
+
+2. **Navigate to debug page**: `http://localhost:5173/debug`
+
+3. **Authenticate**: Click login link and sign in with Firebase
+
+4. **Test endpoints**: Click test buttons for each API
+
+5. **Verify headers**: The debug page shows all headers sent, including:
+   - Authorization token (masked as `abcd...wxyz` for security)
+   - X-User-Id (for Journey Log API)
+
+### Troubleshooting API Authentication
+
+**Issue: "401 Unauthorized" on all API requests**
+- **Cause**: User not logged in or token expired
+- **Solution**:
+  1. Ensure user is logged in (check auth state on debug page)
+  2. Try signing out and signing in again
+  3. Check that backend Firebase project matches frontend configuration
+  4. Verify backend can reach Firebase Auth servers
+
+**Issue: "Missing or invalid X-User-Id header"**
+- **Cause**: X-User-Id header not sent or doesn't match token
+- **Applies to**: Journey Log API only.
+- **Solution**:
+  1. Ensure `configureApiClients(authProvider)` is called on app init
+  2. Verify `authProvider.uid` is not null
+  3. Check that backend validates both token and X-User-Id
+
+**Issue: Token refresh fails with 401**
+- **Symptom**: First request succeeds, subsequent requests fail
+- **Cause**: Token expired and refresh failed
+- **Solution**:
+  1. Check browser console for Firebase errors
+  2. Verify Firebase project configuration is correct
+  3. Ensure browser has network connectivity
+  4. Try clearing browser cache and signing in again
+  5. Check Firebase Console > Authentication > Users for account status
+
+**Issue: "CORS error" when calling authenticated endpoints**
+- **Cause**: Backend CORS not configured for credentials
+- **Solution**:
+  1. Backend must allow credentials: `Access-Control-Allow-Credentials: true`
+  2. Backend must allow Authorization header: `Access-Control-Allow-Headers: Authorization, X-User-Id`
+  3. Backend cannot use wildcard origin with credentials (must specify exact origin)
+
+**Issue: Different Firebase projects between environments**
+- **Symptom**: Token works locally but not in staging/production
+- **Cause**: Frontend uses different Firebase project than backend expects
+- **Solution**:
+  1. Verify all environments use matching Firebase projects:
+     - Frontend `.env.local` → `VITE_FIREBASE_PROJECT_ID`
+     - Backend configuration → Firebase Admin SDK project
+  2. Use separate projects for dev/staging/production consistently
+  3. Document Firebase project IDs for each environment
+
+### Security Best Practices
+
+1. **Never Share Tokens**: Tokens are sensitive credentials; don't log them in plain text
+2. **Use HTTPS**: Always use HTTPS in production to prevent token interception
+3. **Short-Lived Tokens**: Firebase tokens expire after 1 hour (good security practice)
+4. **Backend Validation**: Backends must always validate tokens with Firebase (never trust client)
+5. **Separate Projects**: Use different Firebase projects for dev/staging/production
+6. **Monitor Auth Events**: Check Firebase Console for suspicious login patterns
+7. **Revoke Access**: Users can be disabled in Firebase Console if compromised
+
+For more authentication troubleshooting, see the [Troubleshooting](#troubleshooting) section below.
 
 ## Authentication Flow Components
 
@@ -759,6 +1088,50 @@ Required variables:
 3. Set project name and support email
 4. Click Save
 5. Refresh the login page
+
+#### 11. Backend API Returns 403 Forbidden
+
+**Symptom**: API calls fail with 403 error after successful authentication.
+
+**Cause**: Backend authorization rules reject the request even with valid token.
+
+**Solution**:
+1. Verify user has permission to access the resource
+2. Check backend authorization logic (separate from authentication)
+3. Ensure backend correctly extracts user ID from token
+4. Review backend logs for authorization failures
+
+#### 12. Token Validation Fails on Backend
+
+**Symptom**: Backend logs show "invalid token" or "signature verification failed".
+
+**Cause**: Backend Firebase configuration doesn't match frontend Firebase project.
+
+**Solution**:
+1. Verify backend uses same Firebase project as frontend:
+   - Frontend: `VITE_FIREBASE_PROJECT_ID` in env files
+   - Backend: Firebase Admin SDK initialization
+2. Ensure backend has correct service account credentials
+3. Check backend can reach Firebase Auth servers (network/firewall)
+4. Verify token format: should start with `eyJhbGci...`
+
+#### 13. API Calls Work in Browser but Fail in Tests
+
+**Symptom**: API integration works in development but fails in automated tests.
+
+**Cause**: Tests not properly mocking authentication or API clients.
+
+**Solution**:
+1. Mock `AuthProvider` in test setup:
+   ```typescript
+   const mockAuthProvider = {
+     getIdToken: jest.fn().mockResolvedValue('mock-token'),
+     uid: 'mock-user-id',
+   };
+   ```
+2. Mock API responses for deterministic tests
+3. Use test Firebase project with test users
+4. Don't call real APIs in unit tests (use mocks/stubs)
 
 ### Getting Help
 
