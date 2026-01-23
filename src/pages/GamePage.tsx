@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { getCharacterLastTurn } from '@/api';
-import type { GetNarrativeResponse, NarrativeTurn } from '@/api';
+import { getCharacterLastTurn, submitTurn } from '@/api';
+import type { GetNarrativeResponse, NarrativeTurn, TurnResponse } from '@/api';
+import { useAuth } from '@/hooks/useAuth';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -12,10 +13,18 @@ interface LocationState {
   };
 }
 
+interface Turn {
+  player_action: string;
+  gm_response: string;
+  timestamp?: string;
+}
+
 export default function GamePage() {
   const { characterId } = useParams<{ characterId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const { getIdToken } = useAuth();
+  const logContainerRef = useRef<HTMLDivElement>(null);
   
   // Memoize the initial scenario to prevent unnecessary re-renders
   const initialScenario = useMemo(() => {
@@ -24,9 +33,17 @@ export default function GamePage() {
   }, [location.state]);
   
   const [lastTurn, setLastTurn] = useState<NarrativeTurn | null>(null);
+  const [turnHistory, setTurnHistory] = useState<Turn[]>([]);
+  const [currentScenario, setCurrentScenario] = useState<string>('');
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  
+  // Action submission states
+  const [playerAction, setPlayerAction] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [persistWarning, setPersistWarning] = useState<string | null>(null);
 
   useEffect(() => {
     // Validate characterId before making request
@@ -51,6 +68,8 @@ export default function GamePage() {
       // any further state updates. This is the recommended pattern for handling router state.
       /* eslint-disable react-hooks/set-state-in-effect */
       setLastTurn(initialTurn);
+      setCurrentScenario(initialScenario.narrative);
+      setTurnHistory([]);
       setLoadingState('success');
       /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -68,10 +87,27 @@ export default function GamePage() {
         const response: GetNarrativeResponse = await getCharacterLastTurn(characterId);
         
         if (response.turns && response.turns.length > 0) {
-          setLastTurn(response.turns[0]);
+          const turn = response.turns[0];
+          setLastTurn(turn);
+          setCurrentScenario(turn.gm_response);
+          
+          // Build turn history (in this simple version, we just show the last turn)
+          // In a future enhancement, we could fetch more turns
+          if (turn.player_action) {
+            setTurnHistory([{
+              player_action: turn.player_action,
+              gm_response: turn.gm_response,
+              timestamp: turn.timestamp
+            }]);
+          } else {
+            setTurnHistory([]);
+          }
+          
           setLoadingState('success');
         } else {
           setLastTurn(null);
+          setCurrentScenario('');
+          setTurnHistory([]);
           setLoadingState('success');
         }
       } catch (err) {
@@ -94,6 +130,82 @@ export default function GamePage() {
 
     fetchLastTurn();
   }, [characterId, navigate, retryCount, initialScenario, location.pathname]);
+  
+  // Auto-scroll to newest entry when updated
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [turnHistory, currentScenario]);
+
+  const handleSubmitAction = async () => {
+    if (!characterId || !playerAction.trim() || isSubmitting) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+    setPersistWarning(null);
+
+    try {
+      console.log('Submitting action for character:', characterId);
+      
+      // Call dungeon-master API
+      const response: TurnResponse = await submitTurn({
+        character_id: characterId,
+        user_action: playerAction.trim(),
+      });
+
+      console.log('Received DM response:', response.narrative);
+
+      // Update the UI with the new turn
+      const newTurn: Turn = {
+        player_action: playerAction.trim(),
+        gm_response: response.narrative,
+        timestamp: new Date().toISOString(),
+      };
+
+      setTurnHistory(prev => [...prev, newTurn]);
+      setCurrentScenario(response.narrative);
+      setPlayerAction('');
+
+      // Note: The dungeon-master service handles persistence to journey-log automatically
+      // If there was a persistence issue, it would be reflected in the DM error
+      
+    } catch (err) {
+      console.error('Failed to submit action:', err);
+      
+      // Handle specific error codes
+      const status = err && typeof err === 'object' && 'status' in err 
+        ? (err as { status: number }).status 
+        : undefined;
+      
+      if (status === 401 || status === 403) {
+        setSubmitError('Authentication failed. Please log in again.');
+      } else if (status === 404) {
+        setSubmitError('Character not found.');
+      } else if (status === 429) {
+        setSubmitError('Too many requests. Please wait a moment and try again.');
+      } else {
+        setSubmitError(err instanceof Error ? err.message : 'Failed to submit action. Please try again.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      if (!isSubmitting && playerAction.trim()) {
+        handleSubmitAction();
+      }
+    }
+  };
+
+  const handleRetry = () => {
+    setRetryCount(prev => prev + 1);
+  };
 
   if (loadingState === 'loading' || loadingState === 'idle') {
     return (
@@ -105,10 +217,6 @@ export default function GamePage() {
   }
 
   if (loadingState === 'error') {
-    const handleRetry = () => {
-      setRetryCount(prev => prev + 1);
-    };
-
     return (
       <div className="error-state">
         <h2>Unable to Load Last Turn</h2>
@@ -127,7 +235,7 @@ export default function GamePage() {
   }
 
   // Empty state - no turns recorded
-  if (loadingState === 'success' && !lastTurn) {
+  if (loadingState === 'success' && !lastTurn && !currentScenario) {
     return (
       <div className="empty-state">
         <h1>No Turns Yet</h1>
@@ -140,44 +248,98 @@ export default function GamePage() {
     );
   }
 
-  // Success state with turn data - lastTurn is guaranteed to be non-null here
-  if (loadingState === 'success' && lastTurn) {
+  // Success state with turn data - render gameplay UI
+  if (loadingState === 'success' && (lastTurn || currentScenario)) {
     return (
       <div className="game-page">
         <header className="game-header">
-          <h1>Last Turn</h1>
+          <h1>Adventure in Progress</h1>
           <button onClick={() => navigate('/app')} className="back-button">
             Back to Characters
           </button>
         </header>
 
-        <div className="turn-container">
-          {/* Dungeon Master Response Section */}
-          <section className="turn-section dm-section">
-            <h2>Last Dungeon Master Response</h2>
-            <div className="turn-content">
-              <p className="turn-text">{lastTurn.gm_response}</p>
-            </div>
-            {lastTurn.timestamp && (
-              <div className="turn-metadata">
-                <span className="timestamp-label">Time:</span>
-                <span className="timestamp-value">{formatTimestamp(lastTurn.timestamp)}</span>
-              </div>
-            )}
-          </section>
+        {/* Current Scenario */}
+        <section className="current-scenario-section">
+          <h2>Current Scene</h2>
+          <div className="scenario-content">
+            <p className="scenario-text">{currentScenario}</p>
+          </div>
+        </section>
 
-          {/* Player Action Section */}
-          <section className="turn-section player-section">
-            <h2>Your Last Action</h2>
-            <div className="turn-content">
-              {lastTurn.player_action ? (
-                <p className="turn-text">{lastTurn.player_action}</p>
-              ) : (
-                <p className="turn-text placeholder">No player action recorded for this turn.</p>
-              )}
+        {/* Turn History Log */}
+        {turnHistory.length > 0 && (
+          <section className="turn-history-section">
+            <h2>Recent Actions</h2>
+            <div className="turn-history-log" ref={logContainerRef}>
+              {turnHistory.map((turn, index) => (
+                <div key={index} className="history-turn-entry">
+                  <div className="history-player-action">
+                    <span className="action-label">You:</span>
+                    <p className="action-text">{turn.player_action}</p>
+                  </div>
+                  <div className="history-dm-response">
+                    <span className="response-label">DM:</span>
+                    <p className="response-text">{turn.gm_response}</p>
+                  </div>
+                  {turn.timestamp && (
+                    <div className="history-timestamp">
+                      {formatTimestamp(turn.timestamp)}
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </section>
-        </div>
+        )}
+
+        {/* Action Input Form */}
+        <section className="action-input-section">
+          <h2>What do you do?</h2>
+          
+          {submitError && (
+            <div className="submit-error-message">
+              <strong>Error:</strong> {submitError}
+            </div>
+          )}
+          
+          {persistWarning && (
+            <div className="persist-warning-message">
+              <strong>Warning:</strong> {persistWarning}
+            </div>
+          )}
+
+          <div className="action-input-form">
+            <textarea
+              className="action-textarea"
+              value={playerAction}
+              onChange={(e) => setPlayerAction(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Describe your action... (Press Ctrl+Enter to submit)"
+              disabled={isSubmitting}
+              rows={4}
+            />
+            <div className="form-actions">
+              <button
+                className="act-button"
+                onClick={handleSubmitAction}
+                disabled={isSubmitting || !playerAction.trim()}
+              >
+                {isSubmitting ? (
+                  <>
+                    <span className="button-spinner" />
+                    Processing...
+                  </>
+                ) : (
+                  'Act'
+                )}
+              </button>
+            </div>
+            <p className="action-hint">
+              Tip: Press <kbd>Ctrl+Enter</kbd> to submit your action
+            </p>
+          </div>
+        </section>
       </div>
     );
   }
