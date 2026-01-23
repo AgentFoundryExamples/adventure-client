@@ -95,10 +95,14 @@ export { getUserCharacters, getCharacterLastTurn } from './journeyLog';
  * 
  * **Headers:**
  * - `Authorization: Bearer <token>` (automatic)
- * - `X-Dev-User-Id: <user-id>` (optional, for development only)
+ * - `X-Dev-User-Id: <user-id>` (optional, DEVELOPMENT ONLY - must be disabled in production)
+ * 
+ * ⚠️ **SECURITY WARNING:** The xDevUserId parameter should ONLY be used in development.
+ * This bypasses authentication and allows user impersonation. Ensure the backend service
+ * ignores this header in production environments.
  * 
  * @param request - Character creation request with name, race, class_name, and optional custom_prompt
- * @param xDevUserId - Optional development user ID override (null in production)
+ * @param xDevUserId - Optional development user ID override (ONLY for development, null in production)
  * @returns Promise resolving to character_id and opening narrative
  * @throws ApiError with status 422 for validation errors
  * @throws ApiError with status 401 for authentication failures

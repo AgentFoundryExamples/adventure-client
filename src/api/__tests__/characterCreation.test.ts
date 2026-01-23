@@ -135,7 +135,13 @@ describe('Character Creation', () => {
       };
 
       const mockError = new ApiError(
-        {} as any,
+        {
+          method: 'POST',
+          url: '/characters',
+          headers: { 'Content-Type': 'application/json' },
+          body: mockRequest,
+          mediaType: 'application/json',
+        },
         {
           url: '/characters',
           ok: false,
@@ -175,7 +181,13 @@ describe('Character Creation', () => {
       };
 
       const mockError = new ApiError(
-        {} as any,
+        {
+          method: 'POST',
+          url: '/characters',
+          headers: { 'Content-Type': 'application/json' },
+          body: mockRequest,
+          mediaType: 'application/json',
+        },
         {
           url: '/characters',
           ok: false,
@@ -203,7 +215,13 @@ describe('Character Creation', () => {
       };
 
       const mockError = new ApiError(
-        {} as any,
+        {
+          method: 'POST',
+          url: '/characters',
+          headers: { 'Content-Type': 'application/json' },
+          body: mockRequest,
+          mediaType: 'application/json',
+        },
         {
           url: '/characters',
           ok: false,

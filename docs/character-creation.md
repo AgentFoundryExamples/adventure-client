@@ -352,7 +352,12 @@ const response = await GameService.createCharacterCharactersPost({
 
 This bypasses normal authentication checks and uses the provided user ID.
 
-⚠️ **Security Note:** The `X-Dev-User-Id` header should only be enabled in development environments and must be disabled in production.
+⚠️ **CRITICAL SECURITY WARNING:** The `X-Dev-User-Id` header MUST be disabled in production environments. This header bypasses authentication and allows arbitrary user impersonation, which is a serious security vulnerability. Ensure your backend service:
+- Only accepts this header when running in development mode (e.g., `ENABLE_DEV_MODE=true`)
+- Completely ignores this header in production deployments
+- Logs any attempts to use this header in production for security monitoring
+
+Never deploy to production with development authentication bypass features enabled.
 
 ## Related Documentation
 
