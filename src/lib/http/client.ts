@@ -92,14 +92,21 @@ async function fetchWithTimeout(
 }
 
 /**
+ * Service type mappings for URL-based service detection
+ */
+const SERVICE_TYPE_MAPPINGS = {
+  [config.dungeonMasterApiUrl]: 'dungeon-master' as const,
+  [config.journeyLogApiUrl]: 'journey-log' as const,
+};
+
+/**
  * Determines which service the URL belongs to
  */
 function getServiceType(url: string): 'dungeon-master' | 'journey-log' | null {
-  if (url.includes(config.dungeonMasterApiUrl)) {
-    return 'dungeon-master';
-  }
-  if (url.includes(config.journeyLogApiUrl)) {
-    return 'journey-log';
+  for (const [baseUrl, serviceType] of Object.entries(SERVICE_TYPE_MAPPINGS)) {
+    if (url.includes(baseUrl)) {
+      return serviceType;
+    }
   }
   return null;
 }
@@ -132,10 +139,13 @@ async function request<T = unknown>(
     const serviceType = getServiceType(url);
 
     try {
+      // Determine if token should be force-refreshed (on retry after 401)
+      const forceRefresh = retryCount > 0;
+      
       // Add service-specific auth headers
       if (serviceType === 'dungeon-master') {
         // Dungeon Master API requires Authorization: Bearer token
-        const token = await authProvider.getIdToken(retryCount > 0);
+        const token = await authProvider.getIdToken(forceRefresh);
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
@@ -145,7 +155,7 @@ async function request<T = unknown>(
           headers['X-User-Id'] = authProvider.uid;
         }
         // Also include Authorization token for journey-log
-        const token = await authProvider.getIdToken(retryCount > 0);
+        const token = await authProvider.getIdToken(forceRefresh);
         if (token) {
           headers['Authorization'] = `Bearer ${token}`;
         }
