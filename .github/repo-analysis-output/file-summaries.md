@@ -4,7 +4,7 @@ Heuristic summaries of source files based on filenames, extensions, and paths.
 
 Schema Version: 2.0
 
-Total files: 101
+Total files: 102
 
 ## eslint.config.js
 **Language:** JavaScript  
@@ -13,6 +13,15 @@ Total files: 101
 **Summary:** JavaScript module for eslint.config  
 **Size:** 1.70 KB  
 **LOC:** 43  
+**TODOs/FIXMEs:** 0  
+
+## src/api/__tests__/characterCreation.test.ts
+**Language:** TypeScript  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Summary:** TypeScript core implementation  
+**Size:** 11.00 KB  
+**LOC:** 250  
 **TODOs/FIXMEs:** 0  
 
 ## src/api/__tests__/index.test.ts
@@ -299,8 +308,8 @@ Total files: 101
 **Role:** entry-point  
 **Role Justification:** common entry point name 'index'  
 **Summary:** TypeScript main entry point (role: entry-point)  
-**Size:** 2.72 KB  
-**LOC:** 56  
+**Size:** 5.42 KB  
+**LOC:** 126  
 **TODOs/FIXMEs:** 0  
 
 ## src/api/journeyLog/core/ApiError.ts

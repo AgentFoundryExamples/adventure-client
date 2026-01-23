@@ -18,6 +18,18 @@
       }
     },
     {
+      "id": "src/api/__tests__/characterCreation.test.ts",
+      "path": "src/api/__tests__/characterCreation.test.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/lib/http/client",
+          "vitest"
+        ]
+      }
+    },
+    {
       "id": "src/api/__tests__/index.test.ts",
       "path": "src/api/__tests__/index.test.ts",
       "type": "file",
@@ -956,6 +968,14 @@
     }
   ],
   "edges": [
+    {
+      "source": "src/api/__tests__/characterCreation.test.ts",
+      "target": "src/api/index.ts"
+    },
+    {
+      "source": "src/api/__tests__/characterCreation.test.ts",
+      "target": "src/api/dungeonMaster/index.ts"
+    },
     {
       "source": "src/api/__tests__/index.test.ts",
       "target": "src/api/index.ts"

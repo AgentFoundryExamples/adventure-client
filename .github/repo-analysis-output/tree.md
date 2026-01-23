@@ -16,12 +16,14 @@
   └── workflows
     └── af_maintenance.yml
 ├── docs
+  ├── character-creation.md
   └── firebase-setup.md
 ├── public
   └── vite.svg
 ├── src
   ├── api
     ├── __tests__
+      ├── characterCreation.test.ts
       └── index.test.ts
     ├── dungeonMaster
       ├── core

@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 101,
+  "total_files": 102,
   "files": [
     {
       "schema_version": "2.0",
@@ -13,6 +13,20 @@
       "metrics": {
         "size_bytes": 1745,
         "loc": 43,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/api/__tests__/characterCreation.test.ts",
+      "language": "TypeScript",
+      "role": "implementation",
+      "role_justification": "general implementation file (default classification)",
+      "summary": "TypeScript core implementation",
+      "summary_text": "TypeScript core implementation",
+      "metrics": {
+        "size_bytes": 11267,
+        "loc": 250,
         "todo_count": 0
       }
     },
@@ -459,8 +473,8 @@
       "summary": "TypeScript main entry point (role: entry-point)",
       "summary_text": "TypeScript main entry point (role: entry-point)",
       "metrics": {
-        "size_bytes": 2789,
-        "loc": 56,
+        "size_bytes": 5549,
+        "loc": 126,
         "todo_count": 0
       }
     },

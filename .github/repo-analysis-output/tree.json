@@ -76,6 +76,10 @@
       "children": [
         {
           "type": "file",
+          "name": "character-creation.md"
+        },
+        {
+          "type": "file",
           "name": "firebase-setup.md"
         }
       ]
@@ -102,6 +106,10 @@
               "type": "directory",
               "name": "__tests__",
               "children": [
+                {
+                  "type": "file",
+                  "name": "characterCreation.test.ts"
+                },
                 {
                   "type": "file",
                   "name": "index.test.ts"
