@@ -5,7 +5,9 @@ import LoginPage from '@/pages/LoginPage';
 import AppPage from '@/pages/AppPage';
 import GamePage from '@/pages/GamePage';
 import NotFoundPage from '@/pages/NotFoundPage';
+import DebugPage from '@/pages/DebugPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { config } from '@/config/env';
 
 export const router = createBrowserRouter([
   {
@@ -35,6 +37,15 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
+      // Debug page - only available in development
+      ...(config.isDevelopment
+        ? [
+            {
+              path: '/debug',
+              element: <DebugPage />,
+            },
+          ]
+        : []),
       {
         path: '*',
         element: <NotFoundPage />,
