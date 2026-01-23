@@ -733,12 +733,17 @@ Required variables:
 **Cause**: Missing or incorrect environment variables in Docker build.
 
 **Solution**:
-1. Verify all `--build-arg` flags passed to `docker build`
-2. Check Docker image has correct env vars: 
+1. Verify all `--build-arg` flags passed to `docker build` match the ARG declarations in the [Dockerfile](../Dockerfile)
+2. Check if the variables were bundled into the built assets:
    ```bash
-   docker run --rm adventure-client:prod sh -c 'env | grep VITE_FIREBASE'
+   # Extract and inspect the built JavaScript bundle
+   docker create --name temp adventure-client:prod
+   docker cp temp:/usr/share/nginx/html/assets ./inspect-assets
+   docker rm temp
+   grep -r "FIREBASE_API_KEY\|FIREBASE_PROJECT_ID" ./inspect-assets
+   rm -rf ./inspect-assets
    ```
-   (Note: This won't work as Vite bundles vars at build time, they're not in environment)
+   If Firebase config values don't appear in the bundle, they weren't provided at build time.
 3. Rebuild Docker image with correct build arguments
 4. Redeploy to Cloud Run
 
@@ -781,13 +786,19 @@ const auth = getAuth(firebaseApp);
 auth.useDeviceLanguage(); // Use device language for error messages
 ```
 
-Check auth state in browser console:
+Check auth state using React DevTools:
 
-```javascript
-// Open browser console
-import { getFirebaseAuth } from '@/lib/firebase';
-const auth = getFirebaseAuth();
-console.log('Current user:', auth.currentUser);
+1. Install React DevTools browser extension
+2. Open DevTools and go to the "Components" tab
+3. Find the `AuthProvider` component in the tree
+4. Inspect the `value` prop to see current auth state (user, loading, error)
+
+Alternatively, add temporary debug logging in your component:
+
+```typescript
+// In any component using useAuth
+const { user, loading } = useAuth();
+console.log('Auth state:', { user, loading });
 ```
 
 ## Additional Resources
