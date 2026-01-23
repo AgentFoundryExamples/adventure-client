@@ -308,7 +308,6 @@ describe('DebugPage', () => {
     // Click 12 times to generate 12 results
     for (let i = 0; i < 12; i++) {
       fireEvent.click(button);
-      // eslint-disable-next-line no-await-in-loop
       await waitFor(() => expect(mockHealthCheckHealthGet).toHaveBeenCalledTimes(i + 1));
     }
 
