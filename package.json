@@ -10,7 +10,10 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\" \"*.{ts,js,json}\"",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "generate:api": "npm run generate:api:dungeon-master && npm run generate:api:journey-log",
+    "generate:api:dungeon-master": "openapi --input dungeon-master.openapi.json --output src/api/dungeonMaster --client fetch --useOptions --useUnionTypes",
+    "generate:api:journey-log": "openapi --input journey-log.openapi.json --output src/api/journeyLog --client fetch --useOptions --useUnionTypes"
   },
   "dependencies": {
     "firebase": "^12.8.0",
@@ -32,6 +35,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "jsdom": "^26.1.0",
+    "openapi-typescript-codegen": "^0.29.0",
     "prettier": "^3.8.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
