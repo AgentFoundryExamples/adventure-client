@@ -1275,11 +1275,21 @@ JourneyLogOpenAPI.HEADERS = async () => ({
 });
 ```
 
-**Note**: The current implementation returns an empty string when `authProvider.uid` is not available. This is safe because:
+**Note**: The current implementation returns an empty string when `authProvider.uid` is not available. While this is generally safe due to protected routes, be aware of potential edge cases:
+
+**Why this approach works:**
 1. All Journey Log API calls are made from protected routes that require authentication
 2. The `ProtectedRoute` component ensures users are authenticated before accessing these pages
 3. If a user is not authenticated, they are redirected to login before any API calls are made
-4. In the rare case where auth state becomes null during an API call, the backend will return a 400 Bad Request, which is appropriate error handling
+
+**Error handling behavior:**
+- If auth state becomes null during an API call (e.g., token expiration during navigation), the backend will return a **400 Bad Request** for missing/empty X-User-Id
+- The frontend will display an appropriate error message to the user
+- Users will be prompted to log in again if the error indicates authentication issues
+
+**Potential race conditions:**
+- Auth state changes during navigation: The `ProtectedRoute` component checks auth state before rendering, but timing issues could theoretically occur
+- Future enhancement consideration: Throw an error client-side when `uid` is not available instead of silently sending an empty string, forcing earlier failure detection
 
 This ensures:
 - Developers don't need to manually add headers to every API call
@@ -1293,10 +1303,11 @@ This ensures:
 - **Header Validation**: Backend should reject requests without X-User-Id or with invalid UIDs
 
 **Security Note:**
-- The `X-User-Id` header is **not sufficient for authentication** on its own
-- Backend must validate both the Firebase token (Authorization header) and X-User-Id
-- X-User-Id should match the `sub` claim in the Firebase token
-- Never trust X-User-Id without validating the token first
+- The `X-User-Id` header is **not sufficient for authentication** on its own.
+- The backend must validate the Firebase **ID token** sent in the `Authorization: Bearer <token>` header.
+- After validating the ID token, the backend must verify that the `sub` (subject) claim in the token payload matches the value of the `X-User-Id` header.
+- Never trust the `X-User-Id` header without first successfully validating the ID token and ensuring the UIDs match.
+- This dual validation prevents user impersonation and ensures request authenticity.
 
 ### Character Creation (Placeholder)
 
