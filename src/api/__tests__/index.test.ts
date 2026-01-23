@@ -133,8 +133,8 @@ describe('api configuration', () => {
       
       const mockResponse = {
         characters: [
-          { character_id: 'char1', name: 'Hero', race: 'Human', character_class: 'Warrior', status: 'active', created_at: '2024-01-01', updated_at: '2024-01-02' },
-          { character_id: 'char2', name: 'Mage', race: 'Elf', character_class: 'Wizard', status: 'active', created_at: '2024-01-03', updated_at: '2024-01-04' }
+          { character_id: 'char1', name: 'Hero', race: 'Human', class: 'Warrior', status: 'Healthy' as const, created_at: '2024-01-01', updated_at: '2024-01-02' },
+          { character_id: 'char2', name: 'Mage', race: 'Elf', class: 'Wizard', status: 'Healthy' as const, created_at: '2024-01-03', updated_at: '2024-01-04' }
         ],
         count: 2
       };
@@ -195,11 +195,12 @@ describe('api configuration', () => {
         {} as any,
         {
           url: '/characters',
-          method: 'GET',
+          ok: false,
           status: 401,
           statusText: 'Unauthorized',
           body: { detail: 'Invalid authentication' }
-        }
+        },
+        'Invalid authentication'
       );
 
       vi.spyOn(CharactersService, 'listCharactersCharactersGet').mockRejectedValue(mockError);
@@ -224,7 +225,8 @@ describe('api configuration', () => {
           {
             turn_id: 'turn1',
             character_id: 'char1',
-            narrative: 'You enter the dungeon...',
+            player_action: 'Enter the dungeon',
+            gm_response: 'You enter the dungeon...',
             timestamp: '2024-01-01T12:00:00Z'
           }
         ],
@@ -289,7 +291,7 @@ describe('api configuration', () => {
       const { CharactersService } = await import('../journeyLog');
       
       const mockResponse = {
-        turns: [{ turn_id: 'turn1', character_id: 'char1', narrative: 'Test', timestamp: '2024-01-01' }],
+        turns: [{ turn_id: 'turn1', character_id: 'char1', player_action: 'Test action', gm_response: 'Test response', timestamp: '2024-01-01' }],
         metadata: { requested_n: 1, returned_count: 1, total_available: 1 }
       };
 
@@ -319,11 +321,12 @@ describe('api configuration', () => {
         {} as any,
         {
           url: '/characters/invalid/narrative',
-          method: 'GET',
+          ok: false,
           status: 404,
           statusText: 'Not Found',
           body: { detail: 'Character not found' }
-        }
+        },
+        'Character not found'
       );
 
       vi.spyOn(CharactersService, 'getNarrativeTurnsCharactersCharacterIdNarrativeGet').mockRejectedValue(mockError);
@@ -345,11 +348,12 @@ describe('api configuration', () => {
         {} as any,
         {
           url: '/characters/char1/narrative',
-          method: 'GET',
+          ok: false,
           status: 403,
           statusText: 'Forbidden',
           body: { detail: 'X-User-Id does not match character owner' }
-        }
+        },
+        'X-User-Id does not match character owner'
       );
 
       vi.spyOn(CharactersService, 'getNarrativeTurnsCharactersCharacterIdNarrativeGet').mockRejectedValue(mockError);

@@ -110,7 +110,7 @@ export async function getUserCharacters(): Promise<ListCharactersResponse> {
       {} as any,
       {
         url: '/characters',
-        method: 'GET',
+        ok: false,
         status: 400,
         statusText: 'Bad Request',
         body: { detail: 'X-User-Id header is required but not configured' }
