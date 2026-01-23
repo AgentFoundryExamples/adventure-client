@@ -29,8 +29,8 @@ Total files: 103
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
 **Summary:** TypeScript core implementation  
-**Size:** 22.26 KB  
-**LOC:** 540  
+**Size:** 22.33 KB  
+**LOC:** 543  
 **TODOs/FIXMEs:** 0  
 
 ## src/api/dungeonMaster/core/ApiError.ts
