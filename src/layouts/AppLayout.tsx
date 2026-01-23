@@ -1,4 +1,5 @@
 import { Outlet, Link } from 'react-router-dom';
+import AccountMenu from '@/components/AccountMenu';
 
 export default function AppLayout() {
   return (
@@ -9,6 +10,7 @@ export default function AppLayout() {
           <Link to="/app">App</Link>
           <Link to="/login">Login</Link>
         </nav>
+        <AccountMenu />
       </header>
       <main className="app-main">
         <Outlet />

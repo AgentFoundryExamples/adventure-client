@@ -5,6 +5,7 @@ import LoginPage from '@/pages/LoginPage';
 import AppPage from '@/pages/AppPage';
 import GamePage from '@/pages/GamePage';
 import NotFoundPage from '@/pages/NotFoundPage';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
@@ -20,11 +21,19 @@ export const router = createBrowserRouter([
       },
       {
         path: '/app',
-        element: <AppPage />,
+        element: (
+          <ProtectedRoute>
+            <AppPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: '/game/:characterId',
-        element: <GamePage />,
+        element: (
+          <ProtectedRoute>
+            <GamePage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: '*',
