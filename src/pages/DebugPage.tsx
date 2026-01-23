@@ -247,8 +247,9 @@ export default function DebugPage() {
       <div className="debug-controls">
         <h3>API Test Controls</h3>
         <div className="debug-verbose-toggle">
-          <label>
+          <label htmlFor="verbose-logging">
             <input
+              id="verbose-logging"
               type="checkbox"
               checked={verboseLogging}
               onChange={(e) => setVerboseLogging(e.target.checked)}
@@ -266,7 +267,12 @@ export default function DebugPage() {
           <button onClick={callJourneyLogInfo} className="debug-button">
             Test Journey Log /info
           </button>
-          <button onClick={callFirestoreTest} className="debug-button" disabled={!user}>
+          <button 
+            onClick={callFirestoreTest} 
+            className="debug-button" 
+            disabled={!user}
+            title="Authentication required to test Firestore connectivity"
+          >
             Test Firestore Connectivity
           </button>
           <button onClick={clearResults} className="debug-button debug-button-secondary">
@@ -286,7 +292,7 @@ export default function DebugPage() {
                 <div className="debug-result-header">
                   <span className="debug-result-service">{result.service}</span>
                   <span className="debug-result-endpoint">{result.endpoint}</span>
-                  <span className="debug-result-time">{formatTimestamp(result.timestamp!)}</span>
+                  <span className="debug-result-time">{result.timestamp && formatTimestamp(result.timestamp)}</span>
                 </div>
                 <div className="debug-result-body">
                   <div className="debug-result-status">
