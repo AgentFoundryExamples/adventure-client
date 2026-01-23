@@ -21,6 +21,8 @@
   └── vite.svg
 ├── src
   ├── api
+    ├── __tests__
+      └── index.test.ts
     ├── dungeonMaster
       ├── core
         ├── ApiError.ts
@@ -55,7 +57,7 @@
       ├── services
         └── GameService.ts
       └── index.ts
-    └── journeyLog
+    ├── journeyLog
       ├── core
         ├── ApiError.ts
         ├── ApiRequestOptions.ts
@@ -115,6 +117,7 @@
         ├── DefaultService.ts
         └── OperationsService.ts
       └── index.ts
+    └── index.ts
   ├── assets
     └── react.svg
   ├── components
@@ -140,7 +143,11 @@
     ├── __tests__
       └── firebase.test.ts
     ├── http
-      └── client.ts
+      ├── __tests__
+        ├── client.test.ts
+        └── errors.test.ts
+      ├── client.ts
+      └── errors.ts
     └── firebase.ts
   ├── pages
     ├── __tests__

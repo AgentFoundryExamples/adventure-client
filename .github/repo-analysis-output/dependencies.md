@@ -8,10 +8,10 @@ Includes classification of external dependencies as stdlib vs third-party.
 
 ## Statistics
 
-- **Total files**: 96
-- **Intra-repo dependencies**: 118
+- **Total files**: 101
+- **Intra-repo dependencies**: 126
 - **External stdlib dependencies**: 1
-- **External third-party dependencies**: 17
+- **External third-party dependencies**: 18
 
 ## External Dependencies
 
@@ -23,10 +23,11 @@ Total: 1 unique modules
 
 ### Third-Party Packages
 
-Total: 17 unique packages
+Total: 18 unique packages
 
 - `@/config/env`
 - `@/context/AuthContext`
+- `@/lib/http/client`
 - `@eslint/js`
 - `@testing-library/jest-dom`
 - `@vitejs/plugin-react`
@@ -67,4 +68,4 @@ Total: 17 unique packages
 - `src/api/journeyLog/models/CharacterDocument.ts` (5 dependencies)
 - `src/api/journeyLog/models/PlayerState.ts` (5 dependencies)
 - `src/api/journeyLog/services/OperationsService.ts` (5 dependencies)
-- `src/api/journeyLog/services/DefaultService.ts` (3 dependencies)
+- `src/api/__tests__/index.test.ts` (3 dependencies)

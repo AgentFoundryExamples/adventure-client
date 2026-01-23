@@ -18,6 +18,18 @@
       }
     },
     {
+      "id": "src/api/__tests__/index.test.ts",
+      "path": "src/api/__tests__/index.test.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/lib/http/client",
+          "vitest"
+        ]
+      }
+    },
+    {
       "id": "src/api/dungeonMaster/core/ApiError.ts",
       "path": "src/api/dungeonMaster/core/ApiError.ts",
       "type": "file",
@@ -285,6 +297,18 @@
       "external_dependencies": {
         "stdlib": [],
         "third-party": []
+      }
+    },
+    {
+      "id": "src/api/index.ts",
+      "path": "src/api/index.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/config/env",
+          "@/lib/http/client"
+        ]
       }
     },
     {
@@ -836,8 +860,41 @@
       }
     },
     {
+      "id": "src/lib/http/__tests__/client.test.ts",
+      "path": "src/lib/http/__tests__/client.test.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/lib/http/__tests__/errors.test.ts",
+      "path": "src/lib/http/__tests__/errors.test.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "vitest"
+        ]
+      }
+    },
+    {
       "id": "src/lib/http/client.ts",
       "path": "src/lib/http/client.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/config/env"
+        ]
+      }
+    },
+    {
+      "id": "src/lib/http/errors.ts",
+      "path": "src/lib/http/errors.ts",
       "type": "file",
       "external_dependencies": {
         "stdlib": [],
@@ -899,6 +956,18 @@
     }
   ],
   "edges": [
+    {
+      "source": "src/api/__tests__/index.test.ts",
+      "target": "src/api/index.ts"
+    },
+    {
+      "source": "src/api/__tests__/index.test.ts",
+      "target": "src/api/dungeonMaster/index.ts"
+    },
+    {
+      "source": "src/api/__tests__/index.test.ts",
+      "target": "src/api/journeyLog/index.ts"
+    },
     {
       "source": "src/api/dungeonMaster/core/ApiError.ts",
       "target": "src/api/dungeonMaster/core/ApiRequestOptions.ts"
@@ -1034,6 +1103,14 @@
     {
       "source": "src/api/dungeonMaster/services/GameService.ts",
       "target": "src/api/dungeonMaster/core/request.ts"
+    },
+    {
+      "source": "src/api/index.ts",
+      "target": "src/api/dungeonMaster/index.ts"
+    },
+    {
+      "source": "src/api/index.ts",
+      "target": "src/api/journeyLog/index.ts"
     },
     {
       "source": "src/api/journeyLog/core/ApiError.ts",
@@ -1370,6 +1447,18 @@
     {
       "source": "src/lib/firebase.ts",
       "target": "src/config/env.ts"
+    },
+    {
+      "source": "src/lib/http/__tests__/client.test.ts",
+      "target": "src/lib/http/client.ts"
+    },
+    {
+      "source": "src/lib/http/__tests__/errors.test.ts",
+      "target": "src/lib/http/errors.ts"
+    },
+    {
+      "source": "src/lib/http/client.ts",
+      "target": "src/lib/http/errors.ts"
     }
   ],
   "external_dependencies_summary": {
@@ -1379,6 +1468,7 @@
     "third-party": [
       "@/config/env",
       "@/context/AuthContext",
+      "@/lib/http/client",
       "@eslint/js",
       "@testing-library/jest-dom",
       "@vitejs/plugin-react",
@@ -1396,6 +1486,6 @@
       "vitest/config"
     ],
     "stdlib_count": 1,
-    "third-party_count": 17
+    "third-party_count": 18
   }
 }

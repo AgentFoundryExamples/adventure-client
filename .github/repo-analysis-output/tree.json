@@ -100,6 +100,16 @@
           "children": [
             {
               "type": "directory",
+              "name": "__tests__",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "index.test.ts"
+                }
+              ]
+            },
+            {
+              "type": "directory",
               "name": "dungeonMaster",
               "children": [
                 {
@@ -489,6 +499,10 @@
                   "name": "index.ts"
                 }
               ]
+            },
+            {
+              "type": "file",
+              "name": "index.ts"
             }
           ]
         },
@@ -613,8 +627,26 @@
               "name": "http",
               "children": [
                 {
+                  "type": "directory",
+                  "name": "__tests__",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "client.test.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "errors.test.ts"
+                    }
+                  ]
+                },
+                {
                   "type": "file",
                   "name": "client.ts"
+                },
+                {
+                  "type": "file",
+                  "name": "errors.ts"
                 }
               ]
             },

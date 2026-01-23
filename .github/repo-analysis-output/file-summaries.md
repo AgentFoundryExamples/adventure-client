@@ -4,7 +4,7 @@ Heuristic summaries of source files based on filenames, extensions, and paths.
 
 Schema Version: 2.0
 
-Total files: 96
+Total files: 101
 
 ## eslint.config.js
 **Language:** JavaScript  
@@ -13,6 +13,15 @@ Total files: 96
 **Summary:** JavaScript module for eslint.config  
 **Size:** 1.70 KB  
 **LOC:** 43  
+**TODOs/FIXMEs:** 0  
+
+## src/api/__tests__/index.test.ts
+**Language:** TypeScript  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Summary:** TypeScript core implementation  
+**Size:** 4.31 KB  
+**LOC:** 85  
 **TODOs/FIXMEs:** 0  
 
 ## src/api/dungeonMaster/core/ApiError.ts
@@ -283,6 +292,15 @@ Total files: 96
 **Summary:** TypeScript core implementation  
 **Size:** 8.88 KB  
 **LOC:** 214  
+**TODOs/FIXMEs:** 0  
+
+## src/api/index.ts
+**Language:** TypeScript  
+**Role:** entry-point  
+**Role Justification:** common entry point name 'index'  
+**Summary:** TypeScript main entry point (role: entry-point)  
+**Size:** 2.56 KB  
+**LOC:** 52  
 **TODOs/FIXMEs:** 0  
 
 ## src/api/journeyLog/core/ApiError.ts
@@ -825,14 +843,41 @@ Total files: 96
 **LOC:** 105  
 **TODOs/FIXMEs:** 0  
 
+## src/lib/http/__tests__/client.test.ts
+**Language:** TypeScript  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Summary:** TypeScript core implementation  
+**Size:** 10.11 KB  
+**LOC:** 262  
+**TODOs/FIXMEs:** 0  
+
+## src/lib/http/__tests__/errors.test.ts
+**Language:** TypeScript  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Summary:** TypeScript core implementation  
+**Size:** 6.68 KB  
+**LOC:** 179  
+**TODOs/FIXMEs:** 0  
+
 ## src/lib/http/client.ts
 **Language:** TypeScript  
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
 **Summary:** TypeScript core implementation  
-**Size:** 7.29 KB  
-**LOC:** 200  
-**TODOs/FIXMEs:** 2  
+**Size:** 9.92 KB  
+**LOC:** 263  
+**TODOs/FIXMEs:** 0  
+
+## src/lib/http/errors.ts
+**Language:** TypeScript  
+**Role:** implementation  
+**Role Justification:** general implementation file (default classification)  
+**Summary:** TypeScript core implementation  
+**Size:** 2.86 KB  
+**LOC:** 87  
+**TODOs/FIXMEs:** 0  
 
 ## src/setupTests.ts
 **Language:** TypeScript  
