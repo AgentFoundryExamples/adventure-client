@@ -1622,26 +1622,46 @@ Firebase ID tokens are used for authenticating API requests and expire after **1
 
 ```mermaid
 sequenceDiagram
-    participant Component
+    participant Comp1 as Component 1
+    participant Comp2 as Component 2
     participant HttpClient
     participant AuthContext
     participant Firebase
     participant API
     
-    Component->>HttpClient: Make API request
+    Note over Comp1,Comp2: Concurrent API requests
+    Comp1->>HttpClient: Make API request
+    Comp2->>HttpClient: Make API request
     HttpClient->>AuthContext: getIdToken()
-    AuthContext->>Firebase: currentUser.getIdToken()
-    Firebase-->>AuthContext: Fresh token
-    AuthContext-->>HttpClient: Token
-    HttpClient->>API: Request + Authorization header
-    API-->>Component: Response
+    HttpClient->>AuthContext: getIdToken()
+    
+    Note over AuthContext: Check tokenRefreshPromiseRef
+    alt First request creates promise
+        AuthContext->>Firebase: currentUser.getIdToken()
+        Note over AuthContext: Store promise in tokenRefreshPromiseRef
+        Firebase-->>AuthContext: Fresh token
+        AuthContext-->>HttpClient: Token (request 1)
+    else Second request reuses promise
+        Note over AuthContext: Return existing tokenRefreshPromiseRef
+        AuthContext-->>HttpClient: Same token (request 2)
+    end
+    
+    HttpClient->>API: Request 1 + Authorization header
+    HttpClient->>API: Request 2 + Authorization header
+    API-->>Comp1: Response
+    API-->>Comp2: Response
+    
+    Note over AuthContext: Clear tokenRefreshPromiseRef after completion
 ```
 
 **Token Refresh Strategy:**
 - Tokens are refreshed automatically by Firebase SDK via `getIdToken()`
 - Called immediately before each API request to ensure token freshness
 - If token is <5 minutes from expiry, Firebase refreshes it transparently
-- Refresh operations are deduplicated to prevent concurrent refresh attempts
+- **Deduplication**: Concurrent refresh requests share the same promise via `tokenRefreshPromiseRef`
+  - First request initiates refresh and stores promise
+  - Subsequent concurrent requests reuse the stored promise
+  - Promise cleared after completion to allow future refreshes
 
 **Handling Token Expiry:**
 

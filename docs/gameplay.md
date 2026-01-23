@@ -1223,7 +1223,7 @@ async function completeTurnFlow(characterId: string, userAction: string) {
 
 **Handling:**
 - Implement exponential backoff retry
-- Max retries: 3-5 attempts
+- Default: 5 retry attempts (configurable based on error severity)
 - Display error message if all retries fail
 
 ### 10. Invalid Character Ownership
@@ -1325,7 +1325,7 @@ The application handles errors differently based on which service fails:
 2. **Retry Behavior:**
    - **401 errors**: Always automatic retry (both services)
    - **500 errors (DM)**: Manual retry (user clicks "Try Again")
-   - **500 errors (JL persistence)**: Automatic retry with exponential backoff (3-5 attempts)
+   - **500 errors (JL persistence)**: Automatic retry with exponential backoff (default: 5 attempts, configurable)
 
 3. **Error Display:**
    - **Dungeon Master**: Inline error in game interface (blocks action input)
@@ -1395,7 +1395,7 @@ try {
 | **422 Validation** | No retry | Show validation errors (user must fix input) |
 | **429 Rate Limit** | Delayed retry | Disable input for `retry_after_seconds` |
 | **500 Server Error (DM)** | Manual retry | Show "Try Again" button |
-| **500 Server Error (JL)** | Auto-retry 3-5x | Exponential backoff, then manual |
+| **500 Server Error (JL)** | Auto-retry up to 5x | Exponential backoff (default 5, configurable), then manual |
 | **Network Error** | Manual retry | Show "Retry" button |
 
 **Exponential Backoff Implementation (for Journey Log persistence):**

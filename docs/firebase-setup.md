@@ -1228,16 +1228,27 @@ navigate('/login', {
 
 **Method 3: Manual Token Invalidation** (Advanced)
 
-⚠️ **USE WITH EXTREME CAUTION**: This involves manually editing browser storage.
+⚠️ **USE WITH EXTREME CAUTION**: This method involves manually editing browser storage and can corrupt authentication state.
 
+**Security & Recovery Warnings:**
+- This method can leave your browser in an inconsistent auth state
+- If token restoration fails, you may need to clear ALL browser data (not just the token)
+- Browser cache clear: Settings > Privacy > Clear browsing data > Cached images and files + Cookies
+- In worst case, may require browser restart or incognito mode to recover
+- **NEVER use this method in production** - dev/staging environments only
+
+**Procedure:**
 1. Open browser DevTools (F12)
 2. Go to Application tab > IndexedDB > firebaseLocalStorageDb
 3. Find the token entry
-4. Note the original value (to restore later)
+4. **CRITICAL**: Copy and save the complete original token value to a text file
 5. Change the token to an invalid value (e.g., "INVALID_TOKEN_FOR_TESTING")
 6. Attempt an API request
 7. Should trigger 401 → retry → logout flow
-8. **Restore original token** after testing
+8. **Immediately restore original token** from your saved copy
+9. If restoration fails, clear browser cache completely and re-authenticate
+
+**Safer Alternative**: Use Method 1 (wait 65 minutes) or Method 2 (Firebase Emulator) instead of manually editing IndexedDB.
 
 **Method 4: Backend Testing** (For API Integration Tests)
 
