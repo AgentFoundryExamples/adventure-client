@@ -166,10 +166,12 @@ export function getFriendlyErrorMessage(error: unknown, context?: string): {
   message: string;
   shouldRetry: boolean;
 } {
-  if (isApiError(error)) {
+  // Check if error has a status code (ApiError or similar error objects)
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    const status = (error as { status: number }).status;
     return {
-      message: getHttpErrorMessage(error.status, context),
-      shouldRetry: isTransientError(error.status),
+      message: getHttpErrorMessage(status, context),
+      shouldRetry: isTransientError(status),
     };
   }
 
