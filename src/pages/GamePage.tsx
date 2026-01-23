@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getCharacterLastTurn } from '@/api';
 import type { GetNarrativeResponse, NarrativeTurn } from '@/api';
@@ -11,8 +11,9 @@ export default function GamePage() {
   const [lastTurn, setLastTurn] = useState<NarrativeTurn | null>(null);
   const [loadingState, setLoadingState] = useState<LoadingState>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
-  const fetchLastTurn = useCallback(async () => {
+  useEffect(() => {
     // Validate characterId before making request
     if (!characterId || characterId.trim() === '') {
       console.error('GamePage: No characterId provided');
@@ -20,41 +21,43 @@ export default function GamePage() {
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadingState('loading');
     setError(null);
 
-    try {
-      const response: GetNarrativeResponse = await getCharacterLastTurn(characterId);
-      
-      if (response.turns && response.turns.length > 0) {
-        setLastTurn(response.turns[0]);
-        setLoadingState('success');
-      } else {
-        setLastTurn(null);
-        setLoadingState('success');
+    const fetchLastTurn = async () => {
+      try {
+        const response: GetNarrativeResponse = await getCharacterLastTurn(characterId);
+        
+        if (response.turns && response.turns.length > 0) {
+          setLastTurn(response.turns[0]);
+          setLoadingState('success');
+        } else {
+          setLastTurn(null);
+          setLoadingState('success');
+        }
+      } catch (err) {
+        console.error('Failed to fetch last turn:', err);
+        
+        // Handle specific error codes - safer error status property access
+        const status = err && typeof err === 'object' && 'status' in err 
+          ? (err as { status: number }).status 
+          : undefined;
+        if (status === 404) {
+          setError('Character not found');
+        } else if (status === 401 || status === 403) {
+          setError('Unauthorized. Please log in again.');
+        } else {
+          setError(err instanceof Error ? err.message : 'Failed to load last turn');
+        }
+        setLoadingState('error');
       }
-    } catch (err) {
-      console.error('Failed to fetch last turn:', err);
-      
-      // Handle specific error codes
-      const status = (err as { status?: number })?.status;
-      if (status === 404) {
-        setError('Character not found');
-      } else if (status === 401 || status === 403) {
-        setError('Unauthorized. Please log in again.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to load last turn');
-      }
-      setLoadingState('error');
-    }
-  }, [characterId, navigate]);
+    };
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchLastTurn();
-  }, [fetchLastTurn]);
+  }, [characterId, navigate, retryCount]);
 
-  if (loadingState === 'loading') {
+  if (loadingState === 'loading' || loadingState === 'idle') {
     return (
       <div className="loading-container">
         <div className="loading-spinner" />
@@ -64,6 +67,10 @@ export default function GamePage() {
   }
 
   if (loadingState === 'error') {
+    const handleRetry = () => {
+      setRetryCount(prev => prev + 1);
+    };
+
     return (
       <div className="error-state">
         <h2>Unable to Load Last Turn</h2>
@@ -73,7 +80,7 @@ export default function GamePage() {
             Go to Login
           </button>
         ) : (
-          <button onClick={fetchLastTurn} className="retry-button">
+          <button onClick={handleRetry} className="retry-button">
             Retry
           </button>
         )}
@@ -95,45 +102,50 @@ export default function GamePage() {
     );
   }
 
-  // Success state with turn data
-  return (
-    <div className="game-page">
-      <header className="game-header">
-        <h1>Last Turn</h1>
-        <button onClick={() => navigate('/app')} className="back-button">
-          Back to Characters
-        </button>
-      </header>
+  // Success state with turn data - lastTurn is guaranteed to be non-null here
+  if (loadingState === 'success' && lastTurn) {
+    return (
+      <div className="game-page">
+        <header className="game-header">
+          <h1>Last Turn</h1>
+          <button onClick={() => navigate('/app')} className="back-button">
+            Back to Characters
+          </button>
+        </header>
 
-      <div className="turn-container">
-        {/* Dungeon Master Response Section */}
-        <section className="turn-section dm-section">
-          <h2>Last Dungeon Master Response</h2>
-          <div className="turn-content">
-            <p className="turn-text">{lastTurn?.gm_response}</p>
-          </div>
-          {lastTurn?.timestamp && (
-            <div className="turn-metadata">
-              <span className="timestamp-label">Time:</span>
-              <span className="timestamp-value">{formatTimestamp(lastTurn.timestamp)}</span>
+        <div className="turn-container">
+          {/* Dungeon Master Response Section */}
+          <section className="turn-section dm-section">
+            <h2>Last Dungeon Master Response</h2>
+            <div className="turn-content">
+              <p className="turn-text">{lastTurn.gm_response}</p>
             </div>
-          )}
-        </section>
-
-        {/* Player Action Section */}
-        <section className="turn-section player-section">
-          <h2>Your Last Action</h2>
-          <div className="turn-content">
-            {lastTurn?.player_action ? (
-              <p className="turn-text">{lastTurn.player_action}</p>
-            ) : (
-              <p className="turn-text placeholder">No player action recorded for this turn.</p>
+            {lastTurn.timestamp && (
+              <div className="turn-metadata">
+                <span className="timestamp-label">Time:</span>
+                <span className="timestamp-value">{formatTimestamp(lastTurn.timestamp)}</span>
+              </div>
             )}
-          </div>
-        </section>
+          </section>
+
+          {/* Player Action Section */}
+          <section className="turn-section player-section">
+            <h2>Your Last Action</h2>
+            <div className="turn-content">
+              {lastTurn.player_action ? (
+                <p className="turn-text">{lastTurn.player_action}</p>
+              ) : (
+                <p className="turn-text placeholder">No player action recorded for this turn.</p>
+              )}
+            </div>
+          </section>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Fallback - should never reach here
+  return null;
 }
 
 function formatTimestamp(timestamp: string): string {
