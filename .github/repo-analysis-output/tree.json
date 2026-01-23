@@ -666,6 +666,10 @@
               "children": [
                 {
                   "type": "file",
+                  "name": "CharactersDashboardPage.test.tsx"
+                },
+                {
+                  "type": "file",
                   "name": "DebugPage.test.tsx"
                 },
                 {
@@ -677,6 +681,14 @@
             {
               "type": "file",
               "name": "AppPage.tsx"
+            },
+            {
+              "type": "file",
+              "name": "CharacterCreationPage.tsx"
+            },
+            {
+              "type": "file",
+              "name": "CharactersDashboardPage.tsx"
             },
             {
               "type": "file",

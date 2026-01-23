@@ -151,9 +151,12 @@
     └── firebase.ts
   ├── pages
     ├── __tests__
+      ├── CharactersDashboardPage.test.tsx
       ├── DebugPage.test.tsx
       └── LoginPage.test.tsx
     ├── AppPage.tsx
+    ├── CharacterCreationPage.tsx
+    ├── CharactersDashboardPage.tsx
     ├── DebugPage.tsx
     ├── GamePage.tsx
     ├── HomePage.tsx
