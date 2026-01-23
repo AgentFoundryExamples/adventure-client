@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useEffect } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -42,10 +43,11 @@ export default function LoginPage() {
   const { signInWithEmailPassword, signUpWithEmailPassword, signInWithGoogle, user } = useAuth();
 
   // Redirect if already authenticated
-  if (user) {
-    navigate('/app');
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      navigate('/app');
+    }
+  }, [user, navigate]);
 
   const validateForm = (): boolean => {
     if (!email.trim()) {
