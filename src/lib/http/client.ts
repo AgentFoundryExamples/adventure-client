@@ -13,20 +13,18 @@
 // limitations under the License.
 /**
  * HTTP Client Utility
- * Centralized HTTP client using fetch API with JSON helpers and error handling
+ * Centralized HTTP client using fetch API with JSON helpers, error handling, and auth integration
  */
 
 import { config } from '@/config/env';
-
-/**
- * Standard API error response structure
- */
-export interface ApiError {
-  message: string;
-  status: number;
-  statusText: string;
-  data?: unknown;
-}
+import {
+  createApiError,
+  isApiError as isApiErrorUtil,
+  logHttpError,
+  transformResponseToError,
+  wrapError,
+  type ApiError,
+} from './errors';
 
 /**
  * HTTP request options
@@ -34,18 +32,35 @@ export interface ApiError {
 export interface RequestOptions extends RequestInit {
   baseUrl?: string;
   timeout?: number;
+  skipAuth?: boolean;
 }
 
 /**
- * Creates a structured API error
+ * Auth provider interface for dependency injection
  */
-function createApiError(
-  message: string,
-  status: number,
-  statusText: string,
-  data?: unknown
-): ApiError {
-  return { message, status, statusText, data };
+export interface AuthProvider {
+  getIdToken: (forceRefresh?: boolean) => Promise<string | null>;
+  uid: string | null;
+}
+
+/**
+ * Global auth provider instance (set via setAuthProvider)
+ */
+let authProvider: AuthProvider | null = null;
+
+/**
+ * Sets the global auth provider for HTTP client
+ * Should be called once during app initialization
+ */
+export function setAuthProvider(provider: AuthProvider | null): void {
+  authProvider = provider;
+}
+
+/**
+ * Gets the current auth provider
+ */
+export function getAuthProvider(): AuthProvider | null {
+  return authProvider;
 }
 
 /**
@@ -77,11 +92,28 @@ async function fetchWithTimeout(
 }
 
 /**
- * Base HTTP request handler
+ * Determines which service the URL belongs to
+ */
+function getServiceType(url: string): 'dungeon-master' | 'journey-log' | null {
+  if (url.includes(config.dungeonMasterApiUrl)) {
+    return 'dungeon-master';
+  }
+  if (url.includes(config.journeyLogApiUrl)) {
+    return 'journey-log';
+  }
+  return null;
+}
+
+/**
+ * Base HTTP request handler with auth integration
  * @throws ApiError for non-2xx responses
  */
-async function request<T = unknown>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { baseUrl, ...fetchOptions } = options;
+async function request<T = unknown>(
+  endpoint: string,
+  options: RequestOptions = {},
+  retryCount = 0
+): Promise<T> {
+  const { baseUrl, skipAuth = false, ...fetchOptions } = options;
 
   // Build full URL
   const url = baseUrl
@@ -90,16 +122,39 @@ async function request<T = unknown>(endpoint: string, options: RequestOptions = 
       ? endpoint
       : `${config.dungeonMasterApiUrl}${endpoint}`;
 
-  // TODO: Add auth headers when Firebase is integrated
-  // const authToken = getAuthToken();
-  // if (authToken) {
-  //   headers.Authorization = `Bearer ${authToken}`;
-  // }
-
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((fetchOptions.headers as Record<string, string>) || {}),
   };
+
+  // Add auth headers if auth provider is available and not skipped
+  if (!skipAuth && authProvider) {
+    const serviceType = getServiceType(url);
+
+    try {
+      // Add service-specific auth headers
+      if (serviceType === 'dungeon-master') {
+        // Dungeon Master API requires Authorization: Bearer token
+        const token = await authProvider.getIdToken(retryCount > 0);
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      } else if (serviceType === 'journey-log') {
+        // Journey Log API requires X-User-Id header
+        if (authProvider.uid) {
+          headers['X-User-Id'] = authProvider.uid;
+        }
+        // Also include Authorization token for journey-log
+        const token = await authProvider.getIdToken(retryCount > 0);
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+    } catch (error) {
+      console.error('[HTTP Client] Failed to get auth credentials:', error);
+      // Continue without auth headers - let the server reject if needed
+    }
+  }
 
   // Log request in development
   if (config.isDevelopment) {
@@ -112,25 +167,19 @@ async function request<T = unknown>(endpoint: string, options: RequestOptions = 
       headers,
     });
 
+    // Handle 401 Unauthorized with token refresh retry
+    if (response.status === 401 && retryCount === 0 && authProvider && !skipAuth) {
+      if (config.isDevelopment) {
+        console.log('[HTTP Client] Received 401, retrying with refreshed token...');
+      }
+      // Retry once with force refresh
+      return request<T>(endpoint, options, retryCount + 1);
+    }
+
     // Handle non-2xx responses
     if (!response.ok) {
-      let errorData: unknown;
-      try {
-        errorData = await response.json();
-      } catch {
-        errorData = await response.text();
-      }
-
-      const error = createApiError(
-        `HTTP ${response.status}: ${response.statusText}`,
-        response.status,
-        response.statusText,
-        errorData
-      );
-
-      // TODO: Add centralized error logging/tracking
-      console.error('[HTTP Client] Request failed:', error);
-
+      const error = await transformResponseToError(response);
+      logHttpError(error, getServiceType(url) || undefined);
       throw error;
     }
 
@@ -154,30 +203,20 @@ async function request<T = unknown>(endpoint: string, options: RequestOptions = 
     return data as T;
   } catch (error) {
     // Re-throw ApiError as-is
-    if (isApiError(error)) {
+    if (isApiErrorUtil(error)) {
       throw error;
     }
 
     // Wrap other errors
-    console.error('[HTTP Client] Network error:', error);
-    throw createApiError('Network request failed', 0, 'Network Error', {
-      originalError: (error as Error).message,
-    });
+    const wrappedError = wrapError(error);
+    console.error('[HTTP Client] Network error:', wrappedError);
+    throw wrappedError;
   }
 }
 
-/**
- * Type guard for ApiError
- */
-function isApiError(error: unknown): error is ApiError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'status' in error &&
-    'message' in error &&
-    'statusText' in error
-  );
-}
+// Re-export for convenience
+export type { ApiError };
+export { isApiErrorUtil as isApiError };
 
 /**
  * HTTP Client API
