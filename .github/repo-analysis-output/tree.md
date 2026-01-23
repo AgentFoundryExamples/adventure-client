@@ -26,8 +26,12 @@
   ├── config
     └── env.ts
   ├── context
+    ├── __tests__
+      └── AuthContext.test.tsx
     └── AuthContext.tsx
   ├── hooks
+    ├── __tests__
+      └── useAuth.test.tsx
     └── useAuth.ts
   ├── layouts
     └── AppLayout.tsx

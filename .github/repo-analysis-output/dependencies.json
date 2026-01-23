@@ -89,7 +89,9 @@
       "type": "file",
       "external_dependencies": {
         "stdlib": [],
-        "third-party": []
+        "third-party": [
+          "firebase/auth"
+        ]
       }
     },
     {

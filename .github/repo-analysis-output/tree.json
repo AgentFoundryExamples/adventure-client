@@ -125,6 +125,16 @@
           "name": "context",
           "children": [
             {
+              "type": "directory",
+              "name": "__tests__",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "AuthContext.test.tsx"
+                }
+              ]
+            },
+            {
               "type": "file",
               "name": "AuthContext.tsx"
             }
@@ -134,6 +144,16 @@
           "type": "directory",
           "name": "hooks",
           "children": [
+            {
+              "type": "directory",
+              "name": "__tests__",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "useAuth.test.tsx"
+                }
+              ]
+            },
             {
               "type": "file",
               "name": "useAuth.ts"
