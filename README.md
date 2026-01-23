@@ -14,6 +14,9 @@ A React-based web client for the Adventure Game platform, built with TypeScript 
 - [Project Structure](#project-structure)
 - [Architecture](#architecture)
 - [User Journey: Dashboard and Game Flow](#user-journey-dashboard-and-game-flow)
+- [Authentication & Authorization](#authentication--authorization)
+- [Error Handling Patterns](#error-handling-patterns)
+- [Known Limitations & Assumptions](#known-limitations--assumptions)
 - [Documentation](#documentation)
 
 ## Prerequisites
@@ -1581,13 +1584,428 @@ This is critical for:
 - Check that `Access-Control-Allow-Origin` includes the frontend domain
 - Ensure `Access-Control-Allow-Methods` includes GET, POST, PUT, DELETE as needed
 
+## Authentication & Authorization
+
+This section provides a high-level overview of authentication flows, token management, and security patterns in the Adventure Client. For detailed setup instructions, see [docs/firebase-setup.md](docs/firebase-setup.md).
+
+### Login Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant LoginPage
+    participant Firebase
+    participant AuthContext
+    participant Dashboard
+    
+    User->>LoginPage: Enter credentials
+    LoginPage->>Firebase: signInWithEmailAndPassword()
+    Firebase-->>AuthContext: onAuthStateChanged(user)
+    AuthContext->>AuthContext: Store user & uid
+    AuthContext-->>Dashboard: Redirect to /app
+    Dashboard->>Dashboard: Load characters
+```
+
+**Key Steps:**
+1. User enters email/password or uses Google Sign-In
+2. Firebase SDK handles authentication with Firebase Auth servers
+3. `AuthContext` receives auth state change via `onAuthStateChanged` listener
+4. User object and uid are stored in React context
+5. `ProtectedRoute` allows access to `/app` dashboard
+6. User is redirected to originally requested page (or `/app` by default)
+
+### Token Lifecycle & Refresh
+
+Firebase ID tokens are used for authenticating API requests and expire after **1 hour**.
+
+**Automatic Refresh Process:**
+
+```mermaid
+sequenceDiagram
+    participant Component
+    participant HttpClient
+    participant AuthContext
+    participant Firebase
+    participant API
+    
+    Component->>HttpClient: Make API request
+    HttpClient->>AuthContext: getIdToken()
+    AuthContext->>Firebase: currentUser.getIdToken()
+    Firebase-->>AuthContext: Fresh token
+    AuthContext-->>HttpClient: Token
+    HttpClient->>API: Request + Authorization header
+    API-->>Component: Response
+```
+
+**Token Refresh Strategy:**
+- Tokens are refreshed automatically by Firebase SDK via `getIdToken()`
+- Called immediately before each API request to ensure token freshness
+- If token is <5 minutes from expiry, Firebase refreshes it transparently
+- Refresh operations are deduplicated to prevent concurrent refresh attempts
+
+**Handling Token Expiry:**
+
+1. **Scenario**: API returns 401 Unauthorized
+2. **Action**: HTTP client attempts ONE retry with forced token refresh
+3. **Success**: Request succeeds with fresh token
+4. **Failure**: User is logged out and redirected to `/login` with "session expired" message
+
+**Implementation Details:**
+- `AuthContext` uses `tokenRefreshPromiseRef` to deduplicate concurrent refresh requests
+- Only one refresh operation runs at a time; subsequent requests reuse the pending promise
+- Forced refresh uses `getIdToken(forceRefresh: true)` to bypass cache
+- Token comparison prevents infinite retry loops (old token vs new token)
+
+### Forced Logout Scenarios
+
+The application automatically logs out users in the following situations:
+
+| Scenario | Detection | User Experience |
+|----------|-----------|-----------------|
+| **Token Refresh Failure** | `getIdToken()` throws error after retry | Redirect to `/login` with "Your session has expired" message |
+| **Firebase Session Lost** | `onAuthStateChanged(null)` during active session | Redirect to `/login` with "Session expired" message |
+| **Explicit Logout** | User clicks "Sign Out" in AccountMenu | `signOut()` called, redirect to `/login` with "Logged out successfully" |
+| **Auth Error** | Firebase SDK error (network, config, etc.) | Redirect to `/login` with specific error message |
+
+**Session Monitoring:**
+- `AuthContext` listens to `onAuthStateChanged` continuously
+- Detects when user becomes `null` mid-session (not on initial load)
+- Clears pending token refresh promises before redirect
+- Preserves "from" pathname in location state for post-login redirect
+
+### Error Handling & Retry Logic
+
+The application distinguishes between transient and permanent errors to provide appropriate retry behavior.
+
+**HTTP Client Retry Strategy:**
+
+| Error Type | Status Codes | Retry Behavior | User Experience |
+|------------|-------------|----------------|-----------------|
+| **Authentication Failure** | 401 | ONE retry with token refresh | Automatic; logout if retry fails |
+| **Forbidden** | 403 | NO retry | Redirect to dashboard with "Access denied" message |
+| **Not Found** | 404 | NO retry | Error notice: "Resource not found" |
+| **Too Many Requests** | 429 | NO retry (client-side) | Error notice: "Please wait before trying again" |
+| **Server Error** | 500, 502, 503 | NO automatic retry | Error notice: "Server error"; user can manually retry |
+| **Network Error** | timeout, offline | NO automatic retry | Error notice: "Network error"; user can manually retry |
+
+**Transient Error Detection:**
+- Function: `isTransientError()` in `src/lib/http/errors.ts`
+- Identifies errors that are likely temporary and may succeed on retry
+- Currently marks network errors and certain server errors as transient
+- Used by UI to determine whether to show a "Retry" button
+
+**Error Message Mapping:**
+- All HTTP errors are converted to user-friendly messages via `getHttpErrorMessage()`
+- Context-aware error messages (e.g., "Failed to load characters" vs "Failed to save turn")
+- Development mode logs full error details to console
+- Production mode shows sanitized messages to users
+
+### API-Specific Error Handling
+
+**Dungeon Master API Errors:**
+- **500 Internal Server Error**: Usually indicates LLM (OpenAI) service failure
+- **422 Validation Error**: Invalid input data (character creation, turn submission)
+- Errors are displayed inline in the UI with specific error messages
+- Users can retry operations manually
+
+**Journey Log API Errors:**
+- **403 Forbidden**: User attempting to access another user's character
+  - **Action**: Redirect to `/app` with "Access denied" error notice
+  - **No session logout**: This is a permission issue, not an auth failure
+- **400 Bad Request**: Missing or invalid `X-User-Id` header
+- **404 Not Found**: Character or resource doesn't exist
+
+**Split Persistence Handling:**
+When submitting a turn, the client makes two sequential requests:
+1. `POST /turn` to dungeon-master (generates narrative)
+2. `POST /characters/{id}/narrative` to journey-log (persists turn)
+
+**Edge Case**: If step 1 succeeds but step 2 fails:
+- Turn is saved to dungeon-master but NOT in journey-log
+- UI shows the generated narrative with a warning badge
+- User sees: "Turn saved to dungeon-master, but failed to persist to history"
+- User can manually retry persistence or continue playing
+- Next turn submission will include the missing turn in context
+
+### Access Control & Permissions
+
+**Character Ownership:**
+- All characters have an `owner_user_id` field (set on creation)
+- Journey Log API validates `X-User-Id` header matches character owner
+- Mismatched user IDs result in 403 Forbidden
+
+**403 Forbidden Handling:**
+- Detected in `GamePage` component during character load or turn submission
+- User is redirected to `/app` dashboard
+- Error message: "Access denied. You do not have permission to view this character."
+- History is replaced (not pushed) to prevent back-button access
+- No session logout occurs (user remains authenticated)
+
+**Character Sharing:**
+- Currently NOT supported (all characters are private to owner)
+- Future feature: Shareable character links or party system
+- Would require backend changes to support multi-user access
+
+## Error Handling Patterns
+
+This section describes how the application surfaces errors to users and handles different failure modes.
+
+### Error Display Components
+
+**ErrorNotice Component:**
+- Centralized error display component used throughout the app
+- Shows error messages with appropriate severity levels
+- Supports manual dismissal and automatic timeout
+- Located in navigation bar for visibility
+
+**Severity Levels:**
+- `error`: Red background, critical issues (auth failures, API errors)
+- `warning`: Yellow background, non-blocking issues (save failures)
+- `info`: Blue background, informational messages (rate limits)
+
+**Usage Patterns:**
+```typescript
+// Display error from API response
+setError({
+  message: 'Failed to load character data',
+  severity: 'error'
+});
+
+// Display warning for partial failure
+setError({
+  message: 'Turn saved, but failed to persist to history',
+  severity: 'warning'
+});
+```
+
+### Dungeon Master vs Journey Log Error Surfacing
+
+The application handles errors differently depending on which service fails:
+
+**Dungeon Master Errors (Narrative Generation):**
+- **When**: During character creation or turn submission
+- **Impact**: Blocks gameplay progression (no narrative = can't continue)
+- **Display**: Inline error message in the form or game interface
+- **Recovery**: User must retry the operation
+- **Examples**:
+  - "Failed to generate narrative. Please try again."
+  - "AI service unavailable. Please wait and retry."
+
+**Journey Log Errors (State Persistence):**
+- **When**: During character fetch, turn save, or context retrieval
+- **Impact**: May allow partial functionality (e.g., narrative exists but not saved)
+- **Display**: Error notice in navigation bar
+- **Recovery**: Some operations continue; user can retry persistence later
+- **Examples**:
+  - "Failed to load character list. Retry?"
+  - "Turn generated but not saved to history. Retry save?"
+
+**Split Error Scenario (Most Complex):**
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant GamePage
+    participant DungeonMaster
+    participant JourneyLog
+    
+    User->>GamePage: Submit action
+    GamePage->>DungeonMaster: POST /turn
+    DungeonMaster-->>GamePage: ✅ Narrative generated
+    GamePage->>JourneyLog: POST /narrative
+    JourneyLog-->>GamePage: ❌ 500 Server Error
+    GamePage->>GamePage: Display narrative + warning
+    GamePage-->>User: "Turn saved, persistence failed"
+    User->>GamePage: Retry persistence
+    GamePage->>JourneyLog: POST /narrative (retry)
+    JourneyLog-->>GamePage: ✅ Turn saved
+```
+
+**User Experience:**
+- User sees the generated narrative immediately
+- Warning badge appears: "Not saved to history"
+- User can continue playing or manually retry save
+- Next turn includes previous context even if persistence failed
+
+### Retry Behavior Guidelines
+
+**When Retries Occur Automatically:**
+- 401 Unauthorized: ONE automatic retry with token refresh
+- No other HTTP errors trigger automatic retries
+
+**When Retries Are Manual:**
+- All other errors require user-initiated retry via:
+  - "Retry" button in error state
+  - Re-submitting the form
+  - Refreshing the page
+
+**Why Limited Auto-Retry:**
+- Prevents infinite retry loops
+- Gives user control over network/resource usage
+- Avoids hammering backend services during outages
+- Allows user to correct input errors (e.g., validation failures)
+
+**Retry Button Display:**
+- Shown in error states when `isTransientError()` returns true
+- Not shown for permanent errors (403, 404, validation errors)
+- Retry preserves user input (form data, character ID, etc.)
+
+## Known Limitations & Assumptions
+
+This section documents current system constraints, unsupported features, and assumptions that developers and QA should be aware of.
+
+### Character Limits
+
+The application enforces the following character and data limits:
+
+| Field | Maximum Length | Enforced By | Notes |
+|-------|----------------|-------------|-------|
+| **Character Name** | 100 characters | Backend validation | User sees 422 error if exceeded |
+| **Character Race** | 50 characters | Backend validation | Predefined list recommended in UI |
+| **Character Class** | 50 characters | Backend validation | Predefined list recommended in UI |
+| **Initial Adventure Prompt** | 2,000 characters | Backend validation | Custom world-building text |
+| **User Action** | 8,000 characters | Backend validation | Player input during gameplay |
+| **AI Response** | 32,000 characters | Backend limit | Dungeon Master narrative output |
+| **Combined Turn** | 40,000 characters | Backend limit | User action + AI response |
+| **Turn History (UI)** | 20 turns | UI limit | Only last 20 turns displayed |
+| **POI Tags** | 20 max, 50 chars each | Backend validation | Points of Interest in character state |
+| **Combat Enemies** | 5 maximum | Backend validation | Active enemies in combat |
+| **Archived Quests** | 50 maximum | Backend validation | Completed quest limit |
+
+**Recommendations:**
+- UI should provide character counters for user-facing input fields
+- Long AI responses may cause performance issues in UI rendering
+- Consider pagination for turn history if users accumulate >100 turns
+
+### Browser Support
+
+**Supported Browsers:**
+- Chrome/Edge 90+
+- Firefox 88+
+- Safari 14+
+
+**Unsupported:**
+- Internet Explorer (all versions)
+- Legacy Edge (pre-Chromium)
+- Mobile browsers older than 2 years
+
+**Known Issues:**
+- Safari <14 has issues with Firebase SDK (use polyfills)
+- Firefox requires CORS headers configured correctly on backend
+- Chrome DevTools may show false-positive CORS errors in local development
+
+### Network & Performance Assumptions
+
+**API Response Times:**
+- **Expected**: <2 seconds for most requests
+- **Acceptable**: <5 seconds for AI generation (dungeon-master /turn)
+- **Timeout**: 30 seconds (configured in HTTP client)
+
+**Offline Behavior:**
+- No offline support (requires network connection)
+- Network errors are detected and displayed to user
+- No local caching of game state or narrative
+
+**Concurrent Request Limits:**
+- Token refresh deduplication prevents concurrent auth requests
+- No rate limiting enforced on client-side (relies on backend)
+- Backend may return 429 Too Many Requests if user spams actions
+
+### Access & Security Constraints
+
+**Single-User Characters:**
+- Each character is owned by exactly one Firebase user
+- No character sharing or multiplayer support
+- 403 Forbidden if attempting to access another user's character
+
+**Session Management:**
+- Single session per user (no multi-device sync)
+- Logging in on a new device doesn't invalidate old sessions
+- Token refresh is device-independent (managed by Firebase)
+
+**Development Mode Security:**
+- `X-Dev-User-Id` header MUST be disabled in production
+- Development builds may log sensitive information to console
+- Never deploy development builds to production
+
+### API Integration Limitations
+
+**Service Dependencies:**
+- Requires both dungeon-master AND journey-log services to be available
+- Dungeon-master outage prevents turn submission and character creation
+- Journey-log outage prevents character list, state persistence, history retrieval
+
+**Data Consistency:**
+- Character creation is eventually consistent (dungeon-master writes to journey-log)
+- Split persistence failures can result in missing turns in history
+- No transaction support across services
+
+**LLM Constraints:**
+- Narrative generation depends on OpenAI API availability
+- OpenAI outages result in 500 errors from dungeon-master
+- No fallback or cached responses for AI failures
+
+### Future Work (Not Yet Implemented)
+
+The following features are planned but not currently available:
+
+- ❌ Character editing (name, race, class changes)
+- ❌ Character deletion
+- ❌ Character sharing or party system
+- ❌ Offline mode or local caching
+- ❌ Push notifications for long-running AI generation
+- ❌ Undo/redo for turn submissions
+- ❌ Save points or checkpointing
+- ❌ Export character history as PDF/JSON
+
+**When these features are implemented**, this section should be updated to reflect new capabilities and limitations.
+
+### Mitigation Guidance
+
+**For Developers:**
+- Always test with realistic data volumes (100+ turns, long narratives)
+- Mock backend failures to verify error handling paths
+- Test token expiry scenarios using Firebase emulator
+- Verify 403 handling by attempting cross-user character access
+
+**For QA:**
+- See [docs/firebase-setup.md](docs/firebase-setup.md) for simulating expired tokens
+- Test rate limiting by submitting multiple turns rapidly
+- Verify browser compatibility with BrowserStack or similar tools
+- Test network interruptions using Chrome DevTools throttling
+
+**For Users:**
+- Keep browser updated to latest version
+- Use stable internet connection for best experience
+- Refresh page if encountering stale data issues
+- Contact support if receiving persistent 403 errors on own characters
+
 ## Documentation
 
 Comprehensive guides for development and implementation:
 
-- **[Firebase Setup Guide](docs/firebase-setup.md)** - Complete Firebase configuration and authentication setup
-- **[Character Creation Guide](docs/character-creation.md)** - Character creation flow documentation
-- **[Gameplay API Contracts](docs/gameplay.md)** - Dungeon-master and journey-log API contracts for the gameplay loop
+- **[Firebase Setup Guide](docs/firebase-setup.md)** - Complete Firebase configuration, authentication setup, and token lifecycle management
+- **[Character Creation Guide](docs/character-creation.md)** - Character creation flow documentation with limits and constraints
+- **[Gameplay API Contracts](docs/gameplay.md)** - Dungeon-master and journey-log API contracts, error handling, and edge cases
+
+### Key Documentation Topics
+
+**Authentication & Token Management:**
+- Token refresh lifecycle and expiry handling (see [Authentication & Authorization](#authentication--authorization) above)
+- Forced logout scenarios and session management
+- Detailed setup and testing instructions in [docs/firebase-setup.md](docs/firebase-setup.md)
+
+**Error Handling & Retries:**
+- Distinction between dungeon-master and journey-log errors (see [Error Handling Patterns](#error-handling-patterns) above)
+- Automatic retry behavior (401 only) vs manual retries
+- Split persistence handling and recovery strategies
+- Comprehensive error scenarios in [docs/gameplay.md](docs/gameplay.md)
+
+**Edge Cases & Limitations:**
+- Character limits, browser support, and network assumptions (see [Known Limitations & Assumptions](#known-limitations--assumptions) above)
+- 403 Forbidden handling (access denied without session logout)
+- Concurrent request handling and token refresh deduplication
+- QA testing guidance for simulating token expiry and errors
 
 ### Gameplay API Documentation
 
