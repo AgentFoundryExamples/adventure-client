@@ -13,20 +13,18 @@
 // limitations under the License.
 /**
  * HTTP Client Utility
- * Centralized HTTP client using fetch API with JSON helpers and error handling
+ * Centralized HTTP client using fetch API with JSON helpers, error handling, and auth integration
  */
 
 import { config } from '@/config/env';
-
-/**
- * Standard API error response structure
- */
-export interface ApiError {
-  message: string;
-  status: number;
-  statusText: string;
-  data?: unknown;
-}
+import {
+  createApiError,
+  isApiError as isApiErrorUtil,
+  logHttpError,
+  transformResponseToError,
+  wrapError,
+  type ApiError,
+} from './errors';
 
 /**
  * HTTP request options
@@ -34,18 +32,35 @@ export interface ApiError {
 export interface RequestOptions extends RequestInit {
   baseUrl?: string;
   timeout?: number;
+  skipAuth?: boolean;
 }
 
 /**
- * Creates a structured API error
+ * Auth provider interface for dependency injection
  */
-function createApiError(
-  message: string,
-  status: number,
-  statusText: string,
-  data?: unknown
-): ApiError {
-  return { message, status, statusText, data };
+export interface AuthProvider {
+  getIdToken: (forceRefresh?: boolean) => Promise<string | null>;
+  uid: string | null;
+}
+
+/**
+ * Global auth provider instance (set via setAuthProvider)
+ */
+let authProvider: AuthProvider | null = null;
+
+/**
+ * Sets the global auth provider for HTTP client
+ * Should be called once during app initialization
+ */
+export function setAuthProvider(provider: AuthProvider | null): void {
+  authProvider = provider;
+}
+
+/**
+ * Gets the current auth provider
+ */
+export function getAuthProvider(): AuthProvider | null {
+  return authProvider;
 }
 
 /**
@@ -77,11 +92,36 @@ async function fetchWithTimeout(
 }
 
 /**
- * Base HTTP request handler
+ * Service type mappings for URL-based service detection
+ */
+const SERVICE_TYPE_MAPPINGS = {
+  [config.dungeonMasterApiUrl]: 'dungeon-master' as const,
+  [config.journeyLogApiUrl]: 'journey-log' as const,
+};
+
+/**
+ * Determines which service the URL belongs to
+ */
+function getServiceType(url: string): 'dungeon-master' | 'journey-log' | null {
+  for (const [baseUrl, serviceType] of Object.entries(SERVICE_TYPE_MAPPINGS)) {
+    if (url.includes(baseUrl)) {
+      return serviceType;
+    }
+  }
+  return null;
+}
+
+/**
+ * Base HTTP request handler with auth integration
  * @throws ApiError for non-2xx responses
  */
-async function request<T = unknown>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-  const { baseUrl, ...fetchOptions } = options;
+async function request<T = unknown>(
+  endpoint: string,
+  options: RequestOptions = {},
+  retryCount = 0,
+  previousToken?: string
+): Promise<T> {
+  const { baseUrl, skipAuth = false, ...fetchOptions } = options;
 
   // Build full URL
   const url = baseUrl
@@ -90,16 +130,66 @@ async function request<T = unknown>(endpoint: string, options: RequestOptions = 
       ? endpoint
       : `${config.dungeonMasterApiUrl}${endpoint}`;
 
-  // TODO: Add auth headers when Firebase is integrated
-  // const authToken = getAuthToken();
-  // if (authToken) {
-  //   headers.Authorization = `Bearer ${authToken}`;
-  // }
-
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...((fetchOptions.headers as Record<string, string>) || {}),
   };
+
+  // Add auth headers if auth provider is available and not skipped
+  if (!skipAuth && authProvider) {
+    const serviceType = getServiceType(url);
+
+    try {
+      // Determine if token should be force-refreshed (on retry after 401)
+      const forceRefresh = retryCount > 0;
+      
+      // Add service-specific auth headers
+      if (serviceType === 'dungeon-master' || serviceType === 'journey-log') {
+        const token = await authProvider.getIdToken(forceRefresh);
+        
+        if (!token) {
+          throw createApiError(
+            'Authentication required but token is unavailable',
+            401,
+            'Unauthorized',
+            { reason: 'No authentication token available' }
+          );
+        }
+
+        // On retry, verify token actually changed to prevent infinite loops
+        if (retryCount > 0 && token === previousToken) {
+          throw createApiError(
+            'Token refresh did not produce a new token',
+            401,
+            'Unauthorized',
+            { reason: 'Token refresh failed' }
+          );
+        }
+
+        headers['Authorization'] = `Bearer ${token}`;
+
+        // Journey Log API also requires X-User-Id header
+        if (serviceType === 'journey-log') {
+          if (authProvider.uid) {
+            headers['X-User-Id'] = authProvider.uid;
+          }
+        }
+      }
+    } catch (error) {
+      // If it's already an ApiError, re-throw it
+      if (isApiErrorUtil(error)) {
+        throw error;
+      }
+      // Wrap other errors
+      console.error('[HTTP Client] Failed to get auth credentials:', error);
+      throw createApiError(
+        'Failed to obtain authentication credentials',
+        401,
+        'Unauthorized',
+        { originalError: error instanceof Error ? error.message : String(error) }
+      );
+    }
+  }
 
   // Log request in development
   if (config.isDevelopment) {
@@ -112,25 +202,21 @@ async function request<T = unknown>(endpoint: string, options: RequestOptions = 
       headers,
     });
 
+    // Handle 401 Unauthorized with token refresh retry
+    if (response.status === 401 && retryCount === 0 && authProvider && !skipAuth) {
+      if (config.isDevelopment) {
+        console.log('[HTTP Client] Received 401, retrying with refreshed token...');
+      }
+      // Store current token to compare after refresh
+      const currentToken = headers['Authorization']?.replace('Bearer ', '');
+      // Retry once with force refresh
+      return request<T>(endpoint, options, retryCount + 1, currentToken);
+    }
+
     // Handle non-2xx responses
     if (!response.ok) {
-      let errorData: unknown;
-      try {
-        errorData = await response.json();
-      } catch {
-        errorData = await response.text();
-      }
-
-      const error = createApiError(
-        `HTTP ${response.status}: ${response.statusText}`,
-        response.status,
-        response.statusText,
-        errorData
-      );
-
-      // TODO: Add centralized error logging/tracking
-      console.error('[HTTP Client] Request failed:', error);
-
+      const error = await transformResponseToError(response);
+      logHttpError(error, getServiceType(url) || undefined);
       throw error;
     }
 
@@ -154,30 +240,20 @@ async function request<T = unknown>(endpoint: string, options: RequestOptions = 
     return data as T;
   } catch (error) {
     // Re-throw ApiError as-is
-    if (isApiError(error)) {
+    if (isApiErrorUtil(error)) {
       throw error;
     }
 
     // Wrap other errors
-    console.error('[HTTP Client] Network error:', error);
-    throw createApiError('Network request failed', 0, 'Network Error', {
-      originalError: (error as Error).message,
-    });
+    const wrappedError = wrapError(error);
+    console.error('[HTTP Client] Network error:', wrappedError);
+    throw wrappedError;
   }
 }
 
-/**
- * Type guard for ApiError
- */
-function isApiError(error: unknown): error is ApiError {
-  return (
-    typeof error === 'object' &&
-    error !== null &&
-    'status' in error &&
-    'message' in error &&
-    'statusText' in error
-  );
-}
+// Re-export for convenience
+export type { ApiError };
+export { isApiErrorUtil as isApiError };
 
 /**
  * HTTP Client API
