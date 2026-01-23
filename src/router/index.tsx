@@ -8,6 +8,7 @@ import CharacterCreationPage from '@/pages/CharacterCreationPage';
 import NewCharacterPage from '@/pages/NewCharacterPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 import DebugPage from '@/pages/DebugPage';
+import ComponentDemoPage from '@/pages/ComponentDemoPage';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { config } from '@/config/env';
 
@@ -55,12 +56,16 @@ export const router = createBrowserRouter([
           </ProtectedRoute>
         ),
       },
-      // Debug page - only available in development
+      // Debug and demo pages - only available in development
       ...(config.isDevelopment
         ? [
             {
               path: '/debug',
               element: <DebugPage />,
+            },
+            {
+              path: '/demo',
+              element: <ComponentDemoPage />,
             },
           ]
         : []),
