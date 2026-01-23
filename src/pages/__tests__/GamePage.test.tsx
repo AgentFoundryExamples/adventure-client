@@ -30,7 +30,14 @@ function TestApp() {
   );
 }
 
-function renderWithRoute(characterId: string = 'char-123', state?: unknown) {
+interface LocationStateForTest {
+  initialScenario?: {
+    narrative: string;
+    character_id: string;
+  };
+}
+
+function renderWithRoute(characterId: string = 'char-123', state?: LocationStateForTest) {
   if (state) {
     // Use MemoryRouter when we need to pass state
     const initialEntry = {
