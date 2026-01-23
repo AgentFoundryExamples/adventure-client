@@ -33,15 +33,18 @@ vi.mock('../../../config/env', () => ({
 }));
 
 describe('client', () => {
-  const mockAuthProvider: AuthProvider = {
-    getIdToken: vi.fn().mockResolvedValue('mock-token'),
-    uid: 'mock-uid-123',
-  };
+  let mockAuthProvider: AuthProvider;
 
   beforeEach(() => {
     vi.clearAllMocks();
     setAuthProvider(null);
     global.fetch = vi.fn();
+    
+    // Create a fresh mock for each test
+    mockAuthProvider = {
+      getIdToken: vi.fn().mockResolvedValue('mock-token'),
+      uid: 'mock-uid-123',
+    };
   });
 
   afterEach(() => {
@@ -146,8 +149,73 @@ describe('client', () => {
       );
     });
 
+    it('throws error when token is null', async () => {
+      const authProviderWithNullToken: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue(null),
+        uid: 'mock-uid',
+      };
+      setAuthProvider(authProviderWithNullToken);
+
+      await expect(
+        httpClient.get('/test', { baseUrl: 'https://dungeon-master.example.com' })
+      ).rejects.toMatchObject({
+        status: 401,
+        message: 'Authentication required but token is unavailable',
+      });
+    });
+
+    it('throws error when getIdToken throws', async () => {
+      const authProviderWithError: AuthProvider = {
+        getIdToken: vi.fn().mockRejectedValue(new Error('Token fetch failed')),
+        uid: 'mock-uid',
+      };
+      setAuthProvider(authProviderWithError);
+
+      await expect(
+        httpClient.get('/test', { baseUrl: 'https://dungeon-master.example.com' })
+      ).rejects.toMatchObject({
+        status: 401,
+        message: 'Failed to obtain authentication credentials',
+      });
+    });
+
+    it('throws error on retry if token did not change', async () => {
+      // Mock that always returns the same token even on refresh
+      const sameTokenProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('same-token-always'),
+        uid: 'mock-uid',
+      };
+      setAuthProvider(sameTokenProvider);
+
+      // First call returns 401
+      (global.fetch as any).mockResolvedValueOnce(
+        new Response(JSON.stringify({ error: 'Unauthorized' }), {
+          status: 401,
+        })
+      );
+
+      await expect(
+        httpClient.get('/test', { baseUrl: 'https://dungeon-master.example.com' })
+      ).rejects.toMatchObject({
+        status: 401,
+        message: 'Token refresh did not produce a new token',
+      });
+
+      // getIdToken should have been called twice (initial + retry with refresh)
+      expect(sameTokenProvider.getIdToken).toHaveBeenCalledTimes(2);
+      expect(sameTokenProvider.getIdToken).toHaveBeenCalledWith(false); // Initial call
+      expect(sameTokenProvider.getIdToken).toHaveBeenCalledWith(true); // Retry with refresh
+    });
+
     it('retries with refreshed token on 401', async () => {
-      setAuthProvider(mockAuthProvider);
+      // Mock that returns different tokens on subsequent calls
+      const changingTokenProvider: AuthProvider = {
+        getIdToken: vi.fn()
+          .mockResolvedValueOnce('old-token')
+          .mockResolvedValueOnce('new-refreshed-token'),
+        uid: 'mock-uid',
+      };
+      setAuthProvider(changingTokenProvider);
 
       // First call returns 401
       (global.fetch as any).mockResolvedValueOnce(
@@ -169,8 +237,8 @@ describe('client', () => {
       });
 
       expect(global.fetch).toHaveBeenCalledTimes(2);
-      expect(mockAuthProvider.getIdToken).toHaveBeenCalledWith(false); // First call
-      expect(mockAuthProvider.getIdToken).toHaveBeenCalledWith(true); // Retry with refresh
+      expect(changingTokenProvider.getIdToken).toHaveBeenCalledWith(false); // First call
+      expect(changingTokenProvider.getIdToken).toHaveBeenCalledWith(true); // Retry with refresh
       expect(result).toEqual(mockResponse);
     });
 

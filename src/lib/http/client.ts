@@ -118,7 +118,8 @@ function getServiceType(url: string): 'dungeon-master' | 'journey-log' | null {
 async function request<T = unknown>(
   endpoint: string,
   options: RequestOptions = {},
-  retryCount = 0
+  retryCount = 0,
+  previousToken?: string
 ): Promise<T> {
   const { baseUrl, skipAuth = false, ...fetchOptions } = options;
 
@@ -143,26 +144,50 @@ async function request<T = unknown>(
       const forceRefresh = retryCount > 0;
       
       // Add service-specific auth headers
-      if (serviceType === 'dungeon-master') {
-        // Dungeon Master API requires Authorization: Bearer token
+      if (serviceType === 'dungeon-master' || serviceType === 'journey-log') {
         const token = await authProvider.getIdToken(forceRefresh);
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
+        
+        if (!token) {
+          throw createApiError(
+            'Authentication required but token is unavailable',
+            401,
+            'Unauthorized',
+            { reason: 'No authentication token available' }
+          );
         }
-      } else if (serviceType === 'journey-log') {
-        // Journey Log API requires X-User-Id header
-        if (authProvider.uid) {
-          headers['X-User-Id'] = authProvider.uid;
+
+        // On retry, verify token actually changed to prevent infinite loops
+        if (retryCount > 0 && token === previousToken) {
+          throw createApiError(
+            'Token refresh did not produce a new token',
+            401,
+            'Unauthorized',
+            { reason: 'Token refresh failed' }
+          );
         }
-        // Also include Authorization token for journey-log
-        const token = await authProvider.getIdToken(forceRefresh);
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
+
+        headers['Authorization'] = `Bearer ${token}`;
+
+        // Journey Log API also requires X-User-Id header
+        if (serviceType === 'journey-log') {
+          if (authProvider.uid) {
+            headers['X-User-Id'] = authProvider.uid;
+          }
         }
       }
     } catch (error) {
+      // If it's already an ApiError, re-throw it
+      if (isApiErrorUtil(error)) {
+        throw error;
+      }
+      // Wrap other errors
       console.error('[HTTP Client] Failed to get auth credentials:', error);
-      // Continue without auth headers - let the server reject if needed
+      throw createApiError(
+        'Failed to obtain authentication credentials',
+        401,
+        'Unauthorized',
+        { originalError: error instanceof Error ? error.message : String(error) }
+      );
     }
   }
 
@@ -182,8 +207,10 @@ async function request<T = unknown>(
       if (config.isDevelopment) {
         console.log('[HTTP Client] Received 401, retrying with refreshed token...');
       }
+      // Store current token to compare after refresh
+      const currentToken = headers['Authorization']?.replace('Bearer ', '');
       // Retry once with force refresh
-      return request<T>(endpoint, options, retryCount + 1);
+      return request<T>(endpoint, options, retryCount + 1, currentToken);
     }
 
     // Handle non-2xx responses

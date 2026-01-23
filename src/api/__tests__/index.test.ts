@@ -94,7 +94,7 @@ describe('api configuration', () => {
       expect(JourneyLogOpenAPI.HEADERS).toBeUndefined();
     });
 
-    it('returns empty string when token is null', async () => {
+    it('throws error when token is null', async () => {
       const authProviderWithNullToken: AuthProvider = {
         getIdToken: vi.fn().mockResolvedValue(null),
         uid: 'mock-uid',
@@ -102,8 +102,9 @@ describe('api configuration', () => {
 
       configureApiClients(authProviderWithNullToken);
 
-      const token = await (DungeonMasterOpenAPI.TOKEN as () => Promise<string>)();
-      expect(token).toBe('');
+      await expect(
+        (DungeonMasterOpenAPI.TOKEN as () => Promise<string>)()
+      ).rejects.toThrow('Authentication required but no token available');
     });
 
     it('handles missing uid in headers', async () => {

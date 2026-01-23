@@ -31,7 +31,10 @@ export function configureApiClients(authProvider: AuthProvider | null): void {
   DungeonMasterOpenAPI.TOKEN = authProvider
     ? async () => {
         const token = await authProvider.getIdToken();
-        return token || '';
+        if (!token) {
+          throw new Error('Authentication required but no token available');
+        }
+        return token;
       }
     : undefined;
 
@@ -40,7 +43,10 @@ export function configureApiClients(authProvider: AuthProvider | null): void {
   JourneyLogOpenAPI.TOKEN = authProvider
     ? async () => {
         const token = await authProvider.getIdToken();
-        return token || '';
+        if (!token) {
+          throw new Error('Authentication required but no token available');
+        }
+        return token;
       }
     : undefined;
 
