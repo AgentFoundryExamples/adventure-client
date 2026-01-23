@@ -413,7 +413,7 @@ describe('CharactersDashboardPage', () => {
 
   describe('Advanced Error Handling Edge Cases', () => {
     it('handles 500 server error with retry guidance', async () => {
-      const error500 = { status: 500, message: 'Internal Server Error' } as any;
+      const error500 = { status: 500, message: 'Internal Server Error' } as Error & { status: number };
       mockGetUserCharacters.mockRejectedValue(error500);
 
       render(<TestApp />);
@@ -430,7 +430,7 @@ describe('CharactersDashboardPage', () => {
     });
 
     it('handles 500 error then success on retry', async () => {
-      const error500 = { status: 500, message: 'Internal Server Error' } as any;
+      const error500 = { status: 500, message: 'Internal Server Error' } as Error & { status: number };
       
       mockGetUserCharacters
         .mockRejectedValueOnce(error500)
@@ -460,7 +460,7 @@ describe('CharactersDashboardPage', () => {
     });
 
     it('handles 503 Service Unavailable error', async () => {
-      const error503 = { status: 503, message: 'Service Unavailable' } as any;
+      const error503 = { status: 503, message: 'Service Unavailable' } as Error & { status: number };
       mockGetUserCharacters.mockRejectedValue(error503);
 
       render(<TestApp />);
@@ -475,7 +475,7 @@ describe('CharactersDashboardPage', () => {
     });
 
     it('handles 429 Rate Limit error', async () => {
-      const error429 = { status: 429, message: 'Too Many Requests' } as any;
+      const error429 = { status: 429, message: 'Too Many Requests' } as Error & { status: number };
       mockGetUserCharacters.mockRejectedValue(error429);
 
       render(<TestApp />);
@@ -490,7 +490,7 @@ describe('CharactersDashboardPage', () => {
     });
 
     it('handles timeout error (408)', async () => {
-      const error408 = { status: 408, message: 'Request Timeout' } as any;
+      const error408 = { status: 408, message: 'Request Timeout' } as Error & { status: number };
       mockGetUserCharacters.mockRejectedValue(error408);
 
       render(<TestApp />);
@@ -507,7 +507,7 @@ describe('CharactersDashboardPage', () => {
   describe('Race Condition Handling', () => {
     it('handles rapid component mount/unmount gracefully', async () => {
       mockGetUserCharacters.mockImplementation(
-        () => new Promise(resolve => 
+        () => new Promise<ListCharactersResponse>(resolve => 
           setTimeout(() => resolve({ characters: [mockCharacter1], count: 1 }), 100)
         )
       );
@@ -522,11 +522,11 @@ describe('CharactersDashboardPage', () => {
     });
 
     it('handles latest response when multiple requests overlap', async () => {
-      let resolveFirst: (value: any) => void;
-      let resolveSecond: (value: any) => void;
+      let resolveFirst: (value: ListCharactersResponse) => void;
+      let resolveSecond: (value: ListCharactersResponse) => void;
 
-      const firstPromise = new Promise(resolve => { resolveFirst = resolve; });
-      const secondPromise = new Promise(resolve => { resolveSecond = resolve; });
+      const firstPromise = new Promise<ListCharactersResponse>(resolve => { resolveFirst = resolve; });
+      const secondPromise = new Promise<ListCharactersResponse>(resolve => { resolveSecond = resolve; });
 
       mockGetUserCharacters
         .mockReturnValueOnce(firstPromise)

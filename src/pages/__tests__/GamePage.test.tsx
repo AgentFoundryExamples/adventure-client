@@ -31,10 +31,10 @@ const mockAppendNarrativeTurn = vi.fn();
 
 vi.mock('@/api', () => ({
   getCharacterLastTurn: (characterId: string) => mockGetCharacterLastTurn(characterId),
-  submitTurn: (request: any) => mockSubmitTurn(request),
+  submitTurn: (request: { character_id: string; user_action: string }) => mockSubmitTurn(request),
   CharactersService: {
-    getNarrativeTurnsCharactersCharacterIdNarrativeGet: (params: any) => mockGetNarrativeTurns(params),
-    appendNarrativeTurnCharactersCharacterIdNarrativePost: (params: any) => mockAppendNarrativeTurn(params),
+    getNarrativeTurnsCharactersCharacterIdNarrativeGet: (params: { characterId: string; n: number; xUserId: string | null }) => mockGetNarrativeTurns(params),
+    appendNarrativeTurnCharactersCharacterIdNarrativePost: (params: { characterId: string; xUserId: string; requestBody: { user_action: string; ai_response: string } }) => mockAppendNarrativeTurn(params),
   },
 }));
 
@@ -576,7 +576,7 @@ describe('GamePage', () => {
 
     it('prevents submission while request is in progress', async () => {
       mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
-      let resolveSubmit: (value: any) => void;
+      let resolveSubmit: (value: { narrative: string }) => void;
       const submitPromise = new Promise((resolve) => {
         resolveSubmit = resolve;
       });
@@ -947,7 +947,7 @@ describe('GamePage', () => {
       mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       
       // First submission fails with 500, second succeeds
-      const error500 = { status: 500, message: 'Internal Server Error' } as any;
+      const error500 = { status: 500, message: 'Internal Server Error' } as Error & { status: number };
       mockSubmitTurn
         .mockRejectedValueOnce(error500)
         .mockResolvedValueOnce({
@@ -993,7 +993,7 @@ describe('GamePage', () => {
     it('prevents duplicate action submission during processing', async () => {
       mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       
-      let resolveSubmit: (value: any) => void;
+      let resolveSubmit: (value: { narrative: string }) => void;
       const submitPromise = new Promise(resolve => { resolveSubmit = resolve; });
       mockSubmitTurn.mockReturnValue(submitPromise);
 
@@ -1041,7 +1041,7 @@ describe('GamePage', () => {
       });
       
       // Persist fails with 500 error
-      const persistError = { status: 500, message: 'Failed to save' } as any;
+      const persistError = { status: 500, message: 'Failed to save' } as Error & { status: number };
       mockAppendNarrativeTurn.mockRejectedValue(persistError);
 
       renderWithRoute();
@@ -1075,7 +1075,7 @@ describe('GamePage', () => {
     it('handles 403 forbidden error on action submission with redirect', async () => {
       mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       
-      const error403 = { status: 403, message: 'Forbidden' } as any;
+      const error403 = { status: 403, message: 'Forbidden' } as Error & { status: number };
       mockSubmitTurn.mockRejectedValue(error403);
 
       renderWithRoute();
@@ -1182,8 +1182,8 @@ describe('GamePage', () => {
     });
 
     it('handles component unmount during fetch', async () => {
-      let resolveFetch: (value: any) => void;
-      const fetchPromise = new Promise(resolve => { resolveFetch = resolve; });
+      let resolveFetch: (value: GetNarrativeResponse) => void;
+      const fetchPromise = new Promise<GetNarrativeResponse>(resolve => { resolveFetch = resolve; });
       mockGetNarrativeTurns.mockReturnValue(fetchPromise);
 
       const { unmount } = renderWithRoute();
@@ -1206,7 +1206,7 @@ describe('GamePage', () => {
     it('handles component unmount during action submission', async () => {
       mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       
-      let resolveSubmit: (value: any) => void;
+      let resolveSubmit: (value: { narrative: string }) => void;
       const submitPromise = new Promise(resolve => { resolveSubmit = resolve; });
       mockSubmitTurn.mockReturnValue(submitPromise);
 
