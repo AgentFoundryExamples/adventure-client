@@ -70,3 +70,94 @@ export type { WorldContextState } from './models/WorldContextState';
 export { CharactersService } from './services/CharactersService';
 export { DefaultService } from './services/DefaultService';
 export { OperationsService } from './services/OperationsService';
+
+/**
+ * Helper Functions for Journey Log API
+ * These wrappers provide simplified access to common operations with proper typing
+ */
+
+import type { ListCharactersResponse } from './models/ListCharactersResponse';
+import type { GetNarrativeResponse } from './models/GetNarrativeResponse';
+import { CharactersService } from './services/CharactersService';
+import { OpenAPI } from './core/OpenAPI';
+import { ApiError } from './core/ApiError';
+
+/**
+ * Get all characters for the authenticated user
+ * Retrieves the complete list of characters owned by the authenticated user.
+ * The X-User-Id header is automatically attached via OpenAPI configuration.
+ *
+ * @returns Promise<ListCharactersResponse> - List of character metadata with count
+ * @throws ApiError - On authentication failure (401) or other API errors
+ *
+ * @example
+ * ```ts
+ * const response = await getUserCharacters();
+ * console.log(`Found ${response.count} characters`);
+ * response.characters.forEach(char => console.log(char.name));
+ * ```
+ */
+export async function getUserCharacters(): Promise<ListCharactersResponse> {
+  // Extract X-User-Id from OpenAPI configuration
+  const headers = typeof OpenAPI.HEADERS === 'function' 
+    ? await OpenAPI.HEADERS({} as any)
+    : OpenAPI.HEADERS || {};
+  
+  const userId = headers['X-User-Id'];
+  
+  if (!userId) {
+    throw new ApiError(
+      {} as any,
+      {
+        url: '/characters',
+        method: 'GET',
+        status: 400,
+        statusText: 'Bad Request',
+        body: { detail: 'X-User-Id header is required but not configured' }
+      },
+      'X-User-Id header is required but not configured'
+    );
+  }
+
+  return CharactersService.listCharactersCharactersGet({
+    xUserId: userId
+  });
+}
+
+/**
+ * Get the most recent narrative turn for a character
+ * Retrieves the last narrative turn (n=1) for the specified character.
+ * The X-User-Id header is automatically attached for access control when configured.
+ *
+ * @param characterId - UUID of the character (must be non-empty)
+ * @returns Promise<GetNarrativeResponse> - Response with turns array and metadata
+ * @throws Error - If characterId is empty or undefined
+ * @throws ApiError - On authentication failure (401/403), not found (404), or other API errors
+ *
+ * @example
+ * ```ts
+ * const response = await getCharacterLastTurn('char-uuid-123');
+ * if (response.turns.length > 0) {
+ *   const lastTurn = response.turns[0];
+ *   console.log(`Last turn: ${lastTurn.narrative}`);
+ * }
+ * ```
+ */
+export async function getCharacterLastTurn(characterId: string): Promise<GetNarrativeResponse> {
+  if (!characterId || characterId.trim() === '') {
+    throw new Error('characterId is required and must be non-empty');
+  }
+
+  // Extract X-User-Id from OpenAPI configuration (optional for narrative endpoint)
+  const headers = typeof OpenAPI.HEADERS === 'function' 
+    ? await OpenAPI.HEADERS({} as any)
+    : OpenAPI.HEADERS || {};
+  
+  const userId = headers['X-User-Id'] || null;
+
+  return CharactersService.getNarrativeTurnsCharactersCharacterIdNarrativeGet({
+    characterId,
+    n: 1,
+    xUserId: userId
+  });
+}
