@@ -119,4 +119,246 @@ describe('api configuration', () => {
       expect(headers).toEqual({});
     });
   });
+
+  describe('getUserCharacters', () => {
+    it('successfully retrieves user characters', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { getUserCharacters } = await import('../index');
+      const { CharactersService } = await import('../journeyLog');
+      
+      const mockResponse = {
+        characters: [
+          { character_id: 'char1', name: 'Hero', race: 'Human', class: 'Warrior', status: 'Healthy' as const, created_at: '2024-01-01', updated_at: '2024-01-02' },
+          { character_id: 'char2', name: 'Mage', race: 'Elf', class: 'Wizard', status: 'Healthy' as const, created_at: '2024-01-03', updated_at: '2024-01-04' }
+        ],
+        count: 2
+      };
+
+      vi.spyOn(CharactersService, 'listCharactersCharactersGet').mockResolvedValue(mockResponse);
+
+      const result = await getUserCharacters();
+
+      expect(result).toEqual(mockResponse);
+      expect(result.count).toBe(2);
+      expect(result.characters).toHaveLength(2);
+      expect(CharactersService.listCharactersCharactersGet).toHaveBeenCalledWith({
+        xUserId: 'mock-uid-123'
+      });
+    });
+
+    it('handles empty character list', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { getUserCharacters } = await import('../index');
+      const { CharactersService } = await import('../journeyLog');
+      
+      const mockResponse = {
+        characters: [],
+        count: 0
+      };
+
+      vi.spyOn(CharactersService, 'listCharactersCharactersGet').mockResolvedValue(mockResponse);
+
+      const result = await getUserCharacters();
+
+      expect(result.count).toBe(0);
+      expect(result.characters).toHaveLength(0);
+    });
+
+    it('throws error when X-User-Id is not configured', async () => {
+      configureApiClients(null);
+      const { getUserCharacters } = await import('../index');
+
+      await expect(getUserCharacters()).rejects.toThrow('X-User-Id header is required but not configured');
+    });
+
+    it('propagates API errors', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { getUserCharacters } = await import('../index');
+      const { CharactersService, ApiError } = await import('../journeyLog');
+      
+      const mockError = new ApiError(
+        {} as any,
+        {
+          url: '/characters',
+          ok: false,
+          status: 401,
+          statusText: 'Unauthorized',
+          body: { detail: 'Invalid authentication' }
+        },
+        'Invalid authentication'
+      );
+
+      vi.spyOn(CharactersService, 'listCharactersCharactersGet').mockRejectedValue(mockError);
+
+      await expect(getUserCharacters()).rejects.toThrow(mockError);
+    });
+  });
+
+  describe('getCharacterLastTurn', () => {
+    it('successfully retrieves last turn', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { getCharacterLastTurn } = await import('../index');
+      const { CharactersService } = await import('../journeyLog');
+      
+      const mockResponse = {
+        turns: [
+          {
+            turn_id: 'turn1',
+            character_id: 'char1',
+            player_action: 'Enter the dungeon',
+            gm_response: 'You enter the dungeon...',
+            timestamp: '2024-01-01T12:00:00Z'
+          }
+        ],
+        metadata: {
+          requested_n: 1,
+          returned_count: 1,
+          total_available: 10
+        }
+      };
+
+      vi.spyOn(CharactersService, 'getNarrativeTurnsCharactersCharacterIdNarrativeGet').mockResolvedValue(mockResponse);
+
+      const result = await getCharacterLastTurn('char1');
+
+      expect(result).toEqual(mockResponse);
+      expect(result.turns).toHaveLength(1);
+      expect(result.metadata.returned_count).toBe(1);
+      expect(CharactersService.getNarrativeTurnsCharactersCharacterIdNarrativeGet).toHaveBeenCalledWith({
+        characterId: 'char1',
+        n: 1,
+        xUserId: 'mock-uid-123'
+      });
+    });
+
+    it('handles empty narrative turns', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { getCharacterLastTurn } = await import('../index');
+      const { CharactersService } = await import('../journeyLog');
+      
+      const mockResponse = {
+        turns: [],
+        metadata: {
+          requested_n: 1,
+          returned_count: 0,
+          total_available: 0
+        }
+      };
+
+      vi.spyOn(CharactersService, 'getNarrativeTurnsCharactersCharacterIdNarrativeGet').mockResolvedValue(mockResponse);
+
+      const result = await getCharacterLastTurn('char1');
+
+      expect(result.turns).toHaveLength(0);
+      expect(result.metadata.returned_count).toBe(0);
+    });
+
+    it('rejects empty characterId', async () => {
+      const { getCharacterLastTurn } = await import('../index');
+
+      await expect(getCharacterLastTurn('')).rejects.toThrow('characterId is required and must be non-empty');
+      await expect(getCharacterLastTurn('   ')).rejects.toThrow('characterId is required and must be non-empty');
+    });
+
+    it('works without X-User-Id (anonymous access)', async () => {
+      configureApiClients(null);
+      const { getCharacterLastTurn } = await import('../index');
+      const { CharactersService } = await import('../journeyLog');
+      
+      const mockResponse = {
+        turns: [{ turn_id: 'turn1', character_id: 'char1', player_action: 'Test action', gm_response: 'Test response', timestamp: '2024-01-01' }],
+        metadata: { requested_n: 1, returned_count: 1, total_available: 1 }
+      };
+
+      vi.spyOn(CharactersService, 'getNarrativeTurnsCharactersCharacterIdNarrativeGet').mockResolvedValue(mockResponse);
+
+      const result = await getCharacterLastTurn('char1');
+
+      expect(result).toEqual(mockResponse);
+      expect(CharactersService.getNarrativeTurnsCharactersCharacterIdNarrativeGet).toHaveBeenCalledWith({
+        characterId: 'char1',
+        n: 1,
+        xUserId: null
+      });
+    });
+
+    it('propagates 404 not found errors', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { getCharacterLastTurn } = await import('../index');
+      const { CharactersService, ApiError } = await import('../journeyLog');
+      
+      const mockError = new ApiError(
+        {} as any,
+        {
+          url: '/characters/invalid/narrative',
+          ok: false,
+          status: 404,
+          statusText: 'Not Found',
+          body: { detail: 'Character not found' }
+        },
+        'Character not found'
+      );
+
+      vi.spyOn(CharactersService, 'getNarrativeTurnsCharactersCharacterIdNarrativeGet').mockRejectedValue(mockError);
+
+      await expect(getCharacterLastTurn('invalid')).rejects.toThrow(mockError);
+    });
+
+    it('propagates 403 forbidden errors (mismatched user)', async () => {
+      const mockAuthProvider: AuthProvider = {
+        getIdToken: vi.fn().mockResolvedValue('mock-token'),
+        uid: 'mock-uid-123',
+      };
+      configureApiClients(mockAuthProvider);
+
+      const { getCharacterLastTurn } = await import('../index');
+      const { CharactersService, ApiError } = await import('../journeyLog');
+      
+      const mockError = new ApiError(
+        {} as any,
+        {
+          url: '/characters/char1/narrative',
+          ok: false,
+          status: 403,
+          statusText: 'Forbidden',
+          body: { detail: 'X-User-Id does not match character owner' }
+        },
+        'X-User-Id does not match character owner'
+      );
+
+      vi.spyOn(CharactersService, 'getNarrativeTurnsCharactersCharacterIdNarrativeGet').mockRejectedValue(mockError);
+
+      await expect(getCharacterLastTurn('char1')).rejects.toThrow(mockError);
+    });
+  });
 });

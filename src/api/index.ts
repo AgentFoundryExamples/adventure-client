@@ -66,6 +66,9 @@ export function configureApiClients(authProvider: AuthProvider | null): void {
 export { GameService } from './dungeonMaster';
 export { CharactersService, DefaultService, OperationsService } from './journeyLog';
 
+// Re-export helper functions
+export { getUserCharacters, getCharacterLastTurn } from './journeyLog';
+
 // Re-export commonly used types
 export type { TurnRequest, TurnResponse } from './dungeonMaster';
 export type {
@@ -73,4 +76,6 @@ export type {
   CreateCharacterResponse,
   GetCharacterResponse,
   CharacterDocument,
+  ListCharactersResponse,
+  GetNarrativeResponse,
 } from './journeyLog';
