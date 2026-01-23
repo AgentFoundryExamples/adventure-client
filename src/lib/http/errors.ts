@@ -178,9 +178,10 @@ export function getFriendlyErrorMessage(error: unknown, context?: string): {
   // Handle network errors
   if (error instanceof Error) {
     const errorName = error.name.toLowerCase();
+    const errorMessage = error.message.toLowerCase();
     
     // Network timeout or offline
-    if (errorName === 'aborterror' || error.message.toLowerCase().includes('timeout')) {
+    if (errorName === 'aborterror' || errorMessage.includes('timeout')) {
       return {
         message: context 
           ? `${context}: Request timeout. Please check your connection and try again.`
@@ -189,8 +190,9 @@ export function getFriendlyErrorMessage(error: unknown, context?: string): {
       };
     }
     
-    // Network error or fetch failure
-    if (errorName === 'networkerror' || error.message.toLowerCase().includes('failed to fetch')) {
+    // Network error or fetch failure - covers various browser implementations
+    // Examples: "Failed to fetch", "Network request failed", "NetworkError when attempting to fetch"
+    if (errorName === 'networkerror' || errorMessage.includes('network') || errorMessage.includes('fetch')) {
       return {
         message: context
           ? `${context}: Network error. Please check your internet connection.`

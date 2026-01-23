@@ -4,7 +4,7 @@ import { submitTurn, CharactersService } from '@/api';
 import type { GetNarrativeResponse, NarrativeTurn, TurnResponse } from '@/api';
 import { useAuth } from '@/hooks/useAuth';
 import { ErrorNotice, LoadingSpinner } from '@/components';
-import { getFriendlyErrorMessage, isApiError } from '@/lib/http/errors';
+import { getFriendlyErrorMessage } from '@/lib/http/errors';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -125,11 +125,11 @@ export default function GamePage() {
         // Use centralized error handling
         const { message } = getFriendlyErrorMessage(err, 'Failed to load game state');
         
-        // Handle specific error codes
-        if (isApiError(err)) {
-          const status = err.status;
+        // Handle specific error codes - check for status property
+        if (err && typeof err === 'object' && 'status' in err) {
+          const status = (err as { status: number }).status;
           if (status === 404) {
-            setError('Character not found. It may have been deleted.');
+            setError('Failed to load game state: Character not found. It may have been deleted.');
             setLoadingState('error');
           } else if (status === 403) {
             // Access denied - redirect to /app with error message
@@ -203,14 +203,7 @@ export default function GamePage() {
         
         // Use centralized error handling for persist warnings
         const { message } = getFriendlyErrorMessage(persistErr, 'Failed to save turn');
-        
-        // Show warning but don't block - DM response is still displayed
-        if (isApiError(persistErr) && persistErr.status === 403) {
-          setPersistWarning('Unable to save turn: Access denied.');
-          console.warn('Access denied when persisting turn - character may be owned by another user');
-        } else {
-          setPersistWarning(message);
-        }
+        setPersistWarning(message);
       }
 
       // Step 3: Update the UI with the new turn
@@ -236,9 +229,9 @@ export default function GamePage() {
       // Use centralized error handling
       const { message } = getFriendlyErrorMessage(err, 'Failed to submit action');
       
-      // Handle specific error codes with redirects or specific messages
-      if (isApiError(err)) {
-        const status = err.status;
+      // Handle specific error codes with redirects or specific messages - check for status property
+      if (err && typeof err === 'object' && 'status' in err) {
+        const status = (err as { status: number }).status;
         
         if (status === 403) {
           // Access denied - redirect to /app with error message
@@ -252,7 +245,7 @@ export default function GamePage() {
           });
           return;
         } else if (status === 404) {
-          setSubmitError('Character not found. It may have been deleted.');
+          setSubmitError('Failed to submit action: Character not found. It may have been deleted.');
         } else {
           setSubmitError(message);
         }

@@ -120,38 +120,31 @@ export default function NewCharacterPage() {
       // Use centralized error handling
       const { message } = getFriendlyErrorMessage(err, 'Character creation failed');
       
-      // Handle specific error types
-      if (err && typeof err === 'object' && 'status' in err) {
-        const status = (err as { status: number }).status;
-        
-        if (status === 422) {
-          // Validation error from server
-          const body = (err as { body?: { detail?: string | Array<{ msg: string; loc: string[] }> } }).body;
-          if (body?.detail) {
-            if (typeof body.detail === 'string') {
-              setErrors({ submit: body.detail });
-            } else if (Array.isArray(body.detail)) {
-              // Map validation errors to form fields
-              const fieldErrors: FormErrors = {};
-              body.detail.forEach((error: { msg: string; loc: string[] }) => {
-                const field = error.loc[error.loc.length - 1];
-                if (field === 'name') fieldErrors.name = error.msg;
-                else if (field === 'race') fieldErrors.race = error.msg;
-                else if (field === 'class_name') fieldErrors.class = error.msg;
-                else if (field === 'custom_prompt') fieldErrors.adventurePrompt = error.msg;
-              });
-              setErrors(fieldErrors);
-            }
-          } else {
-            setErrors({ submit: 'Validation failed. Please check your input.' });
+      // Handle specific validation errors (422) which have field-level detail
+      if (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 422) {
+        const body = (err as { body?: { detail?: string | Array<{ msg: string; loc: string[] }> } }).body;
+        if (body?.detail) {
+          if (typeof body.detail === 'string') {
+            setErrors({ submit: body.detail });
+            return; // Exit early - use server's validation message
+          } else if (Array.isArray(body.detail)) {
+            // Map validation errors to form fields
+            const fieldErrors: FormErrors = {};
+            body.detail.forEach((error: { msg: string; loc: string[] }) => {
+              const field = error.loc[error.loc.length - 1];
+              if (field === 'name') fieldErrors.name = error.msg;
+              else if (field === 'race') fieldErrors.race = error.msg;
+              else if (field === 'class_name') fieldErrors.class = error.msg;
+              else if (field === 'custom_prompt') fieldErrors.adventurePrompt = error.msg;
+            });
+            setErrors(fieldErrors);
+            return; // Exit early to avoid setting submit error
           }
-        } else {
-          // Use centralized error message for other HTTP errors
-          setErrors({ submit: message });
         }
-      } else {
-        setErrors({ submit: message });
       }
+      
+      // For all other errors, use centralized message
+      setErrors({ submit: message });
     }
   };
 
