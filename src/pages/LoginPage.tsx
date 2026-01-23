@@ -186,6 +186,7 @@ export default function LoginPage() {
           onSubmit={handleSubmit} 
           className="login-form"
           aria-label={mode === 'signin' ? 'Sign in form' : 'Sign up form'}
+          noValidate
         >
           {error && (
             <ErrorNotice
@@ -227,7 +228,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <button type="submit" className="submit-button" disabled={loading} aria-label={mode === 'signin' ? 'Sign in to your account' : 'Create new account'}>
+          <button type="submit" className="submit-button" disabled={loading}>
             {loading ? (
               <>
                 <LoadingSpinner size="small" />
