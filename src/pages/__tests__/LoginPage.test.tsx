@@ -53,10 +53,9 @@ describe('LoginPage', () => {
   it('toggles between sign-in and sign-up modes', () => {
     render(<TestApp />);
     
-    // Click the Sign Up toggle button (in the auth-mode-toggle div)
-    const toggleButtons = screen.getAllByRole('button', { name: /sign up/i });
-    const signUpToggle = toggleButtons.find(btn => btn.parentElement?.className === 'auth-mode-toggle');
-    fireEvent.click(signUpToggle!);
+    // Click the Sign Up toggle tab (in the auth-mode-toggle div)
+    const signUpTab = screen.getByRole('tab', { name: /sign up/i });
+    fireEvent.click(signUpTab);
     
     // Should see Sign Up heading now
     expect(screen.getByRole('heading', { name: 'Sign Up' })).toBeInTheDocument();
@@ -94,10 +93,9 @@ describe('LoginPage', () => {
   it('validates weak password in sign-up mode', async () => {
     render(<TestApp />);
     
-    // Click the Sign Up toggle button
-    const toggleButtons = screen.getAllByRole('button', { name: /sign up/i });
-    const signUpToggle = toggleButtons.find(btn => btn.parentElement?.className === 'auth-mode-toggle');
-    fireEvent.click(signUpToggle!);
+    // Click the Sign Up toggle tab
+    const signUpTab = screen.getByRole('tab', { name: /sign up/i });
+    fireEvent.click(signUpTab);
     
     const emailInput = screen.getByLabelText('Email');
     const passwordInput = screen.getByLabelText('Password');
@@ -162,10 +160,9 @@ describe('LoginPage', () => {
 
     render(<TestApp />);
     
-    // Click the Sign Up toggle button
-    const toggleButtons = screen.getAllByRole('button', { name: /sign up/i });
-    const signUpToggle = toggleButtons.find(btn => btn.parentElement?.className === 'auth-mode-toggle');
-    fireEvent.click(signUpToggle!);
+    // Click the Sign Up toggle tab
+    const signUpTab = screen.getByRole('tab', { name: /sign up/i });
+    fireEvent.click(signUpTab);
     
     const emailInput = screen.getByLabelText('Email');
     const passwordInput = screen.getByLabelText('Password');

@@ -5,7 +5,7 @@
  * This page is for development/documentation purposes only.
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { LoadingSpinner, Skeleton, ErrorNotice } from '@/components';
 
 export default function ComponentDemoPage() {
