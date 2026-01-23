@@ -107,20 +107,22 @@ export default function CharactersDashboardPage() {
       )}
       <header className="dashboard-header">
         <h1>Your Characters</h1>
-        <p>{characters.length} character{characters.length !== 1 ? 's' : ''}</p>
+        <p aria-live="polite">{characters.length} character{characters.length !== 1 ? 's' : ''}</p>
       </header>
 
       <div className="dashboard-actions">
-        <Link to="/app/new-character" className="button button-primary">
+        <Link to="/app/new-character" className="button button-primary" aria-label="Create a new character">
           New Character
         </Link>
       </div>
 
-      <div className="characters-grid">
-        {characters.map((character) => (
-          <CharacterCard key={character.character_id} character={character} />
-        ))}
-      </div>
+      <section aria-label="Characters list">
+        <div className="characters-grid">
+          {characters.map((character) => (
+            <CharacterCard key={character.character_id} character={character} />
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -156,33 +158,33 @@ function CharacterCard({ character }: CharacterCardProps) {
   };
 
   return (
-    <article className="character-card">
+    <article className="character-card" aria-label={`Character: ${character.name}`}>
       <div className="character-card-header">
-        <h3 className="character-name">{character.name}</h3>
-        <span className={`character-status status-${character.status}`}>
+        <h2 className="character-name">{character.name}</h2>
+        <span className={`character-status status-${character.status}`} aria-label={`Status: ${character.status}`}>
           {character.status}
         </span>
       </div>
 
-      <div className="character-details">
+      <dl className="character-details">
         <div className="character-detail">
-          <span className="detail-label">Race:</span>
-          <span className="detail-value">{character.race}</span>
+          <dt className="detail-label">Race:</dt>
+          <dd className="detail-value">{character.race}</dd>
         </div>
         <div className="character-detail">
-          <span className="detail-label">Class:</span>
-          <span className="detail-value">{character.class}</span>
+          <dt className="detail-label">Class:</dt>
+          <dd className="detail-value">{character.class}</dd>
         </div>
-      </div>
+      </dl>
 
       <div className="character-timestamps">
         <div className="timestamp">
           <span className="timestamp-label">Created:</span>
-          <span className="timestamp-value">{formatDate(character.created_at)}</span>
+          <time className="timestamp-value" dateTime={character.created_at}>{formatDate(character.created_at)}</time>
         </div>
         <div className="timestamp">
           <span className="timestamp-label">Updated:</span>
-          <span className="timestamp-value">{formatDate(character.updated_at)}</span>
+          <time className="timestamp-value" dateTime={character.updated_at}>{formatDate(character.updated_at)}</time>
         </div>
       </div>
 
@@ -190,6 +192,7 @@ function CharacterCard({ character }: CharacterCardProps) {
         <Link
           to={`/game/${character.character_id}`}
           className="resume-button"
+          aria-label={`Resume adventure for ${character.name}`}
         >
           Resume Adventure
         </Link>

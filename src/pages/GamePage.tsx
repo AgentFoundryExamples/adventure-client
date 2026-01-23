@@ -319,24 +319,24 @@ export default function GamePage() {
       <div className="game-page">
         <header className="game-header">
           <h1>Adventure in Progress</h1>
-          <button onClick={() => navigate('/app')} className="back-button">
+          <button onClick={() => navigate('/app')} className="back-button" aria-label="Back to characters list">
             Back to Characters
           </button>
         </header>
 
         {/* Current Scenario */}
-        <section className="current-scenario-section">
-          <h2>Current Scene</h2>
-          <div className="scenario-content">
+        <section className="current-scenario-section" aria-labelledby="current-scene-heading">
+          <h2 id="current-scene-heading">Current Scene</h2>
+          <div className="scenario-content" role="region" aria-live="polite">
             <p className="scenario-text">{currentScenario}</p>
           </div>
         </section>
 
         {/* Turn History Log */}
         {turnHistory.length > 0 && (
-          <section className="turn-history-section">
-            <h2>Recent Actions</h2>
-            <div className="turn-history-log" ref={logContainerRef}>
+          <section className="turn-history-section" aria-labelledby="recent-actions-heading">
+            <h2 id="recent-actions-heading">Recent Actions</h2>
+            <div className="turn-history-log" ref={logContainerRef} role="log" aria-live="polite" aria-atomic="false">
               {turnHistory.map((turn, index) => (
                 <div key={index} className="history-turn-entry">
                   <div className="history-player-action">
@@ -349,7 +349,7 @@ export default function GamePage() {
                   </div>
                   {turn.timestamp && (
                     <div className="history-timestamp">
-                      {formatTimestamp(turn.timestamp)}
+                      <time dateTime={turn.timestamp}>{formatTimestamp(turn.timestamp)}</time>
                     </div>
                   )}
                 </div>
@@ -359,8 +359,8 @@ export default function GamePage() {
         )}
 
         {/* Action Input Form */}
-        <section className="action-input-section">
-          <h2>What do you do?</h2>
+        <section className="action-input-section" aria-labelledby="action-input-heading">
+          <h2 id="action-input-heading">What do you do?</h2>
           
           {submitError && (
             <ErrorNotice
@@ -382,8 +382,12 @@ export default function GamePage() {
             />
           )}
 
-          <div className="action-input-form">
+          <form className="action-input-form" onSubmit={(e) => { e.preventDefault(); handleSubmitAction(); }}>
+            <label htmlFor="player-action" className="sr-only">
+              Describe your action
+            </label>
             <textarea
+              id="player-action"
               className="action-textarea"
               value={playerAction}
               onChange={(e) => setPlayerAction(e.target.value)}
@@ -391,12 +395,15 @@ export default function GamePage() {
               placeholder="Describe your action... (Press Ctrl+Enter to submit)"
               disabled={isSubmitting}
               rows={4}
+              aria-label="Describe your action"
+              aria-describedby="action-hint"
             />
             <div className="form-actions">
               <button
+                type="submit"
                 className="act-button"
-                onClick={handleSubmitAction}
                 disabled={isSubmitting || !playerAction.trim()}
+                aria-label={isSubmitting ? 'Processing action' : 'Submit action'}
               >
                 {isSubmitting ? (
                   <>
@@ -408,10 +415,10 @@ export default function GamePage() {
                 )}
               </button>
             </div>
-            <p className="action-hint">
+            <p id="action-hint" className="action-hint">
               Tip: Press <kbd>Ctrl+Enter</kbd> to submit your action
             </p>
-          </div>
+          </form>
         </section>
       </div>
     );

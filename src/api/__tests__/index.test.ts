@@ -524,10 +524,13 @@ describe('api configuration', () => {
       const mockResponse = {
         narrative: 'You cast a fireball at the enemy.',
         intents: {
-          combat: { type: 'attack', target: 'enemy', weapon: 'fireball' }
+          combat_intent: { 
+            action: 'continue' as const,
+            combat_notes: 'Player casts fireball'
+          }
         },
         subsystem_summary: {
-          combat: { success: true, damage: 25 }
+          combat_change: { action: 'continue', success: true }
         }
       };
 

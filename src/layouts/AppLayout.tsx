@@ -9,7 +9,7 @@ export default function AppLayout() {
   return (
     <div className="app-layout">
       <header className="app-header">
-        <nav>
+        <nav aria-label="Main navigation">
           <Link to="/">Home</Link>
           <Link to="/app">App</Link>
           <Link to="/login">Login</Link>
@@ -21,14 +21,14 @@ export default function AppLayout() {
         </nav>
         <div className="header-actions">
           {user && (
-            <Link to="/characters/new" className="new-character-button">
+            <Link to="/characters/new" className="new-character-button" aria-label="Create new character">
               + New Character
             </Link>
           )}
           <AccountMenu />
         </div>
       </header>
-      <main className="app-main">
+      <main className="app-main" id="main-content">
         <Outlet />
       </main>
     </div>

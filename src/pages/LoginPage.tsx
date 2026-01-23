@@ -157,8 +157,11 @@ export default function LoginPage() {
           />
         )}
         
-        <div className="auth-mode-toggle">
+        <div className="auth-mode-toggle" role="tablist" aria-label="Authentication mode">
           <button
+            role="tab"
+            aria-selected={mode === 'signin'}
+            aria-controls="login-form-panel"
             className={mode === 'signin' ? 'active' : ''}
             onClick={() => setMode('signin')}
             type="button"
@@ -166,6 +169,9 @@ export default function LoginPage() {
             Sign In
           </button>
           <button
+            role="tab"
+            aria-selected={mode === 'signup'}
+            aria-controls="login-form-panel"
             className={mode === 'signup' ? 'active' : ''}
             onClick={() => setMode('signup')}
             type="button"
@@ -174,7 +180,13 @@ export default function LoginPage() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
+        <form 
+          id="login-form-panel"
+          role="tabpanel"
+          onSubmit={handleSubmit} 
+          className="login-form"
+          aria-label={mode === 'signin' ? 'Sign in form' : 'Sign up form'}
+        >
           {error && (
             <ErrorNotice
               title="Authentication Error"
@@ -194,6 +206,9 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               disabled={loading}
+              required
+              aria-required="true"
+              autoComplete="email"
             />
           </div>
 
@@ -206,10 +221,13 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               disabled={loading}
+              required
+              aria-required="true"
+              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
             />
           </div>
 
-          <button type="submit" className="submit-button" disabled={loading}>
+          <button type="submit" className="submit-button" disabled={loading} aria-label={mode === 'signin' ? 'Sign in to your account' : 'Create new account'}>
             {loading ? (
               <>
                 <LoadingSpinner size="small" />
@@ -221,7 +239,7 @@ export default function LoginPage() {
 
         {signInWithGoogle && (
           <>
-            <div className="divider">
+            <div className="divider" role="separator" aria-label="Or continue with">
               <span>OR</span>
             </div>
             <button
@@ -229,8 +247,9 @@ export default function LoginPage() {
               onClick={handleGoogleSignIn}
               className="google-button"
               disabled={loading}
+              aria-label="Sign in with Google"
             >
-              <svg viewBox="0 0 24 24" width="20" height="20">
+              <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
