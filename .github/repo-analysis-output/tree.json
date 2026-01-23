@@ -687,6 +687,10 @@
                 {
                   "type": "file",
                   "name": "LoginPage.test.tsx"
+                },
+                {
+                  "type": "file",
+                  "name": "NewCharacterPage.test.tsx"
                 }
               ]
             },
@@ -717,6 +721,10 @@
             {
               "type": "file",
               "name": "LoginPage.tsx"
+            },
+            {
+              "type": "file",
+              "name": "NewCharacterPage.tsx"
             },
             {
               "type": "file",

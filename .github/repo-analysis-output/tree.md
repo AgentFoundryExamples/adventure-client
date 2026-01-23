@@ -156,7 +156,8 @@
       ├── CharactersDashboardPage.test.tsx
       ├── DebugPage.test.tsx
       ├── GamePage.test.tsx
-      └── LoginPage.test.tsx
+      ├── LoginPage.test.tsx
+      └── NewCharacterPage.test.tsx
     ├── AppPage.tsx
     ├── CharacterCreationPage.tsx
     ├── CharactersDashboardPage.tsx
@@ -164,6 +165,7 @@
     ├── GamePage.tsx
     ├── HomePage.tsx
     ├── LoginPage.tsx
+    ├── NewCharacterPage.tsx
     └── NotFoundPage.tsx
   ├── router
     └── index.tsx
