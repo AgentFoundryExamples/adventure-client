@@ -18,6 +18,13 @@ interface Turn {
   timestamp?: string;
 }
 
+// Helper function to extract HTTP status from error
+function getErrorStatus(err: unknown): number | undefined {
+  return err && typeof err === 'object' && 'status' in err 
+    ? (err as { status: number }).status 
+    : undefined;
+}
+
 export default function GamePage() {
   const { characterId } = useParams<{ characterId: string }>();
   const navigate = useNavigate();
@@ -111,10 +118,8 @@ export default function GamePage() {
       } catch (err) {
         console.error('Failed to fetch last turn:', err);
         
-        // Handle specific error codes - safer error status property access
-        const status = err && typeof err === 'object' && 'status' in err 
-          ? (err as { status: number }).status 
-          : undefined;
+        // Handle specific error codes
+        const status = getErrorStatus(err);
         if (status === 404) {
           setError('Character not found');
         } else if (status === 401 || status === 403) {
@@ -146,15 +151,11 @@ export default function GamePage() {
     setPersistWarning(null);
 
     try {
-      console.log('Submitting action for character:', characterId);
-      
       // Call dungeon-master API
       const response: TurnResponse = await submitTurn({
         character_id: characterId,
         user_action: playerAction.trim(),
       });
-
-      console.log('Received DM response:', response.narrative);
 
       // Update the UI with the new turn
       const newTurn: Turn = {
@@ -174,9 +175,7 @@ export default function GamePage() {
       console.error('Failed to submit action:', err);
       
       // Handle specific error codes
-      const status = err && typeof err === 'object' && 'status' in err 
-        ? (err as { status: number }).status 
-        : undefined;
+      const status = getErrorStatus(err);
       
       if (status === 401 || status === 403) {
         setSubmitError('Authentication failed. Please log in again.');
