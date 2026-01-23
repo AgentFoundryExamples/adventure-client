@@ -893,8 +893,8 @@ Total files: 103
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
 **Summary:** TypeScript core implementation  
-**Size:** 2.86 KB  
-**LOC:** 87  
+**Size:** 6.57 KB  
+**LOC:** 176  
 **TODOs/FIXMEs:** 0  
 
 ## src/setupTests.ts
