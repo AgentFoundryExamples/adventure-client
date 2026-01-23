@@ -104,9 +104,25 @@
               "children": [
                 {
                   "type": "file",
+                  "name": "AccountMenu.test.tsx"
+                },
+                {
+                  "type": "file",
                   "name": "AppLayout.test.tsx"
+                },
+                {
+                  "type": "file",
+                  "name": "ProtectedRoute.test.tsx"
                 }
               ]
+            },
+            {
+              "type": "file",
+              "name": "AccountMenu.tsx"
+            },
+            {
+              "type": "file",
+              "name": "ProtectedRoute.tsx"
             }
           ]
         },
@@ -204,6 +220,16 @@
           "type": "directory",
           "name": "pages",
           "children": [
+            {
+              "type": "directory",
+              "name": "__tests__",
+              "children": [
+                {
+                  "type": "file",
+                  "name": "LoginPage.test.tsx"
+                }
+              ]
+            },
             {
               "type": "file",
               "name": "AppPage.tsx"

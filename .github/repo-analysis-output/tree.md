@@ -21,8 +21,12 @@
   ├── assets
     └── react.svg
   ├── components
-    └── __tests__
-      └── AppLayout.test.tsx
+    ├── __tests__
+      ├── AccountMenu.test.tsx
+      ├── AppLayout.test.tsx
+      └── ProtectedRoute.test.tsx
+    ├── AccountMenu.tsx
+    └── ProtectedRoute.tsx
   ├── config
     └── env.ts
   ├── context
@@ -42,6 +46,8 @@
       └── client.ts
     └── firebase.ts
   ├── pages
+    ├── __tests__
+      └── LoginPage.test.tsx
     ├── AppPage.tsx
     ├── GamePage.tsx
     ├── HomePage.tsx

@@ -65,8 +65,8 @@ Total files: 10
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
 **Summary:** TypeScript core implementation  
-**Size:** 0.61 KB  
-**LOC:** 1  
+**Size:** 1.32 KB  
+**LOC:** 19  
 **TODOs/FIXMEs:** 0  
 
 ## src/types/auth.ts

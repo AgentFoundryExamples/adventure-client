@@ -79,7 +79,8 @@
       "external_dependencies": {
         "stdlib": [],
         "third-party": [
-          "@testing-library/jest-dom"
+          "@testing-library/jest-dom",
+          "vitest"
         ]
       }
     },
