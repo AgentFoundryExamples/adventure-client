@@ -23,6 +23,8 @@ vi.mock('../../config/env', () => ({
   config: {
     dungeonMasterApiUrl: 'https://dungeon-master.example.com',
     journeyLogApiUrl: 'https://journey-log.example.com',
+    isDevelopment: true,
+    isProduction: false,
   },
 }));
 
@@ -364,13 +366,17 @@ describe('api configuration', () => {
   });
 
   describe('submitTurn', () => {
-    it('successfully submits a turn', async () => {
-      const mockAuthProvider: AuthProvider = {
+    let mockAuthProvider: AuthProvider;
+
+    beforeEach(() => {
+      mockAuthProvider = {
         getIdToken: vi.fn().mockResolvedValue('mock-token'),
         uid: 'mock-uid-123',
       };
       configureApiClients(mockAuthProvider);
+    });
 
+    it('successfully submits a turn', async () => {
       const { submitTurn } = await import('../index');
       const { GameService } = await import('../dungeonMaster');
       
@@ -398,13 +404,33 @@ describe('api configuration', () => {
       });
     });
 
-    it('submits turn with X-Dev-User-Id header in development', async () => {
-      const mockAuthProvider: AuthProvider = {
-        getIdToken: vi.fn().mockResolvedValue('mock-token'),
-        uid: 'mock-uid-123',
+    it('verifies Authorization Bearer token is injected via OpenAPI config', async () => {
+      const { submitTurn } = await import('../index');
+      const { GameService } = await import('../dungeonMaster');
+      
+      const mockResponse = {
+        narrative: 'Test narrative',
+        intents: null,
+        subsystem_summary: null
       };
-      configureApiClients(mockAuthProvider);
 
+      vi.spyOn(GameService, 'processTurnTurnPost').mockResolvedValue(mockResponse);
+
+      await submitTurn({
+        character_id: 'char-uuid-123',
+        user_action: 'Test action'
+      });
+
+      // Verify the token resolver is configured on DungeonMasterOpenAPI
+      // The actual token injection happens inside the OpenAPI generated client
+      expect(DungeonMasterOpenAPI.TOKEN).toBeDefined();
+      expect(typeof DungeonMasterOpenAPI.TOKEN).toBe('function');
+      
+      // Verify BASE URL is configured
+      expect(DungeonMasterOpenAPI.BASE).toBe('https://dungeon-master.example.com');
+    });
+
+    it('submits turn with X-Dev-User-Id header in development', async () => {
       const { submitTurn } = await import('../index');
       const { GameService } = await import('../dungeonMaster');
       
@@ -433,13 +459,62 @@ describe('api configuration', () => {
       });
     });
 
-    it('includes structured intents when returned', async () => {
-      const mockAuthProvider: AuthProvider = {
-        getIdToken: vi.fn().mockResolvedValue('mock-token'),
-        uid: 'mock-uid-123',
-      };
-      configureApiClients(mockAuthProvider);
+    it('blocks X-Dev-User-Id in production mode', async () => {
+      // Temporarily modify the config to simulate production
+      const { config } = await import('../../config/env');
+      const originalIsProduction = config.isProduction;
+      Object.defineProperty(config, 'isProduction', {
+        value: true,
+        writable: true,
+        configurable: true
+      });
+      
+      const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
+      const { submitTurn } = await import('../index');
+      const { GameService } = await import('../dungeonMaster');
+      
+      const mockResponse = {
+        narrative: 'Test narrative',
+        intents: null,
+        subsystem_summary: null
+      };
+
+      vi.spyOn(GameService, 'processTurnTurnPost').mockResolvedValue(mockResponse);
+
+      await submitTurn(
+        {
+          character_id: 'char-uuid-123',
+          user_action: 'Test action'
+        },
+        'dev-user-override-should-be-ignored'
+      );
+
+      // Verify xDevUserId is null in production
+      expect(GameService.processTurnTurnPost).toHaveBeenCalledWith({
+        requestBody: {
+          character_id: 'char-uuid-123',
+          user_action: 'Test action'
+        },
+        xDevUserId: null
+      });
+
+      // Verify warning was logged
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        'xDevUserId is ignored in production builds for security reasons.'
+      );
+
+      // Restore original value
+      Object.defineProperty(config, 'isProduction', {
+        value: originalIsProduction,
+        writable: true,
+        configurable: true
+      });
+      
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('includes structured intents when returned', async () => {
       const { submitTurn } = await import('../index');
       const { GameService } = await import('../dungeonMaster');
       
@@ -465,12 +540,6 @@ describe('api configuration', () => {
     });
 
     it('propagates 400 bad request errors', async () => {
-      const mockAuthProvider: AuthProvider = {
-        getIdToken: vi.fn().mockResolvedValue('mock-token'),
-        uid: 'mock-uid-123',
-      };
-      configureApiClients(mockAuthProvider);
-
       const { submitTurn } = await import('../index');
       const { GameService, ApiError } = await import('../dungeonMaster');
       
@@ -495,12 +564,6 @@ describe('api configuration', () => {
     });
 
     it('propagates 404 not found errors', async () => {
-      const mockAuthProvider: AuthProvider = {
-        getIdToken: vi.fn().mockResolvedValue('mock-token'),
-        uid: 'mock-uid-123',
-      };
-      configureApiClients(mockAuthProvider);
-
       const { submitTurn } = await import('../index');
       const { GameService, ApiError } = await import('../dungeonMaster');
       
@@ -525,12 +588,6 @@ describe('api configuration', () => {
     });
 
     it('propagates 422 validation errors', async () => {
-      const mockAuthProvider: AuthProvider = {
-        getIdToken: vi.fn().mockResolvedValue('mock-token'),
-        uid: 'mock-uid-123',
-      };
-      configureApiClients(mockAuthProvider);
-
       const { submitTurn } = await import('../index');
       const { GameService, ApiError } = await import('../dungeonMaster');
       
@@ -555,12 +612,6 @@ describe('api configuration', () => {
     });
 
     it('propagates 429 rate limit errors', async () => {
-      const mockAuthProvider: AuthProvider = {
-        getIdToken: vi.fn().mockResolvedValue('mock-token'),
-        uid: 'mock-uid-123',
-      };
-      configureApiClients(mockAuthProvider);
-
       const { submitTurn } = await import('../index');
       const { GameService, ApiError } = await import('../dungeonMaster');
       
@@ -585,12 +636,6 @@ describe('api configuration', () => {
     });
 
     it('propagates 401 authentication errors', async () => {
-      const mockAuthProvider: AuthProvider = {
-        getIdToken: vi.fn().mockResolvedValue('mock-token'),
-        uid: 'mock-uid-123',
-      };
-      configureApiClients(mockAuthProvider);
-
       const { submitTurn } = await import('../index');
       const { GameService, ApiError } = await import('../dungeonMaster');
       
@@ -615,12 +660,6 @@ describe('api configuration', () => {
     });
 
     it('propagates 500 server errors', async () => {
-      const mockAuthProvider: AuthProvider = {
-        getIdToken: vi.fn().mockResolvedValue('mock-token'),
-        uid: 'mock-uid-123',
-      };
-      configureApiClients(mockAuthProvider);
-
       const { submitTurn } = await import('../index');
       const { GameService, ApiError } = await import('../dungeonMaster');
       

@@ -141,7 +141,7 @@ export async function createCharacter(
  * This function calls the dungeon-master service which:
  * 1. Retrieves character context from journey-log service
  * 2. Generates an AI narrative response using OpenAI GPT
- * 3. Automatically persists the turn to journey-log service
+ * 3. Persists the turn to journey-log service (handled by the dungeon-master backend)
  * 4. Returns the narrative response with optional structured intents and subsystem summaries
  * 
  * **Required Parameters:**
@@ -191,9 +191,16 @@ export async function submitTurn(
   request: TurnRequest,
   xDevUserId?: string | null
 ): Promise<TurnResponse> {
+  // For security, only allow xDevUserId in non-production environments
+  const devUserId = config.isProduction ? null : (xDevUserId ?? null);
+
+  if (config.isProduction && xDevUserId) {
+    console.warn('xDevUserId is ignored in production builds for security reasons.');
+  }
+
   return GameService.processTurnTurnPost({
     requestBody: request,
-    xDevUserId: xDevUserId ?? null,
+    xDevUserId: devUserId,
   });
 }
 
