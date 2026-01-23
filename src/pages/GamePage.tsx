@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { getCharacterLastTurn, submitTurn } from '@/api';
+import { getCharacterLastTurn, submitTurn, CharactersService } from '@/api';
 import type { GetNarrativeResponse, NarrativeTurn, TurnResponse } from '@/api';
+import { useAuth } from '@/hooks/useAuth';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -25,11 +26,15 @@ function getErrorStatus(err: unknown): number | undefined {
     : undefined;
 }
 
+// Maximum number of turns to keep in history to prevent unbounded growth
+const MAX_HISTORY_SIZE = 20;
+
 export default function GamePage() {
   const { characterId } = useParams<{ characterId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const logContainerRef = useRef<HTMLDivElement>(null);
+  const { uid } = useAuth();
   
   // Memoize the initial scenario to prevent unnecessary re-renders
   const initialScenario = useMemo(() => {
@@ -89,25 +94,29 @@ export default function GamePage() {
 
     const fetchLastTurn = async () => {
       try {
-        const response: GetNarrativeResponse = await getCharacterLastTurn(characterId);
+        // Fetch last 10 turns to populate history
+        const response: GetNarrativeResponse = await CharactersService.getNarrativeTurnsCharactersCharacterIdNarrativeGet({
+          characterId,
+          n: 10,
+          xUserId: uid || null,
+        });
         
         if (response.turns && response.turns.length > 0) {
-          const turn = response.turns[0];
-          setLastTurn(turn);
-          setCurrentScenario(turn.gm_response);
+          // Get the most recent turn as the current scenario
+          const latestTurn = response.turns[response.turns.length - 1];
+          setLastTurn(latestTurn);
+          setCurrentScenario(latestTurn.gm_response);
           
-          // Build turn history (in this simple version, we just show the last turn)
-          // In a future enhancement, we could fetch more turns
-          if (turn.player_action) {
-            setTurnHistory([{
+          // Build turn history from all fetched turns (excluding initial/empty turns)
+          const history: Turn[] = response.turns
+            .filter(turn => turn.player_action) // Only include turns with player actions
+            .map(turn => ({
               player_action: turn.player_action,
               gm_response: turn.gm_response,
               timestamp: turn.timestamp
-            }]);
-          } else {
-            setTurnHistory([]);
-          }
+            }));
           
+          setTurnHistory(history);
           setLoadingState('success');
         } else {
           setLastTurn(null);
@@ -132,7 +141,7 @@ export default function GamePage() {
     };
 
     fetchLastTurn();
-  }, [characterId, navigate, retryCount, initialScenario, location.pathname]);
+  }, [characterId, navigate, retryCount, initialScenario, location.pathname, uid]);
   
   // Auto-scroll to newest entry when updated
   useEffect(() => {
@@ -151,25 +160,60 @@ export default function GamePage() {
     setPersistWarning(null);
 
     try {
-      // Call dungeon-master API
+      // Step 1: Call dungeon-master API to generate narrative
       const response: TurnResponse = await submitTurn({
         character_id: characterId,
         user_action: playerAction.trim(),
       });
 
-      // Update the UI with the new turn
+      // Step 2: Persist turn to journey-log
+      // This is a separate API call as documented - dungeon-master does NOT auto-persist
+      let persistedTimestamp: string | undefined;
+      try {
+        if (!uid) {
+          throw new Error('User ID not available');
+        }
+        
+        const persistResponse = await CharactersService.appendNarrativeTurnCharactersCharacterIdNarrativePost({
+          characterId,
+          xUserId: uid,
+          requestBody: {
+            user_action: playerAction.trim(),
+            ai_response: response.narrative,
+            // Let server generate timestamp for consistency
+          }
+        });
+        
+        // Use the server-provided timestamp from the persisted turn
+        persistedTimestamp = persistResponse.turn.timestamp;
+      } catch (persistErr) {
+        console.error('Failed to persist turn to journey-log:', persistErr);
+        
+        // Show warning but don't block - DM response is still displayed
+        const status = getErrorStatus(persistErr);
+        if (status === 403) {
+          setPersistWarning('Unable to save turn: Access denied. Your progress may not be saved.');
+        } else {
+          setPersistWarning('Warning: Failed to save turn to history. Your progress may not be saved.');
+        }
+      }
+
+      // Step 3: Update the UI with the new turn
       const newTurn: Turn = {
         player_action: playerAction.trim(),
         gm_response: response.narrative,
-        timestamp: new Date().toISOString(),
+        timestamp: persistedTimestamp || new Date().toISOString(),
       };
 
-      setTurnHistory(prev => [...prev, newTurn]);
+      // Cap history at MAX_HISTORY_SIZE to prevent unbounded growth
+      setTurnHistory(prev => {
+        const updated = [...prev, newTurn];
+        return updated.length > MAX_HISTORY_SIZE 
+          ? updated.slice(updated.length - MAX_HISTORY_SIZE)
+          : updated;
+      });
       setCurrentScenario(response.narrative);
       setPlayerAction('');
-
-      // Note: The dungeon-master service handles persistence to journey-log automatically
-      // If there was a persistence issue, it would be reflected in the DM error
       
     } catch (err) {
       console.error('Failed to submit action:', err);

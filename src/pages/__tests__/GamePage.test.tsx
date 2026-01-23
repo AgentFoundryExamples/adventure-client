@@ -7,9 +7,16 @@ import type { GetNarrativeResponse, NarrativeTurn } from '@/api';
 // Mock the API
 const mockGetCharacterLastTurn = vi.fn();
 const mockSubmitTurn = vi.fn();
+const mockGetNarrativeTurns = vi.fn();
+const mockAppendNarrativeTurn = vi.fn();
+
 vi.mock('@/api', () => ({
   getCharacterLastTurn: (characterId: string) => mockGetCharacterLastTurn(characterId),
   submitTurn: (request: any) => mockSubmitTurn(request),
+  CharactersService: {
+    getNarrativeTurnsCharactersCharacterIdNarrativeGet: (params: any) => mockGetNarrativeTurns(params),
+    appendNarrativeTurnCharactersCharacterIdNarrativePost: (params: any) => mockAppendNarrativeTurn(params),
+  },
 }));
 
 // Mock useAuth hook
@@ -109,11 +116,18 @@ describe('GamePage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetIdToken.mockResolvedValue('test-firebase-token');
+    
+    // Set default mock behaviors
+    mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
+    mockAppendNarrativeTurn.mockResolvedValue({
+      turn: mockTurn,
+      total_turns: 6,
+    });
   });
 
   describe('Parameter Validation', () => {
     it('redirects to /app when characterId is missing', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       
       window.history.pushState({}, '', '/game/');
       render(
@@ -129,30 +143,34 @@ describe('GamePage', () => {
       });
     });
 
-    it('calls getCharacterLastTurn with valid characterId', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+    it('calls CharactersService with valid characterId', async () => {
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       
       renderWithRoute('char-valid-123');
 
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-valid-123');
+        expect(mockGetNarrativeTurns).toHaveBeenCalledWith({
+          characterId: 'char-valid-123',
+          n: 10,
+          xUserId: 'test-user-id',
+        });
       });
     });
 
     it('fetches data exactly once per characterId', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       
       renderWithRoute('char-123');
 
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledTimes(1);
+        expect(mockGetNarrativeTurns).toHaveBeenCalledTimes(1);
       });
     });
   });
 
   describe('Loading State', () => {
     it('displays loading spinner while fetching turn', async () => {
-      mockGetCharacterLastTurn.mockImplementation(
+      mockGetNarrativeTurns.mockImplementation(
         () => new Promise(() => {}) // Never resolves
       );
 
@@ -166,7 +184,7 @@ describe('GamePage', () => {
   describe('Error State', () => {
     it('displays error message when fetch fails', async () => {
       const errorMessage = 'Network error';
-      mockGetCharacterLastTurn.mockRejectedValue(new Error(errorMessage));
+      mockGetNarrativeTurns.mockRejectedValue(new Error(errorMessage));
 
       renderWithRoute();
 
@@ -177,7 +195,7 @@ describe('GamePage', () => {
     });
 
     it('displays generic error message for non-Error exceptions', async () => {
-      mockGetCharacterLastTurn.mockRejectedValue('Unknown error');
+      mockGetNarrativeTurns.mockRejectedValue('Unknown error');
 
       renderWithRoute();
 
@@ -190,7 +208,7 @@ describe('GamePage', () => {
     it('handles 404 error with specific message', async () => {
       const error404 = new Error('Not found') as Error & { status: number };
       error404.status = 404;
-      mockGetCharacterLastTurn.mockRejectedValue(error404);
+      mockGetNarrativeTurns.mockRejectedValue(error404);
 
       renderWithRoute();
 
@@ -202,7 +220,7 @@ describe('GamePage', () => {
     it('handles 401 error with auth prompt', async () => {
       const error401 = new Error('Unauthorized') as Error & { status: number };
       error401.status = 401;
-      mockGetCharacterLastTurn.mockRejectedValue(error401);
+      mockGetNarrativeTurns.mockRejectedValue(error401);
 
       renderWithRoute();
 
@@ -215,7 +233,7 @@ describe('GamePage', () => {
     it('handles 403 error with auth prompt', async () => {
       const error403 = new Error('Forbidden') as Error & { status: number };
       error403.status = 403;
-      mockGetCharacterLastTurn.mockRejectedValue(error403);
+      mockGetNarrativeTurns.mockRejectedValue(error403);
 
       renderWithRoute();
 
@@ -228,7 +246,7 @@ describe('GamePage', () => {
     it('navigates to login on auth error button click', async () => {
       const error401 = new Error('Unauthorized') as Error & { status: number };
       error401.status = 401;
-      mockGetCharacterLastTurn.mockRejectedValue(error401);
+      mockGetNarrativeTurns.mockRejectedValue(error401);
 
       renderWithRoute();
 
@@ -243,7 +261,7 @@ describe('GamePage', () => {
     });
 
     it('allows retry after error', async () => {
-      mockGetCharacterLastTurn
+      mockGetNarrativeTurns
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce(mockResponseWithTurn);
 
@@ -264,13 +282,13 @@ describe('GamePage', () => {
         expect(screen.getByText('Current Scene')).toBeInTheDocument();
       });
 
-      expect(mockGetCharacterLastTurn).toHaveBeenCalledTimes(2);
+      expect(mockGetNarrativeTurns).toHaveBeenCalledTimes(2);
     });
   });
 
   describe('Empty State', () => {
     it('displays empty state when no turns exist', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseEmpty);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseEmpty);
 
       renderWithRoute();
 
@@ -285,7 +303,7 @@ describe('GamePage', () => {
     });
 
     it('navigates back to app on back button click', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseEmpty);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseEmpty);
 
       renderWithRoute();
 
@@ -302,7 +320,7 @@ describe('GamePage', () => {
 
   describe('Success State - Turn Display', () => {
     it('renders DM response and player action correctly', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute();
 
@@ -321,7 +339,7 @@ describe('GamePage', () => {
     });
 
     it('displays timestamp when provided', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute();
 
@@ -340,7 +358,7 @@ describe('GamePage', () => {
         player_action: '',
       };
       
-      mockGetCharacterLastTurn.mockResolvedValue({
+      mockGetNarrativeTurns.mockResolvedValue({
         turns: [turnWithoutPlayerAction],
         metadata: mockResponseWithTurn.metadata,
       });
@@ -356,7 +374,7 @@ describe('GamePage', () => {
     });
 
     it('displays back to characters button in header', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute();
 
@@ -379,7 +397,7 @@ describe('GamePage', () => {
         timestamp: 'invalid-timestamp',
       };
       
-      mockGetCharacterLastTurn.mockResolvedValue({
+      mockGetNarrativeTurns.mockResolvedValue({
         turns: [turnWithInvalidTimestamp],
         metadata: mockResponseWithTurn.metadata,
       });
@@ -402,7 +420,7 @@ describe('GamePage', () => {
         metadata: null,
       };
       
-      mockGetCharacterLastTurn.mockResolvedValue({
+      mockGetNarrativeTurns.mockResolvedValue({
         turns: [turnWithNullFields],
         metadata: mockResponseWithTurn.metadata,
       });
@@ -417,7 +435,7 @@ describe('GamePage', () => {
     });
 
     it('handles component unmount gracefully', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       const { unmount } = renderWithRoute();
 
@@ -429,7 +447,7 @@ describe('GamePage', () => {
     });
 
     it('prevents multiple fetches for same characterId', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute('char-123');
 
@@ -438,14 +456,14 @@ describe('GamePage', () => {
       });
 
       // Should only call once despite multiple renders
-      expect(mockGetCharacterLastTurn).toHaveBeenCalledTimes(1);
-      expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+      expect(mockGetNarrativeTurns).toHaveBeenCalledTimes(1);
+      expect(mockGetNarrativeTurns).toHaveBeenCalledWith({ characterId: 'char-123', n: 10, xUserId: 'test-user-id' });
     });
   });
 
   describe('Action Submission', () => {
     it('allows submitting an action when textarea has content', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       mockSubmitTurn.mockResolvedValue({
         narrative: 'You pick up the amulet. It glows with an ancient power.',
       });
@@ -497,7 +515,7 @@ describe('GamePage', () => {
     });
 
     it('submits action with Ctrl+Enter keyboard shortcut', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       mockSubmitTurn.mockResolvedValue({
         narrative: 'You examine the amulet closely.',
       });
@@ -526,7 +544,7 @@ describe('GamePage', () => {
     });
 
     it('prevents submission while request is in progress', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       let resolveSubmit: (value: any) => void;
       const submitPromise = new Promise((resolve) => {
         resolveSubmit = resolve;
@@ -569,7 +587,7 @@ describe('GamePage', () => {
     });
 
     it('handles submission error gracefully', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       mockSubmitTurn.mockRejectedValue(new Error('Failed to process turn'));
 
       renderWithRoute();
@@ -601,7 +619,7 @@ describe('GamePage', () => {
     });
 
     it('handles authentication error during submission', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       const authError = new Error('Unauthorized') as Error & { status: number };
       authError.status = 401;
       mockSubmitTurn.mockRejectedValue(authError);
@@ -627,7 +645,7 @@ describe('GamePage', () => {
     });
 
     it('handles rate limit error during submission', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       const rateLimitError = new Error('Too many requests') as Error & { status: number };
       rateLimitError.status = 429;
       mockSubmitTurn.mockRejectedValue(rateLimitError);
@@ -653,7 +671,7 @@ describe('GamePage', () => {
     });
 
     it('adds new turn to history after successful submission', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
       mockSubmitTurn.mockResolvedValue({
         narrative: 'You successfully pick up the amulet.',
       });
@@ -687,7 +705,7 @@ describe('GamePage', () => {
 
   describe('Turn Sections Structure', () => {
     it('renders gameplay sections with correct structure', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute();
 
@@ -705,7 +723,7 @@ describe('GamePage', () => {
     });
 
     it('renders action input form with textarea and button', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute();
 
@@ -738,7 +756,7 @@ describe('GamePage', () => {
       expect(screen.getByText(initialScenario.narrative)).toBeInTheDocument();
       
       // Should NOT call the API since we have initial scenario
-      expect(mockGetCharacterLastTurn).not.toHaveBeenCalled();
+      expect(mockGetNarrativeTurns).not.toHaveBeenCalled();
     });
 
     it('clears navigation state after using initial scenario', async () => {
@@ -768,13 +786,13 @@ describe('GamePage', () => {
         character_id: 'char-different',
       };
 
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute('char-123', { initialScenario });
 
       // Should fetch from API since character_id doesn't match
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+        expect(mockGetNarrativeTurns).toHaveBeenCalledWith({ characterId: 'char-123', n: 10, xUserId: 'test-user-id' });
       });
 
       // Should display the fetched turn, not the initial scenario
@@ -785,13 +803,13 @@ describe('GamePage', () => {
     });
 
     it('falls back to API fetch when initial scenario is missing', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockGetNarrativeTurns.mockResolvedValue(mockResponseWithTurn);
 
       renderWithRoute('char-123');
 
       // Should fetch from API
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+        expect(mockGetNarrativeTurns).toHaveBeenCalledWith({ characterId: 'char-123', n: 10, xUserId: 'test-user-id' });
       });
 
       await waitFor(() => {
@@ -829,7 +847,7 @@ describe('GamePage', () => {
       });
 
       // Verify the initial scenario was used without API call
-      expect(mockGetCharacterLastTurn).not.toHaveBeenCalled();
+      expect(mockGetNarrativeTurns).not.toHaveBeenCalled();
       
       // Verify navigate was called to clear the state
       expect(mockNavigate).toHaveBeenCalledWith(
@@ -848,13 +866,13 @@ describe('GamePage', () => {
       };
 
       const error = new Error('Failed to fetch turns');
-      mockGetCharacterLastTurn.mockRejectedValue(error);
+      mockGetNarrativeTurns.mockRejectedValue(error);
 
       renderWithRoute('char-123', { initialScenario });
 
       // Should attempt to fetch from API since character_id doesn't match
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+        expect(mockGetNarrativeTurns).toHaveBeenCalledWith({ characterId: 'char-123', n: 10, xUserId: 'test-user-id' });
       });
 
       // Should display error state
@@ -868,7 +886,7 @@ describe('GamePage', () => {
     });
 
     it('handles empty journey-log response after fallback', async () => {
-      mockGetCharacterLastTurn.mockResolvedValue({
+      mockGetNarrativeTurns.mockResolvedValue({
         turns: [],
         metadata: {
           requested_n: 1,
@@ -881,7 +899,7 @@ describe('GamePage', () => {
 
       // Should fetch from API
       await waitFor(() => {
-        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+        expect(mockGetNarrativeTurns).toHaveBeenCalledWith({ characterId: 'char-123', n: 10, xUserId: 'test-user-id' });
       });
 
       // Should display empty state
