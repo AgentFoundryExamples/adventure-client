@@ -96,6 +96,404 @@
       "children": [
         {
           "type": "directory",
+          "name": "api",
+          "children": [
+            {
+              "type": "directory",
+              "name": "dungeonMaster",
+              "children": [
+                {
+                  "type": "directory",
+                  "name": "core",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "ApiError.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ApiRequestOptions.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ApiResult.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CancelablePromise.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "OpenAPI.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "request.ts"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "models",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "AdminRecentTurnsResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "AdminTurnDetail.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CharacterCreationRequest.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CharacterCreationResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CombatIntent.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "DebugParseRequest.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "EnemyDescriptor.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "HealthResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "HTTPValidationError.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "IntentsBlock.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "LocationIntent.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "MetaIntent.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "POIIntent.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "PolicyConfigReloadRequest.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "PolicyConfigReloadResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "PolicyConfigResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "QuestIntent.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "SubsystemActionType.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "TurnRequest.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "TurnResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "TurnSubsystemSummary.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ValidationError.ts"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "services",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "GameService.ts"
+                    }
+                  ]
+                },
+                {
+                  "type": "file",
+                  "name": "index.ts"
+                }
+              ]
+            },
+            {
+              "type": "directory",
+              "name": "journeyLog",
+              "children": [
+                {
+                  "type": "directory",
+                  "name": "core",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "ApiError.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ApiRequestOptions.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ApiResult.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CancelablePromise.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "OpenAPI.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "request.ts"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "models",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "AppendNarrativeRequest.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "AppendNarrativeResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CharacterContextResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CharacterDocument.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CharacterIdentity.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CharacterMetadata.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CleanupResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CombatEnvelope.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CombatState_Input.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CombatState_Output.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ContextCapsMetadata.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CreateCharacterRequest.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CreateCharacterResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CreatePOIRequest.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "CreatePOIResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "EnemyState.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ErrorResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "FirestoreTestResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "GetCharacterResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "GetCombatResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "GetNarrativeResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "GetPOIsResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "GetPOISummaryResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "GetQuestResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "GetRandomPOIsResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "HTTPValidationError.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "InventoryItem.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ListCharactersResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "Location.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "NarrativeContext.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "NarrativeMetadata.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "NarrativeTurn.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "PlayerState.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "PointOfInterest.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "Quest.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "QuestArchiveEntry.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "QuestRewards.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "SetQuestResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "Status.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "UpdateCombatRequest.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "UpdateCombatResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "UpdatePOIRequest.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "UpdatePOIResponse.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "ValidationError.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "Weapon.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "WorldContextState.ts"
+                    }
+                  ]
+                },
+                {
+                  "type": "directory",
+                  "name": "services",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "CharactersService.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "DefaultService.ts"
+                    },
+                    {
+                      "type": "file",
+                      "name": "OperationsService.ts"
+                    }
+                  ]
+                },
+                {
+                  "type": "file",
+                  "name": "index.ts"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "directory",
           "name": "assets",
           "children": [
             {

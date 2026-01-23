@@ -18,6 +18,780 @@
       }
     },
     {
+      "id": "src/api/dungeonMaster/core/ApiError.ts",
+      "path": "src/api/dungeonMaster/core/ApiError.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/core/ApiRequestOptions.ts",
+      "path": "src/api/dungeonMaster/core/ApiRequestOptions.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/core/ApiResult.ts",
+      "path": "src/api/dungeonMaster/core/ApiResult.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/core/CancelablePromise.ts",
+      "path": "src/api/dungeonMaster/core/CancelablePromise.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/core/OpenAPI.ts",
+      "path": "src/api/dungeonMaster/core/OpenAPI.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/core/request.ts",
+      "path": "src/api/dungeonMaster/core/request.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/index.ts",
+      "path": "src/api/dungeonMaster/index.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/AdminRecentTurnsResponse.ts",
+      "path": "src/api/dungeonMaster/models/AdminRecentTurnsResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/AdminTurnDetail.ts",
+      "path": "src/api/dungeonMaster/models/AdminTurnDetail.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/CharacterCreationRequest.ts",
+      "path": "src/api/dungeonMaster/models/CharacterCreationRequest.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/CharacterCreationResponse.ts",
+      "path": "src/api/dungeonMaster/models/CharacterCreationResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/CombatIntent.ts",
+      "path": "src/api/dungeonMaster/models/CombatIntent.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/DebugParseRequest.ts",
+      "path": "src/api/dungeonMaster/models/DebugParseRequest.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/EnemyDescriptor.ts",
+      "path": "src/api/dungeonMaster/models/EnemyDescriptor.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/HTTPValidationError.ts",
+      "path": "src/api/dungeonMaster/models/HTTPValidationError.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/HealthResponse.ts",
+      "path": "src/api/dungeonMaster/models/HealthResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/IntentsBlock.ts",
+      "path": "src/api/dungeonMaster/models/IntentsBlock.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/LocationIntent.ts",
+      "path": "src/api/dungeonMaster/models/LocationIntent.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/MetaIntent.ts",
+      "path": "src/api/dungeonMaster/models/MetaIntent.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/POIIntent.ts",
+      "path": "src/api/dungeonMaster/models/POIIntent.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/PolicyConfigReloadRequest.ts",
+      "path": "src/api/dungeonMaster/models/PolicyConfigReloadRequest.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/PolicyConfigReloadResponse.ts",
+      "path": "src/api/dungeonMaster/models/PolicyConfigReloadResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/PolicyConfigResponse.ts",
+      "path": "src/api/dungeonMaster/models/PolicyConfigResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/QuestIntent.ts",
+      "path": "src/api/dungeonMaster/models/QuestIntent.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/SubsystemActionType.ts",
+      "path": "src/api/dungeonMaster/models/SubsystemActionType.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/TurnRequest.ts",
+      "path": "src/api/dungeonMaster/models/TurnRequest.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/TurnResponse.ts",
+      "path": "src/api/dungeonMaster/models/TurnResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/TurnSubsystemSummary.ts",
+      "path": "src/api/dungeonMaster/models/TurnSubsystemSummary.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/models/ValidationError.ts",
+      "path": "src/api/dungeonMaster/models/ValidationError.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/dungeonMaster/services/GameService.ts",
+      "path": "src/api/dungeonMaster/services/GameService.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/core/ApiError.ts",
+      "path": "src/api/journeyLog/core/ApiError.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/core/ApiRequestOptions.ts",
+      "path": "src/api/journeyLog/core/ApiRequestOptions.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/core/ApiResult.ts",
+      "path": "src/api/journeyLog/core/ApiResult.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/core/CancelablePromise.ts",
+      "path": "src/api/journeyLog/core/CancelablePromise.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/core/OpenAPI.ts",
+      "path": "src/api/journeyLog/core/OpenAPI.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/core/request.ts",
+      "path": "src/api/journeyLog/core/request.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/index.ts",
+      "path": "src/api/journeyLog/index.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/AppendNarrativeRequest.ts",
+      "path": "src/api/journeyLog/models/AppendNarrativeRequest.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/AppendNarrativeResponse.ts",
+      "path": "src/api/journeyLog/models/AppendNarrativeResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CharacterContextResponse.ts",
+      "path": "src/api/journeyLog/models/CharacterContextResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CharacterDocument.ts",
+      "path": "src/api/journeyLog/models/CharacterDocument.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CharacterIdentity.ts",
+      "path": "src/api/journeyLog/models/CharacterIdentity.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CharacterMetadata.ts",
+      "path": "src/api/journeyLog/models/CharacterMetadata.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CleanupResponse.ts",
+      "path": "src/api/journeyLog/models/CleanupResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CombatEnvelope.ts",
+      "path": "src/api/journeyLog/models/CombatEnvelope.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CombatState_Input.ts",
+      "path": "src/api/journeyLog/models/CombatState_Input.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CombatState_Output.ts",
+      "path": "src/api/journeyLog/models/CombatState_Output.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/ContextCapsMetadata.ts",
+      "path": "src/api/journeyLog/models/ContextCapsMetadata.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CreateCharacterRequest.ts",
+      "path": "src/api/journeyLog/models/CreateCharacterRequest.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CreateCharacterResponse.ts",
+      "path": "src/api/journeyLog/models/CreateCharacterResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CreatePOIRequest.ts",
+      "path": "src/api/journeyLog/models/CreatePOIRequest.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/CreatePOIResponse.ts",
+      "path": "src/api/journeyLog/models/CreatePOIResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/EnemyState.ts",
+      "path": "src/api/journeyLog/models/EnemyState.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/ErrorResponse.ts",
+      "path": "src/api/journeyLog/models/ErrorResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/FirestoreTestResponse.ts",
+      "path": "src/api/journeyLog/models/FirestoreTestResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/GetCharacterResponse.ts",
+      "path": "src/api/journeyLog/models/GetCharacterResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/GetCombatResponse.ts",
+      "path": "src/api/journeyLog/models/GetCombatResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/GetNarrativeResponse.ts",
+      "path": "src/api/journeyLog/models/GetNarrativeResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/GetPOISummaryResponse.ts",
+      "path": "src/api/journeyLog/models/GetPOISummaryResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/GetPOIsResponse.ts",
+      "path": "src/api/journeyLog/models/GetPOIsResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/GetQuestResponse.ts",
+      "path": "src/api/journeyLog/models/GetQuestResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/GetRandomPOIsResponse.ts",
+      "path": "src/api/journeyLog/models/GetRandomPOIsResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/HTTPValidationError.ts",
+      "path": "src/api/journeyLog/models/HTTPValidationError.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/InventoryItem.ts",
+      "path": "src/api/journeyLog/models/InventoryItem.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/ListCharactersResponse.ts",
+      "path": "src/api/journeyLog/models/ListCharactersResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/Location.ts",
+      "path": "src/api/journeyLog/models/Location.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/NarrativeContext.ts",
+      "path": "src/api/journeyLog/models/NarrativeContext.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/NarrativeMetadata.ts",
+      "path": "src/api/journeyLog/models/NarrativeMetadata.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/NarrativeTurn.ts",
+      "path": "src/api/journeyLog/models/NarrativeTurn.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/PlayerState.ts",
+      "path": "src/api/journeyLog/models/PlayerState.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/PointOfInterest.ts",
+      "path": "src/api/journeyLog/models/PointOfInterest.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/Quest.ts",
+      "path": "src/api/journeyLog/models/Quest.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/QuestArchiveEntry.ts",
+      "path": "src/api/journeyLog/models/QuestArchiveEntry.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/QuestRewards.ts",
+      "path": "src/api/journeyLog/models/QuestRewards.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/SetQuestResponse.ts",
+      "path": "src/api/journeyLog/models/SetQuestResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/Status.ts",
+      "path": "src/api/journeyLog/models/Status.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/UpdateCombatRequest.ts",
+      "path": "src/api/journeyLog/models/UpdateCombatRequest.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/UpdateCombatResponse.ts",
+      "path": "src/api/journeyLog/models/UpdateCombatResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/UpdatePOIRequest.ts",
+      "path": "src/api/journeyLog/models/UpdatePOIRequest.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/UpdatePOIResponse.ts",
+      "path": "src/api/journeyLog/models/UpdatePOIResponse.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/ValidationError.ts",
+      "path": "src/api/journeyLog/models/ValidationError.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/Weapon.ts",
+      "path": "src/api/journeyLog/models/Weapon.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/models/WorldContextState.ts",
+      "path": "src/api/journeyLog/models/WorldContextState.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/services/CharactersService.ts",
+      "path": "src/api/journeyLog/services/CharactersService.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/services/DefaultService.ts",
+      "path": "src/api/journeyLog/services/DefaultService.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/api/journeyLog/services/OperationsService.ts",
+      "path": "src/api/journeyLog/services/OperationsService.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
       "id": "src/config/env.ts",
       "path": "src/config/env.ts",
       "type": "file",
@@ -125,6 +899,470 @@
     }
   ],
   "edges": [
+    {
+      "source": "src/api/dungeonMaster/core/ApiError.ts",
+      "target": "src/api/dungeonMaster/core/ApiRequestOptions.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/core/ApiError.ts",
+      "target": "src/api/dungeonMaster/core/ApiResult.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/core/OpenAPI.ts",
+      "target": "src/api/dungeonMaster/core/ApiRequestOptions.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/core/request.ts",
+      "target": "src/api/dungeonMaster/core/ApiError.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/core/request.ts",
+      "target": "src/api/dungeonMaster/core/ApiRequestOptions.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/core/request.ts",
+      "target": "src/api/dungeonMaster/core/ApiResult.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/core/request.ts",
+      "target": "src/api/dungeonMaster/core/CancelablePromise.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/core/request.ts",
+      "target": "src/api/dungeonMaster/core/OpenAPI.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/AdminRecentTurnsResponse.ts",
+      "target": "src/api/dungeonMaster/models/AdminTurnDetail.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/CombatIntent.ts",
+      "target": "src/api/dungeonMaster/models/EnemyDescriptor.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/HTTPValidationError.ts",
+      "target": "src/api/dungeonMaster/models/ValidationError.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/IntentsBlock.ts",
+      "target": "src/api/dungeonMaster/models/CombatIntent.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/IntentsBlock.ts",
+      "target": "src/api/dungeonMaster/models/LocationIntent.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/IntentsBlock.ts",
+      "target": "src/api/dungeonMaster/models/MetaIntent.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/IntentsBlock.ts",
+      "target": "src/api/dungeonMaster/models/POIIntent.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/IntentsBlock.ts",
+      "target": "src/api/dungeonMaster/models/QuestIntent.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/PolicyConfigReloadResponse.ts",
+      "target": "src/api/dungeonMaster/models/PolicyConfigResponse.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/TurnResponse.ts",
+      "target": "src/api/dungeonMaster/models/IntentsBlock.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/TurnResponse.ts",
+      "target": "src/api/dungeonMaster/models/TurnSubsystemSummary.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/models/TurnSubsystemSummary.ts",
+      "target": "src/api/dungeonMaster/models/SubsystemActionType.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/models/AdminRecentTurnsResponse.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/models/AdminTurnDetail.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/models/CharacterCreationRequest.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/models/CharacterCreationResponse.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/models/DebugParseRequest.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/models/HealthResponse.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/models/PolicyConfigReloadRequest.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/models/PolicyConfigReloadResponse.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/models/PolicyConfigResponse.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/models/TurnRequest.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/models/TurnResponse.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/core/CancelablePromise.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/core/OpenAPI.ts"
+    },
+    {
+      "source": "src/api/dungeonMaster/services/GameService.ts",
+      "target": "src/api/dungeonMaster/core/request.ts"
+    },
+    {
+      "source": "src/api/journeyLog/core/ApiError.ts",
+      "target": "src/api/journeyLog/core/ApiRequestOptions.ts"
+    },
+    {
+      "source": "src/api/journeyLog/core/ApiError.ts",
+      "target": "src/api/journeyLog/core/ApiResult.ts"
+    },
+    {
+      "source": "src/api/journeyLog/core/OpenAPI.ts",
+      "target": "src/api/journeyLog/core/ApiRequestOptions.ts"
+    },
+    {
+      "source": "src/api/journeyLog/core/request.ts",
+      "target": "src/api/journeyLog/core/ApiError.ts"
+    },
+    {
+      "source": "src/api/journeyLog/core/request.ts",
+      "target": "src/api/journeyLog/core/ApiRequestOptions.ts"
+    },
+    {
+      "source": "src/api/journeyLog/core/request.ts",
+      "target": "src/api/journeyLog/core/ApiResult.ts"
+    },
+    {
+      "source": "src/api/journeyLog/core/request.ts",
+      "target": "src/api/journeyLog/core/CancelablePromise.ts"
+    },
+    {
+      "source": "src/api/journeyLog/core/request.ts",
+      "target": "src/api/journeyLog/core/OpenAPI.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/AppendNarrativeResponse.ts",
+      "target": "src/api/journeyLog/models/NarrativeTurn.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterContextResponse.ts",
+      "target": "src/api/journeyLog/models/CombatEnvelope.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterContextResponse.ts",
+      "target": "src/api/journeyLog/models/ContextCapsMetadata.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterContextResponse.ts",
+      "target": "src/api/journeyLog/models/NarrativeContext.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterContextResponse.ts",
+      "target": "src/api/journeyLog/models/PlayerState.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterContextResponse.ts",
+      "target": "src/api/journeyLog/models/Quest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterContextResponse.ts",
+      "target": "src/api/journeyLog/models/WorldContextState.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterDocument.ts",
+      "target": "src/api/journeyLog/models/CombatState_Output.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterDocument.ts",
+      "target": "src/api/journeyLog/models/PlayerState.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterDocument.ts",
+      "target": "src/api/journeyLog/models/PointOfInterest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterDocument.ts",
+      "target": "src/api/journeyLog/models/Quest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterDocument.ts",
+      "target": "src/api/journeyLog/models/QuestArchiveEntry.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CharacterMetadata.ts",
+      "target": "src/api/journeyLog/models/Status.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CombatEnvelope.ts",
+      "target": "src/api/journeyLog/models/CombatState_Output.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CombatState_Input.ts",
+      "target": "src/api/journeyLog/models/EnemyState.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CombatState_Output.ts",
+      "target": "src/api/journeyLog/models/EnemyState.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CreateCharacterResponse.ts",
+      "target": "src/api/journeyLog/models/CharacterDocument.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/CreatePOIResponse.ts",
+      "target": "src/api/journeyLog/models/PointOfInterest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/EnemyState.ts",
+      "target": "src/api/journeyLog/models/Status.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/GetCharacterResponse.ts",
+      "target": "src/api/journeyLog/models/CharacterDocument.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/GetCombatResponse.ts",
+      "target": "src/api/journeyLog/models/CombatState_Output.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/GetNarrativeResponse.ts",
+      "target": "src/api/journeyLog/models/NarrativeMetadata.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/GetNarrativeResponse.ts",
+      "target": "src/api/journeyLog/models/NarrativeTurn.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/GetPOISummaryResponse.ts",
+      "target": "src/api/journeyLog/models/PointOfInterest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/GetPOIsResponse.ts",
+      "target": "src/api/journeyLog/models/PointOfInterest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/GetQuestResponse.ts",
+      "target": "src/api/journeyLog/models/Quest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/GetRandomPOIsResponse.ts",
+      "target": "src/api/journeyLog/models/PointOfInterest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/HTTPValidationError.ts",
+      "target": "src/api/journeyLog/models/ValidationError.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/ListCharactersResponse.ts",
+      "target": "src/api/journeyLog/models/CharacterMetadata.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/NarrativeContext.ts",
+      "target": "src/api/journeyLog/models/NarrativeTurn.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/PlayerState.ts",
+      "target": "src/api/journeyLog/models/CharacterIdentity.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/PlayerState.ts",
+      "target": "src/api/journeyLog/models/InventoryItem.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/PlayerState.ts",
+      "target": "src/api/journeyLog/models/Location.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/PlayerState.ts",
+      "target": "src/api/journeyLog/models/Status.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/PlayerState.ts",
+      "target": "src/api/journeyLog/models/Weapon.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/Quest.ts",
+      "target": "src/api/journeyLog/models/QuestRewards.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/QuestArchiveEntry.ts",
+      "target": "src/api/journeyLog/models/Quest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/SetQuestResponse.ts",
+      "target": "src/api/journeyLog/models/Quest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/UpdateCombatRequest.ts",
+      "target": "src/api/journeyLog/models/CombatState_Input.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/UpdateCombatResponse.ts",
+      "target": "src/api/journeyLog/models/CombatState_Output.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/UpdatePOIResponse.ts",
+      "target": "src/api/journeyLog/models/PointOfInterest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/models/WorldContextState.ts",
+      "target": "src/api/journeyLog/models/PointOfInterest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/AppendNarrativeRequest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/AppendNarrativeResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/CharacterContextResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/CreateCharacterRequest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/CreateCharacterResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/CreatePOIRequest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/CreatePOIResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/GetCharacterResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/GetCombatResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/GetNarrativeResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/GetPOIsResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/GetPOISummaryResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/GetQuestResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/GetRandomPOIsResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/ListCharactersResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/Quest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/SetQuestResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/UpdateCombatRequest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/UpdateCombatResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/UpdatePOIRequest.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/models/UpdatePOIResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/core/CancelablePromise.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/core/OpenAPI.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/CharactersService.ts",
+      "target": "src/api/journeyLog/core/request.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/DefaultService.ts",
+      "target": "src/api/journeyLog/core/CancelablePromise.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/DefaultService.ts",
+      "target": "src/api/journeyLog/core/OpenAPI.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/DefaultService.ts",
+      "target": "src/api/journeyLog/core/request.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/OperationsService.ts",
+      "target": "src/api/journeyLog/models/CleanupResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/OperationsService.ts",
+      "target": "src/api/journeyLog/models/FirestoreTestResponse.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/OperationsService.ts",
+      "target": "src/api/journeyLog/core/CancelablePromise.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/OperationsService.ts",
+      "target": "src/api/journeyLog/core/OpenAPI.ts"
+    },
+    {
+      "source": "src/api/journeyLog/services/OperationsService.ts",
+      "target": "src/api/journeyLog/core/request.ts"
+    },
     {
       "source": "src/lib/__tests__/firebase.test.ts",
       "target": "src/lib/firebase.ts"

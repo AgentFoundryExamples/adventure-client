@@ -8,8 +8,8 @@ Includes classification of external dependencies as stdlib vs third-party.
 
 ## Statistics
 
-- **Total files**: 10
-- **Intra-repo dependencies**: 2
+- **Total files**: 96
+- **Intra-repo dependencies**: 118
 - **External stdlib dependencies**: 1
 - **External third-party dependencies**: 17
 
@@ -45,10 +45,26 @@ Total: 17 unique packages
 
 ## Most Depended Upon Files (Intra-Repo)
 
-- `src/lib/firebase.ts` (1 dependents)
-- `src/config/env.ts` (1 dependents)
+- `src/api/journeyLog/models/PointOfInterest.ts` (7 dependents)
+- `src/api/journeyLog/models/Quest.ts` (6 dependents)
+- `src/api/journeyLog/core/CancelablePromise.ts` (4 dependents)
+- `src/api/journeyLog/core/OpenAPI.ts` (4 dependents)
+- `src/api/journeyLog/models/CombatState_Output.ts` (4 dependents)
+- `src/api/dungeonMaster/core/ApiRequestOptions.ts` (3 dependents)
+- `src/api/journeyLog/core/ApiRequestOptions.ts` (3 dependents)
+- `src/api/journeyLog/models/NarrativeTurn.ts` (3 dependents)
+- `src/api/journeyLog/models/Status.ts` (3 dependents)
+- `src/api/journeyLog/core/request.ts` (3 dependents)
 
 ## Files with Most Dependencies (Intra-Repo)
 
-- `src/lib/__tests__/firebase.test.ts` (1 dependencies)
-- `src/lib/firebase.ts` (1 dependencies)
+- `src/api/journeyLog/services/CharactersService.ts` (24 dependencies)
+- `src/api/dungeonMaster/services/GameService.ts` (14 dependencies)
+- `src/api/journeyLog/models/CharacterContextResponse.ts` (6 dependencies)
+- `src/api/dungeonMaster/core/request.ts` (5 dependencies)
+- `src/api/dungeonMaster/models/IntentsBlock.ts` (5 dependencies)
+- `src/api/journeyLog/core/request.ts` (5 dependencies)
+- `src/api/journeyLog/models/CharacterDocument.ts` (5 dependencies)
+- `src/api/journeyLog/models/PlayerState.ts` (5 dependencies)
+- `src/api/journeyLog/services/OperationsService.ts` (5 dependencies)
+- `src/api/journeyLog/services/DefaultService.ts` (3 dependencies)
