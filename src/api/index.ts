@@ -20,7 +20,7 @@ import { config } from '@/config/env';
 import { OpenAPI as DungeonMasterOpenAPI, GameService } from './dungeonMaster';
 import { OpenAPI as JourneyLogOpenAPI } from './journeyLog';
 import type { AuthProvider } from '@/lib/http/client';
-import type { CharacterCreationRequest, CharacterCreationResponse } from './dungeonMaster';
+import type { CharacterCreationRequest, CharacterCreationResponse, TurnRequest, TurnResponse } from './dungeonMaster';
 
 /**
  * Configures OpenAPI clients with base URLs and auth token resolvers

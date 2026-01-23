@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { getCharacterLastTurn, submitTurn } from '@/api';
 import type { GetNarrativeResponse, NarrativeTurn, TurnResponse } from '@/api';
-import { useAuth } from '@/hooks/useAuth';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -23,7 +22,6 @@ export default function GamePage() {
   const { characterId } = useParams<{ characterId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { getIdToken } = useAuth();
   const logContainerRef = useRef<HTMLDivElement>(null);
   
   // Memoize the initial scenario to prevent unnecessary re-renders
