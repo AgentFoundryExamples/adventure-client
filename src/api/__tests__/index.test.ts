@@ -463,55 +463,58 @@ describe('api configuration', () => {
       // Temporarily modify the config to simulate production
       const { config } = await import('../../config/env');
       const originalIsProduction = config.isProduction;
-      Object.defineProperty(config, 'isProduction', {
-        value: true,
-        writable: true,
-        configurable: true
-      });
       
       const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
-      const { submitTurn } = await import('../index');
-      const { GameService } = await import('../dungeonMaster');
-      
-      const mockResponse = {
-        narrative: 'Test narrative',
-        intents: null,
-        subsystem_summary: null
-      };
+      try {
+        Object.defineProperty(config, 'isProduction', {
+          value: true,
+          writable: true,
+          configurable: true
+        });
 
-      vi.spyOn(GameService, 'processTurnTurnPost').mockResolvedValue(mockResponse);
+        const { submitTurn } = await import('../index');
+        const { GameService } = await import('../dungeonMaster');
+        
+        const mockResponse = {
+          narrative: 'Test narrative',
+          intents: null,
+          subsystem_summary: null
+        };
 
-      await submitTurn(
-        {
-          character_id: 'char-uuid-123',
-          user_action: 'Test action'
-        },
-        'dev-user-override-should-be-ignored'
-      );
+        vi.spyOn(GameService, 'processTurnTurnPost').mockResolvedValue(mockResponse);
 
-      // Verify xDevUserId is null in production
-      expect(GameService.processTurnTurnPost).toHaveBeenCalledWith({
-        requestBody: {
-          character_id: 'char-uuid-123',
-          user_action: 'Test action'
-        },
-        xDevUserId: null
-      });
+        await submitTurn(
+          {
+            character_id: 'char-uuid-123',
+            user_action: 'Test action'
+          },
+          'dev-user-override-should-be-ignored'
+        );
 
-      // Verify warning was logged
-      expect(consoleWarnSpy).toHaveBeenCalledWith(
-        'xDevUserId is ignored in production builds for security reasons.'
-      );
+        // Verify xDevUserId is null in production
+        expect(GameService.processTurnTurnPost).toHaveBeenCalledWith({
+          requestBody: {
+            character_id: 'char-uuid-123',
+            user_action: 'Test action'
+          },
+          xDevUserId: null
+        });
 
-      // Restore original value
-      Object.defineProperty(config, 'isProduction', {
-        value: originalIsProduction,
-        writable: true,
-        configurable: true
-      });
-      
-      consoleWarnSpy.mockRestore();
+        // Verify warning was logged
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          'xDevUserId is ignored in production builds for security reasons.'
+        );
+      } finally {
+        // Restore original value - runs even if test fails
+        Object.defineProperty(config, 'isProduction', {
+          value: originalIsProduction,
+          writable: true,
+          configurable: true
+        });
+        
+        consoleWarnSpy.mockRestore();
+      }
     });
 
     it('includes structured intents when returned', async () => {
