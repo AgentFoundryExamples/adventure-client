@@ -1,8 +1,11 @@
 import { Outlet, Link } from 'react-router-dom';
 import AccountMenu from '@/components/AccountMenu';
+import { useAuth } from '@/hooks/useAuth';
 import { config } from '@/config/env';
 
 export default function AppLayout() {
+  const { user } = useAuth();
+
   return (
     <div className="app-layout">
       <header className="app-header">
@@ -16,7 +19,14 @@ export default function AppLayout() {
             </Link>
           )}
         </nav>
-        <AccountMenu />
+        <div className="header-actions">
+          {user && (
+            <Link to="/characters/new" className="new-character-button">
+              + New Character
+            </Link>
+          )}
+          <AccountMenu />
+        </div>
       </header>
       <main className="app-main">
         <Outlet />
