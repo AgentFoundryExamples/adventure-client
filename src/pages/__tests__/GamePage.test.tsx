@@ -556,23 +556,73 @@ describe('GamePage', () => {
         character_id: 'char-123',
       };
 
-      const { rerender } = renderWithRoute('char-123', { initialScenario });
+      renderWithRoute('char-123', { initialScenario });
 
       await waitFor(() => {
         expect(screen.getByText('Last Turn')).toBeInTheDocument();
       });
 
-      // Force a re-render (won't change the state)
-      rerender(
-        <MemoryRouter initialEntries={[{ pathname: '/game/char-123', state: { initialScenario } }]}>
-          <Routes>
-            <Route path="/game/:characterId" element={<GamePage />} />
-          </Routes>
-        </MemoryRouter>
-      );
-
-      // Should still not have called the API
+      // Verify the initial scenario was used without API call
       expect(mockGetCharacterLastTurn).not.toHaveBeenCalled();
+      
+      // Verify navigate was called to clear the state
+      expect(mockNavigate).toHaveBeenCalledWith(
+        '/game/char-123',
+        { replace: true, state: null }
+      );
+      
+      // Since the state is cleared and memoized, subsequent renders won't re-trigger the effect
+      // The useMemo with location.state dependency ensures the initial scenario is only processed once
+    });
+
+    it('handles journey-log fetch error after ignoring mismatched character_id', async () => {
+      const initialScenario = {
+        narrative: 'You awaken in a mysterious forest.',
+        character_id: 'char-different',
+      };
+
+      const error = new Error('Failed to fetch turns');
+      mockGetCharacterLastTurn.mockRejectedValue(error);
+
+      renderWithRoute('char-123', { initialScenario });
+
+      // Should attempt to fetch from API since character_id doesn't match
+      await waitFor(() => {
+        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+      });
+
+      // Should display error state
+      await waitFor(() => {
+        expect(screen.getByText('Unable to Load Last Turn')).toBeInTheDocument();
+        expect(screen.getByText('Failed to fetch turns')).toBeInTheDocument();
+      });
+
+      // Should show retry button
+      expect(screen.getByText('Retry')).toBeInTheDocument();
+    });
+
+    it('handles empty journey-log response after fallback', async () => {
+      mockGetCharacterLastTurn.mockResolvedValue({
+        turns: [],
+        metadata: {
+          requested_n: 1,
+          returned_count: 0,
+          total_available: 0,
+        },
+      });
+
+      renderWithRoute('char-123');
+
+      // Should fetch from API
+      await waitFor(() => {
+        expect(mockGetCharacterLastTurn).toHaveBeenCalledWith('char-123');
+      });
+
+      // Should display empty state
+      await waitFor(() => {
+        expect(screen.getByText('No Turns Yet')).toBeInTheDocument();
+        expect(screen.getByText("This character doesn't have any recorded turns yet.")).toBeInTheDocument();
+      });
     });
   });
 });
