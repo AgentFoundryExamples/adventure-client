@@ -186,9 +186,10 @@ npm run generate:api:journey-log
 **Important Notes:**
 - Generated files are committed to the repository for immediate use
 - Re-running generation scripts will **completely remove and regenerate** the output directories, cleaning up any stale or orphaned files
-- The generation process automatically removes `src/api/dungeonMaster/` and `src/api/journeyLog/` before regenerating to ensure clean output
-- Never manually edit files in `src/api/dungeonMaster/` or `src/api/journeyLog/` as changes will be lost
+- The generation process uses `rimraf` for cross-platform directory cleanup (works on Windows, macOS, Linux)
+- Never manually edit files in `src/api/dungeonMaster/` or `src/api/journeyLog/` as changes will be lost (files are auto-generated)
 - If generation fails, ensure OpenAPI spec files are valid JSON
+- The generated code includes error handling and HTTP client logic from the generator; customizations should be done via the OpenAPI configuration objects
 
 #### Using Generated Clients
 
