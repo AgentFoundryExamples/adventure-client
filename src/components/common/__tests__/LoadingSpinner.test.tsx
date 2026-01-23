@@ -19,6 +19,9 @@ describe('LoadingSpinner', () => {
   it('renders with visible label', () => {
     render(<LoadingSpinner label="Loading data..." />);
     expect(screen.getByText('Loading data...')).toBeInTheDocument();
+    const spinner = screen.getByRole('status');
+    // aria-label should not be set when visible label is present
+    expect(spinner).not.toHaveAttribute('aria-label');
   });
 
   it('renders small size variant', () => {

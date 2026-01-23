@@ -73,11 +73,16 @@ const ErrorNotice: React.FC<ErrorNoticeProps> = ({
   autoDismissMs,
 }) => {
   const timeoutRef = useRef<number | null>(null);
+  const savedOnDismiss = useRef(onDismiss);
 
   useEffect(() => {
-    if (variant === 'toast' && autoDismissMs && onDismiss) {
+    savedOnDismiss.current = onDismiss;
+  }, [onDismiss]);
+
+  useEffect(() => {
+    if (variant === 'toast' && autoDismissMs && savedOnDismiss.current) {
       timeoutRef.current = window.setTimeout(() => {
-        onDismiss();
+        savedOnDismiss.current?.();
       }, autoDismissMs);
     }
 
@@ -86,7 +91,7 @@ const ErrorNotice: React.FC<ErrorNoticeProps> = ({
         clearTimeout(timeoutRef.current);
       }
     };
-  }, [variant, autoDismissMs, onDismiss]);
+  }, [variant, autoDismissMs]);
 
   const classes = ['error-notice', severity, variant, className].filter(Boolean).join(' ');
 

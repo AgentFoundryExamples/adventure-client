@@ -55,7 +55,12 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   const spinnerClasses = ['loading-spinner-ring', size].join(' ');
 
   return (
-    <div className={wrapperClasses} role="status" aria-live="polite" aria-label={ariaLabel}>
+    <div
+      className={wrapperClasses}
+      role="status"
+      aria-live="polite"
+      aria-label={label ? undefined : ariaLabel}
+    >
       <div className={spinnerClasses} aria-hidden="true" />
       {label && <span className="loading-spinner-label">{label}</span>}
       {!label && <span className="sr-only">{ariaLabel}</span>}
