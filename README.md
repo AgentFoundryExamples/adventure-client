@@ -84,12 +84,15 @@ For production deployments, environment variables should be:
 
 The application uses Firebase SDK v12+ (modular API) for authentication and other Firebase services. Firebase is initialized via `src/lib/firebase.ts`, which reads configuration from environment variables.
 
-**To set up Firebase for your project:**
+**📖 For detailed setup instructions, see [docs/firebase-setup.md](docs/firebase-setup.md)**
+
+**Quick Setup Summary:**
 
 1. **Create a Firebase Project**:
    - Go to [Firebase Console](https://console.firebase.google.com/)
    - Create a new project or use an existing one
-   - Enable Authentication and any other services you need
+   - Enable Authentication (Email/Password and optionally Google Sign-In)
+   - Add authorized domains (localhost for dev, your Cloud Run URL for production)
 
 2. **Get Your Configuration**:
    - In Firebase Console, go to Project Settings > General
@@ -97,9 +100,9 @@ The application uses Firebase SDK v12+ (modular API) for authentication and othe
    - Copy the Firebase configuration values (apiKey, authDomain, etc.)
 
 3. **Configure Environment Variables**:
-   - For development: Update `.env.local` with your Firebase config
-   - For production: Set environment variables via CI/CD or Cloud Run
-   - See `.env.example` for all required variables
+   - For development: Copy `.env.development` to `.env.local` and update with your Firebase config
+   - For production: Pass as Docker build arguments via CI/CD
+   - See `.env.example` for all required variables with detailed comments
 
 4. **Initialization Details**:
    - Firebase is initialized automatically when the app loads via `src/lib/firebase.ts`
@@ -120,6 +123,8 @@ await signInWithEmailAndPassword(auth, email, password);
 - Production builds require Firebase config during the Docker build step
 - Environment variables are visible in the client-side bundle (don't store sensitive backend secrets here)
 - Use separate Firebase projects for development, staging, and production
+
+**Authentication Components**: The app includes `AuthProvider`, `ProtectedRoute`, `LoginPage`, and `AccountMenu` components. See [docs/firebase-setup.md#authentication-flow-components](docs/firebase-setup.md#authentication-flow-components) for detailed documentation on how these components interact.
 
 
 ## Development
