@@ -15,22 +15,19 @@
  * Authentication types
  */
 
-export interface User {
-  id: string;
-  email: string;
-  displayName: string;
-  avatarUrl?: string;
-  createdAt: Date;
-}
+import type { User as FirebaseUser } from 'firebase/auth';
 
 export interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
+  user: FirebaseUser | null;
+  uid: string | null;
+  loading: boolean;
+  error: Error | null;
 }
 
 export interface AuthContextValue extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  register: (email: string, password: string, displayName: string) => Promise<void>;
+  signInWithEmailPassword: (email: string, password: string) => Promise<void>;
+  signUpWithEmailPassword: (email: string, password: string) => Promise<void>;
+  signOutUser: () => Promise<void>;
+  signInWithGoogle?: () => Promise<void>;
+  getIdToken: (forceRefresh?: boolean) => Promise<string | null>;
 }

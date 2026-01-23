@@ -1,116 +1,144 @@
 /**
  * Authentication Context Provider
- * Provides global auth state management with mock implementation
- * TODO: Replace mock implementation with real Firebase auth when ready
+ * Provides global auth state management using Firebase Authentication
  */
 
 /* eslint-disable react-refresh/only-export-components */
 
-import { createContext, useState, useCallback } from 'react';
+import { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
-import type { AuthContextValue, User } from '@/types/auth';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  type User as FirebaseUser,
+} from 'firebase/auth';
+import { getFirebaseAuth } from '@/lib/firebase';
+import type { AuthContextValue } from '@/types/auth';
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-// Mock user data for development
-const MOCK_USER: User = {
-  id: 'mock-user-id-12345',
-  email: 'adventurer@example.com',
-  displayName: 'Mock Adventurer',
-  avatarUrl: 'https://api.dicebear.com/7.x/adventurer/svg?seed=mock',
-  createdAt: new Date('2024-01-01T00:00:00Z'),
-};
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  // Mock: Start with authenticated state for development
-  // TODO: Replace with real auth state from Firebase
-  const [user, setUser] = useState<User | null>(MOCK_USER);
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
-  const login = useCallback(async (email: string, _password: string) => {
-    setIsLoading(true);
+  // Subscribe to auth state changes
+  useEffect(() => {
+    const auth = getFirebaseAuth();
+    let isInitialLoad = true;
+    
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (firebaseUser) => {
+        setUser(firebaseUser);
+        if (isInitialLoad) {
+          setLoading(false);
+          isInitialLoad = false;
+        }
+        setError(null);
+      },
+      (err) => {
+        console.error('Auth state change error:', err);
+        setError(err as Error);
+        if (isInitialLoad) {
+          setLoading(false);
+          isInitialLoad = false;
+        }
+      }
+    );
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
+
+  const signInWithEmailPassword = useCallback(async (email: string, password: string) => {
+    setError(null);
     try {
-      // TODO: Replace with real Firebase authentication
-      // _password will be used when implementing real auth
-      console.log('[Mock Auth] Login attempt:', { email });
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Mock successful login
-      setUser({
-        ...MOCK_USER,
-        email,
-      });
-
-      console.log('[Mock Auth] Login successful');
-    } catch (error) {
-      console.error('[Mock Auth] Login failed:', error);
-      throw new Error('Login failed');
-    } finally {
-      setIsLoading(false);
+      const auth = getFirebaseAuth();
+      await signInWithEmailAndPassword(auth, email, password);
+      // Auth state will be updated by onAuthStateChanged listener
+    } catch (err) {
+      const authError = err as Error;
+      setError(authError);
+      throw authError;
     }
   }, []);
 
-  const logout = useCallback(async () => {
-    setIsLoading(true);
+  const signUpWithEmailPassword = useCallback(async (email: string, password: string) => {
+    setError(null);
     try {
-      // TODO: Replace with real Firebase logout
-      console.log('[Mock Auth] Logout');
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      setUser(null);
-      console.log('[Mock Auth] Logout successful');
-    } catch (error) {
-      console.error('[Mock Auth] Logout failed:', error);
-      throw new Error('Logout failed');
-    } finally {
-      setIsLoading(false);
+      const auth = getFirebaseAuth();
+      await createUserWithEmailAndPassword(auth, email, password);
+      // Auth state will be updated by onAuthStateChanged listener
+    } catch (err) {
+      const authError = err as Error;
+      setError(authError);
+      throw authError;
     }
   }, []);
 
-  const register = useCallback(async (email: string, _password: string, displayName: string) => {
-    setIsLoading(true);
+  const signOutUser = useCallback(async () => {
+    setError(null);
     try {
-      // TODO: Replace with real Firebase registration
-      // _password will be used when implementing real auth
-      console.log('[Mock Auth] Register attempt:', { email, displayName });
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Mock successful registration
-      setUser({
-        id: `mock-user-${Date.now()}`,
-        email,
-        displayName,
-        avatarUrl: `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayName)}`,
-        createdAt: new Date(),
-      });
-
-      console.log('[Mock Auth] Registration successful');
-    } catch (error) {
-      console.error('[Mock Auth] Registration failed:', error);
-      throw new Error('Registration failed');
-    } finally {
-      setIsLoading(false);
+      const auth = getFirebaseAuth();
+      await signOut(auth);
+      // Auth state will be updated by onAuthStateChanged listener
+    } catch (err) {
+      const authError = err as Error;
+      setError(authError);
+      throw authError;
     }
   }, []);
 
-  const value: AuthContextValue = {
-    user,
-    isAuthenticated: user !== null,
-    isLoading,
-    login,
-    logout,
-    register,
-  };
+  const signInWithGoogle = useCallback(async () => {
+    setError(null);
+    try {
+      const auth = getFirebaseAuth();
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      // Auth state will be updated by onAuthStateChanged listener
+    } catch (err) {
+      const authError = err as Error;
+      setError(authError);
+      throw authError;
+    }
+  }, []);
+
+  const getIdToken = useCallback(async (forceRefresh = false): Promise<string | null> => {
+    if (!user) {
+      return null;
+    }
+    try {
+      return await user.getIdToken(forceRefresh);
+    } catch (err) {
+      const tokenError = err as Error;
+      setError(tokenError);
+      throw tokenError;
+    }
+  }, [user]);
+
+  const value: AuthContextValue = useMemo(
+    () => ({
+      user,
+      uid: user?.uid ?? null,
+      loading,
+      error,
+      signInWithEmailPassword,
+      signUpWithEmailPassword,
+      signOutUser,
+      signInWithGoogle,
+      getIdToken,
+    }),
+    [user, loading, error, signInWithEmailPassword, signUpWithEmailPassword, signOutUser, signInWithGoogle, getIdToken]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
