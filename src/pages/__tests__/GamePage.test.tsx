@@ -30,7 +30,7 @@ function TestApp() {
   );
 }
 
-function renderWithRoute(characterId: string = 'char-123', state?: any) {
+function renderWithRoute(characterId: string = 'char-123', state?: unknown) {
   if (state) {
     // Use MemoryRouter when we need to pass state
     const initialEntry = {
