@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { getCharacterLastTurn, submitTurn, CharactersService } from '@/api';
+import { submitTurn, CharactersService } from '@/api';
 import type { GetNarrativeResponse, NarrativeTurn, TurnResponse } from '@/api';
 import { useAuth } from '@/hooks/useAuth';
 
