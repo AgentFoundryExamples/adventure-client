@@ -1736,3 +1736,8 @@ p {
   opacity: 1;
 }
 
+/* Button with Loading Spinner */
+.button .loading-spinner-ring {
+  margin-right: calc(var(--spacing-sm) - 0.5rem); /* Adjust for existing gap */
+}
+

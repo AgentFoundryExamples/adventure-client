@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { getUserCharacters } from '@/api/journeyLog';
 import type { CharacterMetadata } from '@/api/journeyLog';
-import { ErrorNotice } from '@/components';
+import { ErrorNotice, LoadingSpinner } from '@/components';
+import { getFriendlyErrorMessage } from '@/lib/http/errors';
 
 type LoadingState = 'idle' | 'loading' | 'success' | 'error';
 
@@ -46,9 +47,8 @@ export default function CharactersDashboardPage() {
       setLoadingState('success');
     } catch (err) {
       console.error('Failed to fetch characters:', err);
-      setError(
-        err instanceof Error ? err.message : 'Failed to load characters'
-      );
+      const { message } = getFriendlyErrorMessage(err, 'Failed to load characters');
+      setError(message);
       setLoadingState('error');
     }
   }, []);
@@ -61,8 +61,7 @@ export default function CharactersDashboardPage() {
   if (loadingState === 'loading') {
     return (
       <div className="loading-container">
-        <div className="loading-spinner" />
-        <p>Loading your characters...</p>
+        <LoadingSpinner size="large" label="Loading your characters..." />
       </div>
     );
   }
@@ -70,11 +69,13 @@ export default function CharactersDashboardPage() {
   if (loadingState === 'error') {
     return (
       <div className="error-state">
-        <h2>Unable to Load Characters</h2>
-        <p className="error-message">{error}</p>
-        <button onClick={fetchCharacters} className="retry-button">
-          Retry
-        </button>
+        <ErrorNotice
+          title="Unable to Load Characters"
+          message={error || 'An unexpected error occurred'}
+          severity="error"
+          variant="inline"
+          onRetry={fetchCharacters}
+        />
       </div>
     );
   }

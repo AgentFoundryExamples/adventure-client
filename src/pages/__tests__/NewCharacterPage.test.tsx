@@ -408,7 +408,7 @@ describe('NewCharacterPage', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/authentication failed/i)).toBeInTheDocument();
+        expect(screen.getByText(/Character creation failed: Authentication failed/i)).toBeInTheDocument();
       });
     });
 
@@ -491,7 +491,7 @@ describe('NewCharacterPage', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/too many requests/i)).toBeInTheDocument();
+        expect(screen.getByText(/Character creation failed: Too many requests/i)).toBeInTheDocument();
       });
     });
 
@@ -516,7 +516,7 @@ describe('NewCharacterPage', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/server error.*contact support/i)).toBeInTheDocument();
+        expect(screen.getByText(/Character creation failed: Server error/i)).toBeInTheDocument();
       });
     });
 
@@ -540,7 +540,7 @@ describe('NewCharacterPage', () => {
       fireEvent.click(submitButton);
 
       await waitFor(() => {
-        expect(screen.getByText('Network error')).toBeInTheDocument();
+        expect(screen.getByText(/Character creation failed: Network error/i)).toBeInTheDocument();
       });
     });
 
