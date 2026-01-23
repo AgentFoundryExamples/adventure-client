@@ -14,6 +14,14 @@ interface FormErrors {
   submit?: string;
 }
 
+// Validation constants to avoid duplication
+const VALIDATION_LIMITS = {
+  NAME_MAX: 100,
+  RACE_MAX: 50,
+  CLASS_MAX: 50,
+  ADVENTURE_PROMPT_MAX: 2000,
+} as const;
+
 export default function NewCharacterPage() {
   const navigate = useNavigate();
   const { getIdToken } = useAuth();
@@ -34,27 +42,27 @@ export default function NewCharacterPage() {
     // Name validation
     if (!formData.name.trim()) {
       newErrors.name = 'Name is required';
-    } else if (formData.name.length > 100) {
-      newErrors.name = 'Name must be 100 characters or less';
+    } else if (formData.name.length > VALIDATION_LIMITS.NAME_MAX) {
+      newErrors.name = `Name must be ${VALIDATION_LIMITS.NAME_MAX} characters or less`;
     }
 
     // Race validation
     if (!formData.race.trim()) {
       newErrors.race = 'Race is required';
-    } else if (formData.race.length > 50) {
-      newErrors.race = 'Race must be 50 characters or less';
+    } else if (formData.race.length > VALIDATION_LIMITS.RACE_MAX) {
+      newErrors.race = `Race must be ${VALIDATION_LIMITS.RACE_MAX} characters or less`;
     }
 
     // Class validation
     if (!formData.class.trim()) {
       newErrors.class = 'Class is required';
-    } else if (formData.class.length > 50) {
-      newErrors.class = 'Class must be 50 characters or less';
+    } else if (formData.class.length > VALIDATION_LIMITS.CLASS_MAX) {
+      newErrors.class = `Class must be ${VALIDATION_LIMITS.CLASS_MAX} characters or less`;
     }
 
     // Adventure prompt validation (optional field)
-    if (formData.adventurePrompt && formData.adventurePrompt.length > 2000) {
-      newErrors.adventurePrompt = 'Adventure prompt must be 2000 characters or less';
+    if (formData.adventurePrompt && formData.adventurePrompt.length > VALIDATION_LIMITS.ADVENTURE_PROMPT_MAX) {
+      newErrors.adventurePrompt = `Adventure prompt must be ${VALIDATION_LIMITS.ADVENTURE_PROMPT_MAX} characters or less`;
     }
 
     setErrors(newErrors);
@@ -152,8 +160,8 @@ export default function NewCharacterPage() {
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     // Clear error for this field when user types
-    if (errors[field === 'class' ? 'class' : field]) {
-      setErrors(prev => ({ ...prev, [field === 'class' ? 'class' : field]: undefined }));
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
     }
   };
 
@@ -183,7 +191,7 @@ export default function NewCharacterPage() {
             onChange={(e) => handleInputChange('name', e.target.value)}
             disabled={isFormDisabled}
             placeholder="Enter character name"
-            maxLength={100}
+            maxLength={VALIDATION_LIMITS.NAME_MAX}
             aria-invalid={!!errors.name}
             aria-describedby={errors.name ? 'name-error' : undefined}
           />
@@ -192,7 +200,7 @@ export default function NewCharacterPage() {
               {errors.name}
             </span>
           )}
-          <span className="field-hint">1-100 characters</span>
+          <span className="field-hint">1-{VALIDATION_LIMITS.NAME_MAX} characters</span>
         </div>
 
         {/* Race Field */}
@@ -209,7 +217,7 @@ export default function NewCharacterPage() {
             onChange={(e) => handleInputChange('race', e.target.value)}
             disabled={isFormDisabled}
             placeholder="e.g., Human, Elf, Dwarf, Orc"
-            maxLength={50}
+            maxLength={VALIDATION_LIMITS.RACE_MAX}
             aria-invalid={!!errors.race}
             aria-describedby={errors.race ? 'race-error' : undefined}
           />
@@ -218,7 +226,7 @@ export default function NewCharacterPage() {
               {errors.race}
             </span>
           )}
-          <span className="field-hint">1-50 characters</span>
+          <span className="field-hint">1-{VALIDATION_LIMITS.RACE_MAX} characters</span>
         </div>
 
         {/* Class Field */}
@@ -235,7 +243,7 @@ export default function NewCharacterPage() {
             onChange={(e) => handleInputChange('class', e.target.value)}
             disabled={isFormDisabled}
             placeholder="e.g., Warrior, Wizard, Rogue, Cleric"
-            maxLength={50}
+            maxLength={VALIDATION_LIMITS.CLASS_MAX}
             aria-invalid={!!errors.class}
             aria-describedby={errors.class ? 'class-error' : undefined}
           />
@@ -244,7 +252,7 @@ export default function NewCharacterPage() {
               {errors.class}
             </span>
           )}
-          <span className="field-hint">1-50 characters</span>
+          <span className="field-hint">1-{VALIDATION_LIMITS.CLASS_MAX} characters</span>
         </div>
 
         {/* Adventure Prompt Field */}
@@ -260,7 +268,7 @@ export default function NewCharacterPage() {
             onChange={(e) => handleInputChange('adventurePrompt', e.target.value)}
             disabled={isFormDisabled}
             placeholder="Describe the world or setting for your adventure (e.g., 'A dark fantasy world where the sun has vanished')"
-            maxLength={2000}
+            maxLength={VALIDATION_LIMITS.ADVENTURE_PROMPT_MAX}
             rows={4}
             aria-invalid={!!errors.adventurePrompt}
             aria-describedby={errors.adventurePrompt ? 'adventurePrompt-error' : undefined}
@@ -271,7 +279,7 @@ export default function NewCharacterPage() {
             </span>
           )}
           <span className="field-hint">
-            Optional. Customize the world setting or opening scene (max 2000 characters)
+            Optional. Customize the world setting or opening scene (max {VALIDATION_LIMITS.ADVENTURE_PROMPT_MAX} characters)
           </span>
         </div>
 
