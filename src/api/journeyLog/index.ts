@@ -80,7 +80,16 @@ import type { ListCharactersResponse } from './models/ListCharactersResponse';
 import type { GetNarrativeResponse } from './models/GetNarrativeResponse';
 import { CharactersService } from './services/CharactersService';
 import { OpenAPI } from './core/OpenAPI';
-import { ApiError } from './core/ApiError';
+
+/**
+ * Extracts headers from the OpenAPI configuration.
+ * @returns A promise that resolves to the headers object.
+ */
+async function getOpenApiHeaders(): Promise<Record<string, string>> {
+  return typeof OpenAPI.HEADERS === 'function' 
+    ? await OpenAPI.HEADERS({} as any)
+    : OpenAPI.HEADERS || {};
+}
 
 /**
  * Get all characters for the authenticated user
@@ -88,6 +97,7 @@ import { ApiError } from './core/ApiError';
  * The X-User-Id header is automatically attached via OpenAPI configuration.
  *
  * @returns Promise<ListCharactersResponse> - List of character metadata with count
+ * @throws Error - If X-User-Id is not configured
  * @throws ApiError - On authentication failure (401) or other API errors
  *
  * @example
@@ -98,25 +108,11 @@ import { ApiError } from './core/ApiError';
  * ```
  */
 export async function getUserCharacters(): Promise<ListCharactersResponse> {
-  // Extract X-User-Id from OpenAPI configuration
-  const headers = typeof OpenAPI.HEADERS === 'function' 
-    ? await OpenAPI.HEADERS({} as any)
-    : OpenAPI.HEADERS || {};
-  
+  const headers = await getOpenApiHeaders();
   const userId = headers['X-User-Id'];
   
   if (!userId) {
-    throw new ApiError(
-      {} as any,
-      {
-        url: '/characters',
-        ok: false,
-        status: 400,
-        statusText: 'Bad Request',
-        body: { detail: 'X-User-Id header is required but not configured' }
-      },
-      'X-User-Id header is required but not configured'
-    );
+    throw new Error('X-User-Id header is required but not configured');
   }
 
   return CharactersService.listCharactersCharactersGet({
@@ -148,11 +144,7 @@ export async function getCharacterLastTurn(characterId: string): Promise<GetNarr
     throw new Error('characterId is required and must be non-empty');
   }
 
-  // Extract X-User-Id from OpenAPI configuration (optional for narrative endpoint)
-  const headers = typeof OpenAPI.HEADERS === 'function' 
-    ? await OpenAPI.HEADERS({} as any)
-    : OpenAPI.HEADERS || {};
-  
+  const headers = await getOpenApiHeaders();
   const userId = headers['X-User-Id'] || null;
 
   return CharactersService.getNarrativeTurnsCharactersCharacterIdNarrativeGet({
