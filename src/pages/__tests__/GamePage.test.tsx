@@ -443,6 +443,248 @@ describe('GamePage', () => {
     });
   });
 
+  describe('Action Submission', () => {
+    it('allows submitting an action when textarea has content', async () => {
+      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockSubmitTurn.mockResolvedValue({
+        narrative: 'You pick up the amulet. It glows with an ancient power.',
+      });
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      const actButton = screen.getByText('Act');
+
+      // Button should be disabled when textarea is empty
+      expect(actButton).toBeDisabled();
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I pick up the amulet' } });
+
+      // Button should now be enabled
+      await waitFor(() => {
+        expect(actButton).not.toBeDisabled();
+      });
+
+      // Click the Act button
+      fireEvent.click(actButton);
+
+      // Should show loading state
+      await waitFor(() => {
+        expect(screen.getByText('Processing...')).toBeInTheDocument();
+      });
+
+      // Should call submitTurn with correct parameters
+      await waitFor(() => {
+        expect(mockSubmitTurn).toHaveBeenCalledWith({
+          character_id: 'char-123',
+          user_action: 'I pick up the amulet',
+        });
+      });
+
+      // Should update the scenario with new narrative
+      await waitFor(() => {
+        const newNarrative = screen.getAllByText('You pick up the amulet. It glows with an ancient power.');
+        expect(newNarrative.length).toBeGreaterThan(0);
+      });
+
+      // Textarea should be cleared
+      expect(textarea).toHaveValue('');
+    });
+
+    it('submits action with Ctrl+Enter keyboard shortcut', async () => {
+      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockSubmitTurn.mockResolvedValue({
+        narrative: 'You examine the amulet closely.',
+      });
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I examine the amulet' } });
+
+      // Press Ctrl+Enter
+      fireEvent.keyDown(textarea, { key: 'Enter', ctrlKey: true });
+
+      // Should call submitTurn
+      await waitFor(() => {
+        expect(mockSubmitTurn).toHaveBeenCalledWith({
+          character_id: 'char-123',
+          user_action: 'I examine the amulet',
+        });
+      });
+    });
+
+    it('prevents submission while request is in progress', async () => {
+      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      let resolveSubmit: (value: any) => void;
+      const submitPromise = new Promise((resolve) => {
+        resolveSubmit = resolve;
+      });
+      mockSubmitTurn.mockReturnValue(submitPromise);
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      const actButton = screen.getByText('Act');
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I attack the goblin' } });
+
+      // Click the Act button
+      fireEvent.click(actButton);
+
+      // Button should be disabled during submission
+      await waitFor(() => {
+        expect(screen.getByText('Processing...')).toBeInTheDocument();
+      });
+
+      // Try to click again - should not trigger another submission
+      fireEvent.click(actButton);
+
+      // Should only have been called once
+      expect(mockSubmitTurn).toHaveBeenCalledTimes(1);
+
+      // Resolve the promise
+      resolveSubmit!({ narrative: 'You strike the goblin!' });
+
+      await waitFor(() => {
+        const newNarrative = screen.getAllByText('You strike the goblin!');
+        expect(newNarrative.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('handles submission error gracefully', async () => {
+      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockSubmitTurn.mockRejectedValue(new Error('Failed to process turn'));
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+      const actButton = screen.getByText('Act');
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I cast a spell' } });
+
+      // Click the Act button
+      fireEvent.click(actButton);
+
+      // Should show error message
+      await waitFor(() => {
+        expect(screen.getByText(/Failed to process turn/)).toBeInTheDocument();
+      });
+
+      // Textarea should still contain the action (not cleared)
+      expect(textarea).toHaveValue('I cast a spell');
+
+      // Previous scenario should still be displayed
+      const dmResponses = screen.getAllByText(mockTurn.gm_response);
+      expect(dmResponses.length).toBeGreaterThan(0);
+    });
+
+    it('handles authentication error during submission', async () => {
+      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      const authError = new Error('Unauthorized') as Error & { status: number };
+      authError.status = 401;
+      mockSubmitTurn.mockRejectedValue(authError);
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I open the door' } });
+
+      // Submit
+      fireEvent.click(screen.getByText('Act'));
+
+      // Should show auth error message
+      await waitFor(() => {
+        expect(screen.getByText(/Authentication failed/)).toBeInTheDocument();
+      });
+    });
+
+    it('handles rate limit error during submission', async () => {
+      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      const rateLimitError = new Error('Too many requests') as Error & { status: number };
+      rateLimitError.status = 429;
+      mockSubmitTurn.mockRejectedValue(rateLimitError);
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+
+      // Type an action
+      fireEvent.change(textarea, { target: { value: 'I run away' } });
+
+      // Submit
+      fireEvent.click(screen.getByText('Act'));
+
+      // Should show rate limit error message
+      await waitFor(() => {
+        expect(screen.getByText(/Too many requests/)).toBeInTheDocument();
+      });
+    });
+
+    it('adds new turn to history after successful submission', async () => {
+      mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
+      mockSubmitTurn.mockResolvedValue({
+        narrative: 'You successfully pick up the amulet.',
+      });
+
+      renderWithRoute();
+
+      await waitFor(() => {
+        expect(screen.getByText('Adventure in Progress')).toBeInTheDocument();
+      });
+
+      // Should show existing turn in history
+      expect(screen.getByText(mockTurn.player_action)).toBeInTheDocument();
+
+      const textarea = screen.getByPlaceholderText(/Describe your action/);
+
+      // Submit new action
+      fireEvent.change(textarea, { target: { value: 'I pick up the amulet' } });
+      fireEvent.click(screen.getByText('Act'));
+
+      // Wait for submission to complete
+      await waitFor(() => {
+        const newNarrative = screen.getAllByText('You successfully pick up the amulet.');
+        expect(newNarrative.length).toBeGreaterThan(0);
+      });
+
+      // Both actions should now be in history
+      expect(screen.getByText(mockTurn.player_action)).toBeInTheDocument();
+      expect(screen.getByText('I pick up the amulet')).toBeInTheDocument();
+    });
+  });
+
   describe('Turn Sections Structure', () => {
     it('renders gameplay sections with correct structure', async () => {
       mockGetCharacterLastTurn.mockResolvedValue(mockResponseWithTurn);
