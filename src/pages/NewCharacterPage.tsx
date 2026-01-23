@@ -127,7 +127,7 @@ export default function NewCharacterPage() {
           if (typeof body.detail === 'string') {
             setErrors({ submit: body.detail });
             return; // Exit early - use server's validation message
-          } else if (Array.isArray(body.detail)) {
+          } else if (Array.isArray(body.detail) && body.detail.length > 0) {
             // Map validation errors to form fields
             const fieldErrors: FormErrors = {};
             body.detail.forEach((error: { msg: string; loc: string[] }) => {
@@ -139,7 +139,13 @@ export default function NewCharacterPage() {
             });
             setErrors(fieldErrors);
             return; // Exit early to avoid setting submit error
+          } else {
+            setErrors({ submit: 'Validation failed. Please check your input.' });
+            return; // Exit after handling 422 error
           }
+        } else {
+          setErrors({ submit: 'Validation failed. Please check your input.' });
+          return; // Exit after handling 422 error
         }
       }
       

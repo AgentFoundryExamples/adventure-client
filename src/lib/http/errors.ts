@@ -170,12 +170,15 @@ export function getFriendlyErrorMessage(error: unknown, context?: string): {
   shouldRetry: boolean;
 } {
   // Check if error has a status code (ApiError or similar error objects)
+  // Add runtime validation to ensure status is actually a number
   if (typeof error === 'object' && error !== null && 'status' in error) {
-    const status = (error as { status: number }).status;
-    return {
-      message: getHttpErrorMessage(status, context),
-      shouldRetry: isTransientError(status),
-    };
+    const status = (error as { status: unknown }).status;
+    if (typeof status === 'number') {
+      return {
+        message: getHttpErrorMessage(status, context),
+        shouldRetry: isTransientError(status),
+      };
+    }
   }
 
   // Handle network errors
@@ -183,23 +186,19 @@ export function getFriendlyErrorMessage(error: unknown, context?: string): {
     const errorName = error.name.toLowerCase();
     const errorMessage = error.message.toLowerCase();
     
-    // Network timeout or offline
+    // Network timeout or offline - reuse getHttpErrorMessage for consistency
     if (errorName === 'aborterror' || errorMessage.includes('timeout')) {
       return {
-        message: context 
-          ? `${context}: Request timeout. Please check your connection and try again.`
-          : 'Request timeout. Please check your connection and try again.',
+        message: getHttpErrorMessage(408, context),
         shouldRetry: true,
       };
     }
     
-    // Network error or fetch failure - covers various browser implementations
+    // Network error or fetch failure - reuse getHttpErrorMessage for consistency
     // Examples: "Failed to fetch", "Network request failed", "NetworkError when attempting to fetch"
     if (errorName === 'networkerror' || errorMessage.includes('network') || errorMessage.includes('fetch')) {
       return {
-        message: context
-          ? `${context}: Network error. Please check your internet connection.`
-          : 'Network error. Please check your internet connection.',
+        message: getHttpErrorMessage(0, context),
         shouldRetry: true,
       };
     }
