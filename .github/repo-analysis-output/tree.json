@@ -72,6 +72,16 @@
     },
     {
       "type": "directory",
+      "name": "docs",
+      "children": [
+        {
+          "type": "file",
+          "name": "firebase-setup.md"
+        }
+      ]
+    },
+    {
+      "type": "directory",
       "name": "public",
       "children": [
         {

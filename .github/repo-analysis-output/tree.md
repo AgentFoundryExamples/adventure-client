@@ -15,6 +15,8 @@
     └── tree.md
   └── workflows
     └── af_maintenance.yml
+├── docs
+  └── firebase-setup.md
 ├── public
   └── vite.svg
 ├── src
