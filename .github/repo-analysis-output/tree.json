@@ -551,8 +551,48 @@
               ]
             },
             {
+              "type": "directory",
+              "name": "common",
+              "children": [
+                {
+                  "type": "directory",
+                  "name": "__tests__",
+                  "children": [
+                    {
+                      "type": "file",
+                      "name": "ErrorNotice.test.tsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "LoadingSpinner.test.tsx"
+                    },
+                    {
+                      "type": "file",
+                      "name": "Skeleton.test.tsx"
+                    }
+                  ]
+                },
+                {
+                  "type": "file",
+                  "name": "ErrorNotice.tsx"
+                },
+                {
+                  "type": "file",
+                  "name": "LoadingSpinner.tsx"
+                },
+                {
+                  "type": "file",
+                  "name": "Skeleton.tsx"
+                }
+              ]
+            },
+            {
               "type": "file",
               "name": "AccountMenu.tsx"
+            },
+            {
+              "type": "file",
+              "name": "index.ts"
             },
             {
               "type": "file",
@@ -709,6 +749,10 @@
             {
               "type": "file",
               "name": "CharactersDashboardPage.tsx"
+            },
+            {
+              "type": "file",
+              "name": "ComponentDemoPage.tsx"
             },
             {
               "type": "file",

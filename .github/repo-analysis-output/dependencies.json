@@ -828,6 +828,15 @@
       }
     },
     {
+      "id": "src/components/index.ts",
+      "path": "src/components/index.ts",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
       "id": "src/config/env.ts",
       "path": "src/config/env.ts",
       "type": "file",

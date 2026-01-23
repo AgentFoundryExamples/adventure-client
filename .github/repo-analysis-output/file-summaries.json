@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 102,
+  "total_files": 103,
   "files": [
     {
       "schema_version": "2.0",
@@ -1259,6 +1259,20 @@
       "metrics": {
         "size_bytes": 3278,
         "loc": 62,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/components/index.ts",
+      "language": "TypeScript",
+      "role": "entry-point",
+      "role_justification": "common entry point name 'index'",
+      "summary": "TypeScript main entry point (role: entry-point)",
+      "summary_text": "TypeScript main entry point (role: entry-point)",
+      "metrics": {
+        "size_bytes": 1073,
+        "loc": 11,
         "todo_count": 0
       }
     },

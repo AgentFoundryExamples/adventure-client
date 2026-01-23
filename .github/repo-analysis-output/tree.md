@@ -128,7 +128,16 @@
       ├── AccountMenu.test.tsx
       ├── AppLayout.test.tsx
       └── ProtectedRoute.test.tsx
+    ├── common
+      ├── __tests__
+        ├── ErrorNotice.test.tsx
+        ├── LoadingSpinner.test.tsx
+        └── Skeleton.test.tsx
+      ├── ErrorNotice.tsx
+      ├── LoadingSpinner.tsx
+      └── Skeleton.tsx
     ├── AccountMenu.tsx
+    ├── index.ts
     └── ProtectedRoute.tsx
   ├── config
     └── env.ts
@@ -162,6 +171,7 @@
     ├── AppPage.tsx
     ├── CharacterCreationPage.tsx
     ├── CharactersDashboardPage.tsx
+    ├── ComponentDemoPage.tsx
     ├── DebugPage.tsx
     ├── GamePage.tsx
     ├── HomePage.tsx
