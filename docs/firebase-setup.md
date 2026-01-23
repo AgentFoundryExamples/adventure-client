@@ -343,12 +343,18 @@ The Adventure Client uses Firebase Authentication to secure API requests to both
 The application automatically attaches authentication headers to all API requests using the OpenAPI generated clients:
 
 **1. Authentication Provider Setup** (`src/context/AuthContext.tsx`):
+
+The application uses an `AuthProvider` interface that provides authentication methods and user state. For API authentication, the key methods are:
+
 ```typescript
-export interface AuthProvider {
+// Subset of AuthProvider interface used by API clients
+interface AuthProviderForAPI {
   getIdToken(forceRefresh?: boolean): Promise<string | null>;
   uid: string | null;
 }
 ```
+
+The full `AuthProvider` (see `src/types/auth.ts`) includes additional methods for user authentication (`signInWithEmailPassword`, `signUpWithEmailPassword`, `signOutUser`, `signInWithGoogle`).
 
 The `AuthContext` provides:
 - `getIdToken()`: Returns current Firebase ID token (JWT)
@@ -356,25 +362,38 @@ The `AuthContext` provides:
 
 **2. API Client Configuration** (`src/api/index.ts`):
 
-When the app initializes, it configures both API clients with authentication:
+When the app initializes, it configures both API clients with authentication using the `configureApiClients(authProvider)` function:
 
 ```typescript
 // Dungeon Master API: Only needs Authorization header
 OpenAPI.TOKEN = async () => {
   const token = await authProvider.getIdToken();
-  return token || '';
+  if (!token) {
+    throw new Error('User must be authenticated to make API calls');
+  }
+  return token;
 };
 
 // Journey Log API: Needs both Authorization + X-User-Id headers
 JourneyLogAPI.TOKEN = async () => {
   const token = await authProvider.getIdToken();
-  return token || '';
+  if (!token) {
+    throw new Error('User must be authenticated to make API calls');
+  }
+  return token;
 };
 
-JourneyLogAPI.HEADERS = async () => ({
-  'X-User-Id': authProvider.uid || '',
-});
+JourneyLogAPI.HEADERS = async () => {
+  if (!authProvider.uid) {
+    throw new Error('User ID is required for Journey Log API calls');
+  }
+  return {
+    'X-User-Id': authProvider.uid,
+  };
+};
 ```
+
+**Important**: Users must be authenticated before making API calls. If no token is available, an error is thrown.
 
 **3. Resulting HTTP Headers**:
 
@@ -397,27 +416,44 @@ X-User-Id: abc123def456xyz789
 
 **Token Expiration**: Firebase ID tokens expire after 1 hour.
 
-**Automatic Refresh**: The application implements automatic token refresh using a 401 retry mechanism:
+**Automatic Refresh**: The application implements automatic token refresh using a 401 retry mechanism in the HTTP client:
 
 1. **Initial Request**: Client sends API request with current token
-2. **401 Response**: Backend returns 401 if token is expired
-3. **Token Refresh**: Client calls `getIdToken(forceRefresh: true)` to get fresh token
-4. **Retry Request**: Client retries the original request with new token (single attempt)
-5. **Final Response**: Returns success or final error to caller
+2. **401 Response**: Backend returns 401 if token is expired or invalid
+3. **Token Refresh**: Client calls `getIdToken(forceRefresh: true)` to get fresh token from Firebase
+4. **Token Comparison**: Client verifies new token is different from expired token (prevents infinite loops)
+5. **Retry Request**: Client retries the original request with new token (single retry attempt only)
+6. **Final Response**: Returns success or final error to caller
 
-**Implementation** (`src/lib/http/client.ts`):
+**Implementation Details** (`src/lib/http/client.ts`):
+- Uses a `retryCount` parameter to track retry attempts
+- Forces token refresh when `retryCount > 0`
+- Compares new token with old token to ensure it actually changed
+- Only allows one retry to prevent infinite loops
+- If token doesn't change or retry fails, returns error
+
 ```typescript
-try {
-  response = await fetch(url, options);
+// Simplified retry logic from src/lib/http/client.ts
+const makeRequest = async (url: string, options: RequestInit, retryCount = 0) => {
+  const forceRefresh = retryCount > 0;
+  const token = await authProvider.getIdToken(forceRefresh);
   
-  if (response.status === 401 && authProvider && !isRetry) {
+  // Add token to request headers
+  const response = await fetch(url, {
+    ...options,
+    headers: { ...options.headers, Authorization: `Bearer ${token}` },
+  });
+  
+  if (response.status === 401 && retryCount === 0) {
     // Token might be expired, refresh and retry once
-    await authProvider.getIdToken(true);
-    return request(url, options, true); // Retry with isRetry=true
+    const newToken = await authProvider.getIdToken(true);
+    if (newToken && newToken !== token) {
+      return makeRequest(url, options, retryCount + 1);
+    }
   }
-} catch (error) {
-  // Handle network errors
-}
+  
+  return response;
+};
 ```
 
 **Important Notes**:
@@ -516,7 +552,7 @@ Use the **Debug/Diagnostic Page** (`/debug`) to test API authentication:
 
 **Issue: "Missing or invalid X-User-Id header"**
 - **Cause**: X-User-Id header not sent or doesn't match token
-- **Cause**: Journey Log API only
+- **Applies to**: Journey Log API only.
 - **Solution**:
   1. Ensure `configureApiClients(authProvider)` is called on app init
   2. Verify `authProvider.uid` is not null

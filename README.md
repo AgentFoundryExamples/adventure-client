@@ -265,16 +265,20 @@ const character = await CharactersService.createCharacterCharactersPost({
 
 #### Configuring API Base URLs
 
-Generated clients use a configurable base URL. The application automatically configures these during initialization in `src/api/index.ts`:
+Generated clients use a configurable base URL. The application configures these during initialization by calling the `configureApiClients()` function in `src/api/index.ts`:
 
 ```typescript
 import { OpenAPI as DungeonMasterAPI } from '@/api/dungeonMaster';
 import { OpenAPI as JourneyLogAPI } from '@/api/journeyLog';
 import { config } from '@/config/env';
 
-// Configure base URLs (done automatically in src/api/index.ts)
-DungeonMasterAPI.BASE = config.dungeonMasterApiUrl;  // from VITE_DUNGEON_MASTER_API_BASE_URL
-JourneyLogAPI.BASE = config.journeyLogApiUrl;        // from VITE_JOURNEY_LOG_API_BASE_URL
+// This function is called during app initialization
+export function configureApiClients(authProvider: AuthProvider) {
+  DungeonMasterAPI.BASE = config.dungeonMasterApiUrl;  // from VITE_DUNGEON_MASTER_API_BASE_URL
+  JourneyLogAPI.BASE = config.journeyLogApiUrl;        // from VITE_JOURNEY_LOG_API_BASE_URL
+  
+  // Configure authentication (see Authentication and Headers section)
+}
 ```
 
 **Environment-Specific Base URLs**:
