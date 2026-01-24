@@ -882,27 +882,42 @@ curl -I https://adventure-client-abc123-uc.a.run.app
 
 ### CI/CD Integration
 
-For production deployments, integrate with GitHub Actions or Cloud Build:
+#### Automated GitHub Actions Workflow (Optional)
+
+This repository includes an **optional reference workflow** at `.github/workflows/cloud-run.yml` that automates the build, test, and deployment process to Cloud Run.
+
+**Workflow Features**:
+- ✅ Triggers on pushes to `main` branch
+- ✅ Installs dependencies, runs linter and tests
+- ✅ Builds frontend and verifies successful compilation
+- ✅ Builds and pushes Docker image to Artifact Registry (tagged with commit SHA)
+- ✅ Deploys to Cloud Run with appropriate resource limits
+- ✅ Uses Workload Identity Federation for secure authentication
+- ✅ Fails fast on test/lint errors before deploying
+
+**Required GitHub Secrets**: The workflow requires 13 GitHub secrets to be configured in your repository settings. See the workflow file header for the complete list, or refer to [docs/cloud-run-deploy.md#cicd-integration](docs/cloud-run-deploy.md#cicd-integration) for detailed setup instructions.
+
+**⚠️ Important Notes**:
+- This workflow is a **sample/reference implementation only**
+- Teams must adapt secrets, permissions, and configuration to their environment
+- Service account must have appropriate GCP roles (`roles/run.admin`, `roles/artifactregistry.writer`)
+- Workload Identity Federation setup is required (see deployment guide)
+- Never commit service account keys—use encrypted GitHub secrets or Workload Identity Federation
+
+#### Manual Deployment
+
+For production deployments without automated CI/CD, or for initial setup:
 
 1. **Use Workload Identity Federation** (recommended) instead of service account keys
-2. **Automate on Git tags or main branch pushes**
-3. **Use `$GITHUB_SHA` for image tags** to enable atomic rollbacks
-4. **Store secrets in GitHub Secrets** or Google Secret Manager
-
-Example GitHub Actions workflow structure:
-```yaml
-- Checkout code
-- Authenticate to Google Cloud (Workload Identity)
-- Build Docker image with build args from secrets
-- Push to Artifact Registry
-- Deploy to Cloud Run
-```
+2. **Use `$GITHUB_SHA` for image tags** to enable atomic rollbacks
+3. **Store secrets in a separate configuration file** (not committed to Git)
 
 **Security Best Practices**:
 - Never commit Firebase credentials or API keys to the repository
 - Use environment-specific configurations (staging vs production)
-- Rotate credentials regularly
+- Rotate service account keys regularly if not using Workload Identity Federation
 - Monitor Cloud Run logs for unauthorized access attempts
+- Review [docs/cloud-run-deploy.md#security-best-practices](docs/cloud-run-deploy.md#security-best-practices) for comprehensive security guidance
 
 
 ### Environment Differences
