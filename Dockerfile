@@ -21,12 +21,9 @@ COPY package.json package-lock.json ./
 # Copy source files (required for npm ci to work correctly in Alpine)
 COPY . .
 
-# Install dependencies with npm ci (faster and more reliable for CI/CD)
+# Install dependencies and build in a single layer for efficiency
 # npm ci requires source files present in Alpine due to timing issues
-RUN npm ci
-
-# Build the application
-RUN npm run build
+RUN npm ci && npm run build
 
 # STAGE 2: SERVE
 FROM nginx:alpine
