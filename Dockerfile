@@ -15,13 +15,18 @@ ARG VITE_FIREBASE_MEASUREMENT_ID
 
 WORKDIR /app
 
-# Copy all files (package files and source together)
-# Note: Copying source with package files as npm has timing issues in Alpine
-# when installing before source is present. Layer caching still works via package-lock.json.
+# Copy package files first for better layer caching
+COPY package.json package-lock.json ./
+
+# Copy source files (required for npm ci to work correctly in Alpine)
 COPY . .
 
-# Install dependencies and build
-RUN npm install && npm run build
+# Install dependencies with npm ci (faster and more reliable for CI/CD)
+# npm ci requires source files present in Alpine due to timing issues
+RUN npm ci
+
+# Build the application
+RUN npm run build
 
 # STAGE 2: SERVE
 FROM nginx:alpine

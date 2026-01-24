@@ -650,13 +650,15 @@ Access the application at `http://localhost:8080`.
 The Dockerfile uses a two-stage build process:
 
 1. **Build Stage** (`node:24-alpine`):
-   - Installs dependencies
-   - Builds the production bundle
+   - Copies package files and source code
+   - Installs dependencies using `npm ci` for deterministic, reproducible builds
+   - Builds the production bundle with `npm run build`
    - Result: `dist/` directory with optimized assets
 
 2. **Serve Stage** (`nginx:alpine`):
-   - Copies only the `dist/` files (excludes `node_modules`)
-   - Configures nginx with `nginx.conf` for SPA routing
+   - Copies only the `dist/` files from the builder stage (excludes `node_modules`)
+   - Configures nginx with `nginx.conf` for SPA routing and proper caching
+   - Listens on port 8080 as required by Cloud Run
    - Final image size: ~30MB (lightweight and secure)
 
 **Key Features**:
