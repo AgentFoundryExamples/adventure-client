@@ -91,6 +91,8 @@ docker build \
 
 All environment variables consumed by the application are defined in `src/config/env.ts`. The application will **fail fast at startup** with descriptive errors if required variables are missing.
 
+**📄 Complete Reference**: See [`.env.example`](.env.example) for a comprehensive template with all 9 variables (8 required + 1 optional) including detailed documentation, security notes, and example values for each environment.
+
 #### API Endpoints (Required)
 
 | Variable | Description | Development Value | Production Value |

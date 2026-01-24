@@ -66,7 +66,7 @@ gcloud auth configure-docker us-central1-docker.pkg.dev
 ```
 
 ### 5. Prepare Environment Variables
-You'll need values for **9 required environment variables** (see [Environment Variables Configuration](#environment-variables-configuration)):
+You'll need values for **9 environment variables** (8 required + 1 optional, see [Environment Variables Configuration](#environment-variables-configuration)):
 - Firebase configuration (8 variables from Firebase Console)
 - Backend API endpoints (2 URLs for Dungeon Master and Journey Log APIs)
 
@@ -85,7 +85,7 @@ export REGION="us-central1"
 export SERVICE_NAME="adventure-client"
 export IMAGE_NAME="${REGION}-docker.pkg.dev/${PROJECT_ID}/adventure-client/${SERVICE_NAME}"
 
-# 2. Build and push Docker image (with all 9 env vars)
+# 2. Build and push Docker image (with all env vars: 8 required + 1 optional)
 gcloud builds submit \
   --tag="${IMAGE_NAME}:${GITHUB_SHA:-latest}" \
   --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="https://your-dungeon-master-api.run.app" \
@@ -654,6 +654,11 @@ export default function ConfigDebugPage() {
 }
 ```
 
+**Security Note**: The `import.meta.env.PROD` check prevents config display in production builds. For additional security:
+- Add route-level authentication guard (e.g., require admin role)
+- Use conditional routing in development only: `{import.meta.env.DEV && <Route path="/debug" element={<ConfigDebugPage />} />}`
+- Consider tree-shaking: Dead code elimination will remove the debug page from production bundles if conditionally imported
+
 #### After Production Build
 
 **Verify Docker Build Arguments Were Applied:**
@@ -722,19 +727,26 @@ Before deploying to production, verify these critical configuration points:
   echo $VITE_DUNGEON_MASTER_API_BASE_URL | grep -q "localhost" && echo "❌ Localhost detected!" || echo "✅ No localhost"
   ```
 
-- [ ] **All Required Variables Set:** All 9 required variables have non-empty values
+- [ ] **All Required Variables Set:** All 8 required variables have non-empty values (MEASUREMENT_ID is optional)
   ```bash
-  # Check all required env vars are set
+  # Check all required env vars are set (8 required variables)
   for var in VITE_DUNGEON_MASTER_API_BASE_URL VITE_JOURNEY_LOG_API_BASE_URL \
              VITE_FIREBASE_API_KEY VITE_FIREBASE_AUTH_DOMAIN VITE_FIREBASE_PROJECT_ID \
              VITE_FIREBASE_STORAGE_BUCKET VITE_FIREBASE_MESSAGING_SENDER_ID \
-             VITE_FIREBASE_APP_ID VITE_FIREBASE_MEASUREMENT_ID; do
+             VITE_FIREBASE_APP_ID; do
     if [ -z "${!var}" ]; then
       echo "❌ Missing: $var"
     else
       echo "✅ Set: $var"
     fi
   done
+  
+  # Optional: Check MEASUREMENT_ID (only needed for Google Analytics)
+  if [ -z "${VITE_FIREBASE_MEASUREMENT_ID}" ]; then
+    echo "⚠️  Optional: VITE_FIREBASE_MEASUREMENT_ID not set (only needed for Analytics)"
+  else
+    echo "✅ Set: VITE_FIREBASE_MEASUREMENT_ID"
+  fi
   ```
 
 - [ ] **Dockerfile ARG Declarations:** Dockerfile declares all variables as ARGs
@@ -1108,7 +1120,7 @@ gcloud run services get-iam-policy ${SERVICE_NAME} --region=${REGION}
 **Cause**: Wrong Firebase project ID or API key
 
 **Solution**:
-1. Verify all 9 Firebase env vars match Firebase Console exactly
+1. Verify all Firebase env vars match Firebase Console exactly (7 Firebase variables: 6 required + MEASUREMENT_ID if using Analytics)
 2. Rebuild Docker image with correct values
 3. Check for typos in `VITE_FIREBASE_AUTH_DOMAIN` (common mistake: using project ID instead of `*.firebaseapp.com`)
 
