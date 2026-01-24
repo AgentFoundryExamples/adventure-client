@@ -80,7 +80,32 @@ jobs:
 
       # Step 5: Run tests (fail fast on test failures)
       - name: Run tests
-        run: npm run test
+        run: |
+          echo "🧪 Running tests..."
+          npm run test -- --reporter=verbose --reporter=json --outputFile=test-results.json
+          
+          # Verify tests actually ran and passed
+          if [ ! -f test-results.json ]; then
+            echo "❌ Error: Test results file not found"
+            exit 1
+          fi
+          
+          # Check if any tests ran
+          TEST_COUNT=$(grep -o '"numTotalTests":[0-9]*' test-results.json | grep -o '[0-9]*' || echo "0")
+          if [ "$TEST_COUNT" = "0" ]; then
+            echo "❌ Error: No tests were executed"
+            exit 1
+          fi
+          
+          # Check if all tests passed
+          PASSED_COUNT=$(grep -o '"numPassedTests":[0-9]*' test-results.json | grep -o '[0-9]*' || echo "0")
+          if [ "$TEST_COUNT" != "$PASSED_COUNT" ]; then
+            echo "❌ Error: Some tests failed ($PASSED_COUNT/$TEST_COUNT passed)"
+            exit 1
+          fi
+          
+          echo "✅ All $TEST_COUNT tests passed"
+          rm test-results.json
 
       # Step 6: Build frontend (verify build works before deploying)
       - name: Build frontend
@@ -99,18 +124,21 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      # Step 9: Build and push Docker image to Artifact Registry
+      # Step 9: Configure Docker to authenticate with Artifact Registry
+      - name: Configure Docker authentication
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      # Step 10: Build Docker image locally (avoids exposing secrets in Cloud Build logs)
       # Uses commit SHA for immutable tagging (not :latest)
-      - name: Build and push Docker image
+      - name: Build Docker image
         env:
           IMAGE_NAME: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.SERVICE_NAME }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
           echo "🔨 Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
-          gcloud builds submit \
+          # Build with secrets as build args (only visible in GitHub Actions logs, not Cloud Build)
+          docker build \
             --tag="${IMAGE_NAME}:${IMAGE_TAG}" \
-            --timeout=20m \
-            --machine-type=e2-highcpu-8 \
             --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="${{ secrets.VITE_DUNGEON_MASTER_API_BASE_URL }}" \
             --build-arg VITE_JOURNEY_LOG_API_BASE_URL="${{ secrets.VITE_JOURNEY_LOG_API_BASE_URL }}" \
             --build-arg VITE_FIREBASE_API_KEY="${{ secrets.VITE_FIREBASE_API_KEY }}" \
@@ -119,10 +147,21 @@ jobs:
             --build-arg VITE_FIREBASE_STORAGE_BUCKET="${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}" \
             --build-arg VITE_FIREBASE_MESSAGING_SENDER_ID="${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}" \
             --build-arg VITE_FIREBASE_APP_ID="${{ secrets.VITE_FIREBASE_APP_ID }}" \
-            --build-arg VITE_FIREBASE_MEASUREMENT_ID="${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}"
-          echo "✅ Docker image built and pushed successfully"
+            --build-arg VITE_FIREBASE_MEASUREMENT_ID="${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}" \
+            .
+          echo "✅ Docker image built successfully"
 
-      # Step 10: Deploy to Cloud Run
+      # Step 11: Push Docker image to Artifact Registry
+      - name: Push Docker image
+        env:
+          IMAGE_NAME: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.SERVICE_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "📦 Pushing Docker image to Artifact Registry..."
+          docker push "${IMAGE_NAME}:${IMAGE_TAG}"
+          echo "✅ Docker image pushed successfully"
+
+      # Step 12: Deploy to Cloud Run
       - name: Deploy to Cloud Run
         env:
           IMAGE_NAME: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.SERVICE_NAME }}
@@ -143,7 +182,7 @@ jobs:
             --concurrency=80
           echo "✅ Deployment completed"
 
-      # Step 11: Get and display service URL
+      # Step 13: Get and display service URL
       - name: Get service URL
         run: |
           SERVICE_URL=$(gcloud run services describe ${SERVICE_NAME} \
@@ -152,7 +191,7 @@ jobs:
           echo "🚀 Deployed to: ${SERVICE_URL}"
           echo "SERVICE_URL=${SERVICE_URL}" >> $GITHUB_ENV
 
-      # Step 12: Post-deployment summary
+      # Step 14: Post-deployment summary
       - name: Deployment summary
         run: |
           echo "### Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY

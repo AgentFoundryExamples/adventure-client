@@ -1752,13 +1752,17 @@ jobs:
       - name: Setup Node.js
       - name: Install dependencies
       - name: Run linter (fail fast)
-      - name: Run tests (fail fast)
+      - name: Run tests with verification (fail fast)
       - name: Build frontend
       - name: Authenticate to Google Cloud
-      - name: Build and push Docker image
+      - name: Configure Docker authentication
+      - name: Build Docker image locally
+      - name: Push to Artifact Registry
       - name: Deploy to Cloud Run
       - name: Get service URL
 ```
+
+**Security Note**: The workflow builds Docker images locally on GitHub Actions runners instead of using `gcloud builds submit` to avoid exposing build arguments in Cloud Build logs. While Firebase credentials are client-visible, this approach keeps them within GitHub Actions' secure environment.
 
 **View the complete workflow**: [`.github/workflows/cloud-run.yml`](../.github/workflows/cloud-run.yml)
 
@@ -1954,9 +1958,18 @@ echo "Deploying with API key: ${VITE_FIREBASE_API_KEY}"
 echo "Deploying with Firebase configuration (credentials redacted)"
 ```
 
-**2. Sanitize Cloud Build Logs**:
-- Build args are visible in Cloud Build logs
+**2. CI/CD Build Strategy**:
+
+**For GitHub Actions (Recommended)**:
+- The provided workflow builds Docker images locally on GitHub Actions runners
+- Build arguments are only visible in GitHub Actions logs (private to your organization)
+- This approach avoids exposing credentials in Cloud Build logs
+- GitHub Actions logs are encrypted and access-controlled
+
+**For Cloud Build (Alternative)**:
+- Build args passed to `gcloud builds submit` are visible in Cloud Build logs
 - Use `gcloud builds submit --suppress-logs` for sensitive builds (not recommended for debugging)
+- Consider using Secret Manager integration for Cloud Build
 - Review logs before sharing with team members
 
 **3. Review Command History**:
@@ -1984,7 +1997,7 @@ availableSecrets:
 
 **5. Audit Access to Deployment Credentials**:
 - Limit who has access to `deployment-config.sh`
-- Use Cloud IAM to restrict who can view Cloud Build logs
+- Use Cloud IAM to restrict who can view GitHub Actions or Cloud Build logs
 - Rotate Firebase API keys if accidentally exposed (though they're client-side safe)
 
 **6. Monitor for Credential Exposure**:

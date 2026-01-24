@@ -888,9 +888,10 @@ This repository includes an **optional reference workflow** at `.github/workflow
 
 **Workflow Features**:
 - ✅ Triggers on pushes to `main` branch
-- ✅ Installs dependencies, runs linter and tests
+- ✅ Installs dependencies, runs linter and tests with verification
 - ✅ Builds frontend and verifies successful compilation
-- ✅ Builds and pushes Docker image to Artifact Registry (tagged with commit SHA)
+- ✅ Builds Docker image locally (keeps secrets in GitHub Actions, not Cloud Build logs)
+- ✅ Pushes image to Artifact Registry (tagged with commit SHA)
 - ✅ Deploys to Cloud Run with appropriate resource limits
 - ✅ Uses Workload Identity Federation for secure authentication
 - ✅ Fails fast on test/lint errors before deploying
