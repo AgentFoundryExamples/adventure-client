@@ -4,7 +4,7 @@ Heuristic summaries of source files based on filenames, extensions, and paths.
 
 Schema Version: 2.0
 
-Total files: 104
+Total files: 137
 
 ## eslint.config.js
 **Language:** JavaScript  
@@ -13,6 +13,15 @@ Total files: 104
 **Summary:** JavaScript module for eslint.config  
 **Size:** 1.70 KB  
 **LOC:** 43  
+**TODOs/FIXMEs:** 0  
+
+## src/App.tsx
+**Language:** TypeScript  
+**Role:** entry-point  
+**Role Justification:** common entry point name 'app'  
+**Summary:** TypeScript main entry point (role: entry-point)  
+**Size:** 0.17 KB  
+**LOC:** 6  
 **TODOs/FIXMEs:** 0  
 
 ## src/api/__tests__/characterCreation.test.ts
@@ -816,6 +825,105 @@ Total files: 104
 **LOC:** 62  
 **TODOs/FIXMEs:** 0  
 
+## src/components/AccountMenu.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 0.71 KB  
+**LOC:** 29  
+**TODOs/FIXMEs:** 0  
+
+## src/components/ProtectedRoute.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 0.84 KB  
+**LOC:** 31  
+**TODOs/FIXMEs:** 0  
+
+## src/components/__tests__/AccountMenu.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 6.21 KB  
+**LOC:** 219  
+**TODOs/FIXMEs:** 0  
+
+## src/components/__tests__/AppLayout.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 3.04 KB  
+**LOC:** 105  
+**TODOs/FIXMEs:** 0  
+
+## src/components/__tests__/ProtectedRoute.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 4.26 KB  
+**LOC:** 154  
+**TODOs/FIXMEs:** 0  
+
+## src/components/common/ErrorNotice.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 3.98 KB  
+**LOC:** 133  
+**TODOs/FIXMEs:** 0  
+
+## src/components/common/LoadingSpinner.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 1.84 KB  
+**LOC:** 65  
+**TODOs/FIXMEs:** 0  
+
+## src/components/common/Skeleton.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 2.06 KB  
+**LOC:** 71  
+**TODOs/FIXMEs:** 0  
+
+## src/components/common/__tests__/ErrorNotice.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 5.99 KB  
+**LOC:** 159  
+**TODOs/FIXMEs:** 0  
+
+## src/components/common/__tests__/LoadingSpinner.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 2.65 KB  
+**LOC:** 57  
+**TODOs/FIXMEs:** 0  
+
+## src/components/common/__tests__/Skeleton.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 2.93 KB  
+**LOC:** 73  
+**TODOs/FIXMEs:** 0  
+
 ## src/components/index.ts
 **Language:** TypeScript  
 **Role:** entry-point  
@@ -834,6 +942,33 @@ Total files: 104
 **LOC:** 64  
 **TODOs/FIXMEs:** 0  
 
+## src/context/AuthContext.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 8.80 KB  
+**LOC:** 207  
+**TODOs/FIXMEs:** 0  
+
+## src/context/__tests__/AuthContext.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 15.88 KB  
+**LOC:** 431  
+**TODOs/FIXMEs:** 0  
+
+## src/hooks/__tests__/useAuth.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 2.13 KB  
+**LOC:** 52  
+**TODOs/FIXMEs:** 0  
+
 ## src/hooks/useAuth.ts
 **Language:** TypeScript  
 **Role:** implementation  
@@ -841,6 +976,15 @@ Total files: 104
 **Summary:** TypeScript core implementation  
 **Size:** 1.40 KB  
 **LOC:** 33  
+**TODOs/FIXMEs:** 0  
+
+## src/layouts/AppLayout.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 1.02 KB  
+**LOC:** 34  
 **TODOs/FIXMEs:** 0  
 
 ## src/lib/__tests__/firebase.test.ts
@@ -895,6 +1039,159 @@ Total files: 104
 **Summary:** TypeScript core implementation  
 **Size:** 6.57 KB  
 **LOC:** 176  
+**TODOs/FIXMEs:** 0  
+
+## src/main.tsx
+**Language:** TypeScript  
+**Role:** entry-point  
+**Role Justification:** common entry point name 'main'  
+**Summary:** TypeScript main entry point (role: entry-point)  
+**Size:** 0.33 KB  
+**LOC:** 12  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/AppPage.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 0.14 KB  
+**LOC:** 4  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/CharacterCreationPage.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 0.27 KB  
+**LOC:** 9  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/CharactersDashboardPage.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 6.62 KB  
+**LOC:** 177  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/ComponentDemoPage.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 4.90 KB  
+**LOC:** 143  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/DebugPage.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 9.54 KB  
+**LOC:** 270  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/GamePage.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 15.39 KB  
+**LOC:** 364  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/HomePage.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 0.13 KB  
+**LOC:** 8  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/LoginPage.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 8.73 KB  
+**LOC:** 246  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/NewCharacterPage.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 11.28 KB  
+**LOC:** 275  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/NotFoundPage.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 0.17 KB  
+**LOC:** 8  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/__tests__/CharactersDashboardPage.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 17.85 KB  
+**LOC:** 410  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/__tests__/DebugPage.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 10.22 KB  
+**LOC:** 250  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/__tests__/GamePage.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 40.46 KB  
+**LOC:** 848  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/__tests__/LoginPage.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 11.27 KB  
+**LOC:** 285  
+**TODOs/FIXMEs:** 0  
+
+## src/pages/__tests__/NewCharacterPage.test.tsx
+**Language:** TypeScript  
+**Role:** component  
+**Role Justification:** component file extension '.tsx'  
+**Summary:** TypeScript UI component (role: component)  
+**Size:** 20.98 KB  
+**LOC:** 469  
+**TODOs/FIXMEs:** 0  
+
+## src/router/index.tsx
+**Language:** TypeScript  
+**Role:** entry-point  
+**Role Justification:** common entry point name 'index'  
+**Summary:** TypeScript main entry point (role: entry-point)  
+**Size:** 1.90 KB  
+**LOC:** 76  
 **TODOs/FIXMEs:** 0  
 
 ## src/setupTests.ts

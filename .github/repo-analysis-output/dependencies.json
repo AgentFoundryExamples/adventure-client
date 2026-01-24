@@ -18,6 +18,18 @@
       }
     },
     {
+      "id": "src/App.tsx",
+      "path": "src/App.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/router",
+          "react-router-dom"
+        ]
+      }
+    },
+    {
       "id": "src/api/__tests__/characterCreation.test.ts",
       "path": "src/api/__tests__/characterCreation.test.ts",
       "type": "file",
@@ -828,6 +840,137 @@
       }
     },
     {
+      "id": "src/components/AccountMenu.tsx",
+      "path": "src/components/AccountMenu.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/hooks/useAuth"
+        ]
+      }
+    },
+    {
+      "id": "src/components/ProtectedRoute.tsx",
+      "path": "src/components/ProtectedRoute.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/hooks/useAuth",
+          "react-router-dom"
+        ]
+      }
+    },
+    {
+      "id": "src/components/__tests__/AccountMenu.test.tsx",
+      "path": "src/components/__tests__/AccountMenu.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@testing-library/react",
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/components/__tests__/AppLayout.test.tsx",
+      "path": "src/components/__tests__/AppLayout.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@testing-library/react",
+          "react-router-dom",
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/components/__tests__/ProtectedRoute.test.tsx",
+      "path": "src/components/__tests__/ProtectedRoute.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/types/auth",
+          "@testing-library/react",
+          "react-router-dom",
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/components/common/ErrorNotice.tsx",
+      "path": "src/components/common/ErrorNotice.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "react"
+        ]
+      }
+    },
+    {
+      "id": "src/components/common/LoadingSpinner.tsx",
+      "path": "src/components/common/LoadingSpinner.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "react"
+        ]
+      }
+    },
+    {
+      "id": "src/components/common/Skeleton.tsx",
+      "path": "src/components/common/Skeleton.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "react"
+        ]
+      }
+    },
+    {
+      "id": "src/components/common/__tests__/ErrorNotice.test.tsx",
+      "path": "src/components/common/__tests__/ErrorNotice.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@testing-library/react",
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/components/common/__tests__/LoadingSpinner.test.tsx",
+      "path": "src/components/common/__tests__/LoadingSpinner.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@testing-library/react",
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/components/common/__tests__/Skeleton.test.tsx",
+      "path": "src/components/common/__tests__/Skeleton.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@testing-library/react",
+          "vitest"
+        ]
+      }
+    },
+    {
       "id": "src/components/index.ts",
       "path": "src/components/index.ts",
       "type": "file",
@@ -846,6 +989,49 @@
       }
     },
     {
+      "id": "src/context/AuthContext.tsx",
+      "path": "src/context/AuthContext.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/lib/firebase",
+          "@/types/auth",
+          "firebase/auth",
+          "react",
+          "react-router-dom"
+        ]
+      }
+    },
+    {
+      "id": "src/context/__tests__/AuthContext.test.tsx",
+      "path": "src/context/__tests__/AuthContext.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/hooks/useAuth",
+          "@testing-library/react",
+          "firebase/auth",
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/hooks/__tests__/useAuth.test.tsx",
+      "path": "src/hooks/__tests__/useAuth.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/context/AuthContext",
+          "@testing-library/react",
+          "react",
+          "vitest"
+        ]
+      }
+    },
+    {
       "id": "src/hooks/useAuth.ts",
       "path": "src/hooks/useAuth.ts",
       "type": "file",
@@ -854,6 +1040,20 @@
         "third-party": [
           "@/context/AuthContext",
           "react"
+        ]
+      }
+    },
+    {
+      "id": "src/layouts/AppLayout.tsx",
+      "path": "src/layouts/AppLayout.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/components/AccountMenu",
+          "@/config/env",
+          "@/hooks/useAuth",
+          "react-router-dom"
         ]
       }
     },
@@ -921,6 +1121,234 @@
         "stdlib": [],
         "third-party": [
           "@/config/env"
+        ]
+      }
+    },
+    {
+      "id": "src/main.tsx",
+      "path": "src/main.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/context/AuthContext",
+          "@/styles/base.css",
+          "react",
+          "react-dom/client"
+        ]
+      }
+    },
+    {
+      "id": "src/pages/AppPage.tsx",
+      "path": "src/pages/AppPage.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/pages/CharacterCreationPage.tsx",
+      "path": "src/pages/CharacterCreationPage.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/pages/CharactersDashboardPage.tsx",
+      "path": "src/pages/CharactersDashboardPage.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/api/journeyLog",
+          "@/components",
+          "@/lib/http/errors",
+          "react",
+          "react-router-dom"
+        ]
+      }
+    },
+    {
+      "id": "src/pages/ComponentDemoPage.tsx",
+      "path": "src/pages/ComponentDemoPage.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/components",
+          "react"
+        ]
+      }
+    },
+    {
+      "id": "src/pages/DebugPage.tsx",
+      "path": "src/pages/DebugPage.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/api",
+          "@/hooks/useAuth",
+          "react"
+        ]
+      }
+    },
+    {
+      "id": "src/pages/GamePage.tsx",
+      "path": "src/pages/GamePage.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/api",
+          "@/components",
+          "@/hooks/useAuth",
+          "@/lib/http/errors",
+          "react",
+          "react-router-dom"
+        ]
+      }
+    },
+    {
+      "id": "src/pages/HomePage.tsx",
+      "path": "src/pages/HomePage.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/pages/LoginPage.tsx",
+      "path": "src/pages/LoginPage.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/components",
+          "@/hooks/useAuth",
+          "react",
+          "react-router-dom"
+        ]
+      }
+    },
+    {
+      "id": "src/pages/NewCharacterPage.tsx",
+      "path": "src/pages/NewCharacterPage.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/api",
+          "@/components",
+          "@/hooks/useAuth",
+          "@/lib/http/errors",
+          "react",
+          "react-router-dom"
+        ]
+      }
+    },
+    {
+      "id": "src/pages/NotFoundPage.tsx",
+      "path": "src/pages/NotFoundPage.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": []
+      }
+    },
+    {
+      "id": "src/pages/__tests__/CharactersDashboardPage.test.tsx",
+      "path": "src/pages/__tests__/CharactersDashboardPage.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/api/journeyLog",
+          "@testing-library/react",
+          "react-router-dom",
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/pages/__tests__/DebugPage.test.tsx",
+      "path": "src/pages/__tests__/DebugPage.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@testing-library/react",
+          "react-router-dom",
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/pages/__tests__/GamePage.test.tsx",
+      "path": "src/pages/__tests__/GamePage.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/api",
+          "@testing-library/react",
+          "react-router-dom",
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/pages/__tests__/LoginPage.test.tsx",
+      "path": "src/pages/__tests__/LoginPage.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@testing-library/react",
+          "react-router-dom",
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/pages/__tests__/NewCharacterPage.test.tsx",
+      "path": "src/pages/__tests__/NewCharacterPage.test.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/api",
+          "@/hooks/useAuth",
+          "@testing-library/react",
+          "react-router-dom",
+          "vitest"
+        ]
+      }
+    },
+    {
+      "id": "src/router/index.tsx",
+      "path": "src/router/index.tsx",
+      "type": "file",
+      "external_dependencies": {
+        "stdlib": [],
+        "third-party": [
+          "@/components/ProtectedRoute",
+          "@/config/env",
+          "@/layouts/AppLayout",
+          "@/pages/AppPage",
+          "@/pages/CharacterCreationPage",
+          "@/pages/ComponentDemoPage",
+          "@/pages/DebugPage",
+          "@/pages/GamePage",
+          "@/pages/HomePage",
+          "@/pages/LoginPage",
+          "@/pages/NewCharacterPage",
+          "@/pages/NotFoundPage",
+          "react-router-dom"
         ]
       }
     },
@@ -1503,6 +1931,38 @@
       "target": "src/api/journeyLog/core/request.ts"
     },
     {
+      "source": "src/components/__tests__/AccountMenu.test.tsx",
+      "target": "src/components/AccountMenu.tsx"
+    },
+    {
+      "source": "src/components/__tests__/AppLayout.test.tsx",
+      "target": "src/layouts/AppLayout.tsx"
+    },
+    {
+      "source": "src/components/__tests__/ProtectedRoute.test.tsx",
+      "target": "src/components/ProtectedRoute.tsx"
+    },
+    {
+      "source": "src/components/common/__tests__/ErrorNotice.test.tsx",
+      "target": "src/components/common/ErrorNotice.tsx"
+    },
+    {
+      "source": "src/components/common/__tests__/LoadingSpinner.test.tsx",
+      "target": "src/components/common/LoadingSpinner.tsx"
+    },
+    {
+      "source": "src/components/common/__tests__/Skeleton.test.tsx",
+      "target": "src/components/common/Skeleton.tsx"
+    },
+    {
+      "source": "src/context/__tests__/AuthContext.test.tsx",
+      "target": "src/context/AuthContext.tsx"
+    },
+    {
+      "source": "src/hooks/__tests__/useAuth.test.tsx",
+      "target": "src/hooks/useAuth.ts"
+    },
+    {
       "source": "src/lib/__tests__/firebase.test.ts",
       "target": "src/lib/firebase.ts"
     },
@@ -1521,6 +1981,34 @@
     {
       "source": "src/lib/http/client.ts",
       "target": "src/lib/http/errors.ts"
+    },
+    {
+      "source": "src/main.tsx",
+      "target": "src/App.tsx"
+    },
+    {
+      "source": "src/pages/AppPage.tsx",
+      "target": "src/pages/CharactersDashboardPage.tsx"
+    },
+    {
+      "source": "src/pages/__tests__/CharactersDashboardPage.test.tsx",
+      "target": "src/pages/CharactersDashboardPage.tsx"
+    },
+    {
+      "source": "src/pages/__tests__/DebugPage.test.tsx",
+      "target": "src/pages/DebugPage.tsx"
+    },
+    {
+      "source": "src/pages/__tests__/GamePage.test.tsx",
+      "target": "src/pages/GamePage.tsx"
+    },
+    {
+      "source": "src/pages/__tests__/LoginPage.test.tsx",
+      "target": "src/pages/LoginPage.tsx"
+    },
+    {
+      "source": "src/pages/__tests__/NewCharacterPage.test.tsx",
+      "target": "src/pages/NewCharacterPage.tsx"
     }
   ],
   "external_dependencies_summary": {
@@ -1528,12 +2016,33 @@
       "path"
     ],
     "third-party": [
+      "@/api",
+      "@/api/journeyLog",
+      "@/components",
+      "@/components/AccountMenu",
+      "@/components/ProtectedRoute",
       "@/config/env",
       "@/context/AuthContext",
+      "@/hooks/useAuth",
+      "@/layouts/AppLayout",
+      "@/lib/firebase",
       "@/lib/http/client",
       "@/lib/http/errors",
+      "@/pages/AppPage",
+      "@/pages/CharacterCreationPage",
+      "@/pages/ComponentDemoPage",
+      "@/pages/DebugPage",
+      "@/pages/GamePage",
+      "@/pages/HomePage",
+      "@/pages/LoginPage",
+      "@/pages/NewCharacterPage",
+      "@/pages/NotFoundPage",
+      "@/router",
+      "@/styles/base.css",
+      "@/types/auth",
       "@eslint/js",
       "@testing-library/jest-dom",
+      "@testing-library/react",
       "@vitejs/plugin-react",
       "eslint-config-prettier",
       "eslint-plugin-react-hooks",
@@ -1543,12 +2052,14 @@
       "firebase/auth",
       "globals",
       "react",
+      "react-dom/client",
+      "react-router-dom",
       "typescript-eslint",
       "vite",
       "vitest",
       "vitest/config"
     ],
     "stdlib_count": 1,
-    "third-party_count": 19
+    "third-party_count": 42
   }
 }

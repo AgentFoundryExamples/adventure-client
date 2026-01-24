@@ -8,10 +8,10 @@ Includes classification of external dependencies as stdlib vs third-party.
 
 ## Statistics
 
-- **Total files**: 104
-- **Intra-repo dependencies**: 133
+- **Total files**: 137
+- **Intra-repo dependencies**: 148
 - **External stdlib dependencies**: 1
-- **External third-party dependencies**: 19
+- **External third-party dependencies**: 42
 
 ## External Dependencies
 
@@ -23,27 +23,29 @@ Total: 1 unique modules
 
 ### Third-Party Packages
 
-Total: 19 unique packages
+Total: 42 unique packages
 
+- `@/api`
+- `@/api/journeyLog`
+- `@/components`
+- `@/components/AccountMenu`
+- `@/components/ProtectedRoute`
 - `@/config/env`
 - `@/context/AuthContext`
+- `@/hooks/useAuth`
+- `@/layouts/AppLayout`
+- `@/lib/firebase`
 - `@/lib/http/client`
 - `@/lib/http/errors`
-- `@eslint/js`
-- `@testing-library/jest-dom`
-- `@vitejs/plugin-react`
-- `eslint-config-prettier`
-- `eslint-plugin-react-hooks`
-- `eslint-plugin-react-refresh`
-- `eslint/config`
-- `firebase/app`
-- `firebase/auth`
-- `globals`
-- `react`
-- `typescript-eslint`
-- `vite`
-- `vitest`
-- `vitest/config`
+- `@/pages/AppPage`
+- `@/pages/CharacterCreationPage`
+- `@/pages/ComponentDemoPage`
+- `@/pages/DebugPage`
+- `@/pages/GamePage`
+- `@/pages/HomePage`
+- `@/pages/LoginPage`
+- `@/pages/NewCharacterPage`
+- ... and 22 more (see JSON for full list)
 
 ## Most Depended Upon Files (Intra-Repo)
 

@@ -1,6 +1,6 @@
 {
   "schema_version": "2.0",
-  "total_files": 104,
+  "total_files": 137,
   "files": [
     {
       "schema_version": "2.0",
@@ -13,6 +13,20 @@
       "metrics": {
         "size_bytes": 1745,
         "loc": 43,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/App.tsx",
+      "language": "TypeScript",
+      "role": "entry-point",
+      "role_justification": "common entry point name 'app'",
+      "summary": "TypeScript main entry point (role: entry-point)",
+      "summary_text": "TypeScript main entry point (role: entry-point)",
+      "metrics": {
+        "size_bytes": 172,
+        "loc": 6,
         "todo_count": 0
       }
     },
@@ -1264,6 +1278,160 @@
     },
     {
       "schema_version": "2.0",
+      "path": "src/components/AccountMenu.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 731,
+        "loc": 29,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/components/ProtectedRoute.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 860,
+        "loc": 31,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/components/__tests__/AccountMenu.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 6364,
+        "loc": 219,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/components/__tests__/AppLayout.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 3110,
+        "loc": 105,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/components/__tests__/ProtectedRoute.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 4362,
+        "loc": 154,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/components/common/ErrorNotice.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 4073,
+        "loc": 133,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/components/common/LoadingSpinner.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 1886,
+        "loc": 65,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/components/common/Skeleton.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 2106,
+        "loc": 71,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/components/common/__tests__/ErrorNotice.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 6137,
+        "loc": 159,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/components/common/__tests__/LoadingSpinner.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 2710,
+        "loc": 57,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/components/common/__tests__/Skeleton.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 2996,
+        "loc": 73,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
       "path": "src/components/index.ts",
       "language": "TypeScript",
       "role": "entry-point",
@@ -1292,6 +1460,48 @@
     },
     {
       "schema_version": "2.0",
+      "path": "src/context/AuthContext.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 9010,
+        "loc": 207,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/context/__tests__/AuthContext.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 16266,
+        "loc": 431,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/hooks/__tests__/useAuth.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 2182,
+        "loc": 52,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
       "path": "src/hooks/useAuth.ts",
       "language": "TypeScript",
       "role": "implementation",
@@ -1301,6 +1511,20 @@
       "metrics": {
         "size_bytes": 1436,
         "loc": 33,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/layouts/AppLayout.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 1047,
+        "loc": 34,
         "todo_count": 0
       }
     },
@@ -1385,6 +1609,244 @@
       "metrics": {
         "size_bytes": 6724,
         "loc": 176,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/main.tsx",
+      "language": "TypeScript",
+      "role": "entry-point",
+      "role_justification": "common entry point name 'main'",
+      "summary": "TypeScript main entry point (role: entry-point)",
+      "summary_text": "TypeScript main entry point (role: entry-point)",
+      "metrics": {
+        "size_bytes": 335,
+        "loc": 12,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/AppPage.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 142,
+        "loc": 4,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/CharacterCreationPage.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 281,
+        "loc": 9,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/CharactersDashboardPage.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 6778,
+        "loc": 177,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/ComponentDemoPage.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 5016,
+        "loc": 143,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/DebugPage.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 9774,
+        "loc": 270,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/GamePage.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 15762,
+        "loc": 364,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/HomePage.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 137,
+        "loc": 8,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/LoginPage.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 8942,
+        "loc": 246,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/NewCharacterPage.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 11552,
+        "loc": 275,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/NotFoundPage.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 169,
+        "loc": 8,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/__tests__/CharactersDashboardPage.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 18283,
+        "loc": 410,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/__tests__/DebugPage.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 10464,
+        "loc": 250,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/__tests__/GamePage.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 41428,
+        "loc": 848,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/__tests__/LoginPage.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 11541,
+        "loc": 285,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/pages/__tests__/NewCharacterPage.test.tsx",
+      "language": "TypeScript",
+      "role": "component",
+      "role_justification": "component file extension '.tsx'",
+      "summary": "TypeScript UI component (role: component)",
+      "summary_text": "TypeScript UI component (role: component)",
+      "metrics": {
+        "size_bytes": 21480,
+        "loc": 469,
+        "todo_count": 0
+      }
+    },
+    {
+      "schema_version": "2.0",
+      "path": "src/router/index.tsx",
+      "language": "TypeScript",
+      "role": "entry-point",
+      "role_justification": "common entry point name 'index'",
+      "summary": "TypeScript main entry point (role: entry-point)",
+      "summary_text": "TypeScript main entry point (role: entry-point)",
+      "metrics": {
+        "size_bytes": 1947,
+        "loc": 76,
         "todo_count": 0
       }
     },
