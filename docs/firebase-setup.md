@@ -1146,7 +1146,7 @@ curl https://your-dungeon-master-api.run.app/characters \
 
 # 6. Test backend accepts X-User-Id header explicitly
 # This confirms backend CORS allows the custom header
-curl -X GET https://your-journey-log-api.run.app/entries \
+curl https://your-journey-log-api.run.app/entries \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "X-User-Id: YOUR_UID" \
   -H "Origin: https://adventure-client-xyz123-uc.a.run.app" \
