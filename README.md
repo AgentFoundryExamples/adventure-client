@@ -672,7 +672,17 @@ The Dockerfile uses a two-stage build process:
 
 Google Cloud Run provides serverless container hosting with automatic scaling.
 
-### Prerequisites
+> **📖 For complete deployment instructions, see [docs/cloud-run-deploy.md](docs/cloud-run-deploy.md)**
+>
+> The comprehensive guide covers:
+> - Prerequisites and GCP setup
+> - Step-by-step deployment with copy/paste commands
+> - Environment variable configuration
+> - Verification checklist
+> - Troubleshooting common issues
+> - CI/CD integration with GitHub Actions
+
+### Quick Start
 
 1. **Google Cloud Project** with billing enabled
 2. **Artifact Registry** repository created:
@@ -2006,6 +2016,7 @@ The following features are planned but not currently available:
 
 Comprehensive guides for development and implementation:
 
+- **[Cloud Run Deployment Guide](docs/cloud-run-deploy.md)** - Complete Cloud Run deployment manual with prerequisites, build commands, environment configuration, and troubleshooting
 - **[Firebase Setup Guide](docs/firebase-setup.md)** - Complete Firebase configuration, authentication setup, and token lifecycle management
 - **[Character Creation Guide](docs/character-creation.md)** - Character creation flow documentation with limits and constraints
 - **[Gameplay API Contracts](docs/gameplay.md)** - Dungeon-master and journey-log API contracts, error handling, and edge cases
