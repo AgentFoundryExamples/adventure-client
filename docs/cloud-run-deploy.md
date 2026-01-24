@@ -12,6 +12,8 @@ This guide provides complete, reproducible steps to deploy the Adventure Client 
 - [Troubleshooting](#troubleshooting)
 - [Edge Cases and Advanced Topics](#edge-cases-and-advanced-topics)
 - [CI/CD Integration](#cicd-integration)
+- [Security Best Practices](#security-best-practices)
+- [Additional Resources](#additional-resources)
 
 ---
 
@@ -169,6 +171,130 @@ source ./deployment-config.sh
 ```
 
 > **🔒 Security Note**: Keep `deployment-config.sh` in `.gitignore`. Firebase API keys are safe to expose in client-side code, but avoid committing your specific configuration to public repositories.
+
+> **⚠️ Security Warning - Credentials in Command History**: 
+> - Build args passed via command line are visible in shell history and process listings
+> - On shared systems, other users may see your Firebase credentials via `ps aux`
+> - Consider using a config file approach or CI/CD secrets instead of manual command-line deployment
+> - For production, **always** use GitHub Actions or Cloud Build triggers with secrets management
+> - Alternative: Use `set +o history` before running commands, then `set -o history` after
+> 
+> **Recommendation**: For local deployments, use the deployment script approach below to centralize credential handling.
+
+#### Centralized Deployment Script (Recommended)
+
+To avoid credential exposure in command history and centralize deployment logic, create a reusable script:
+
+```bash
+# Create deploy.sh
+cat > deploy.sh << 'EOF'
+#!/bin/bash
+set -euo pipefail
+
+# Load configuration
+if [ ! -f deployment-config.sh ]; then
+  echo "❌ Error: deployment-config.sh not found"
+  echo "Create it first with your environment variables"
+  exit 1
+fi
+
+source ./deployment-config.sh
+
+# Validate required variables
+REQUIRED_VARS=(
+  "PROJECT_ID" "REGION" "SERVICE_NAME" "IMAGE_NAME"
+  "VITE_DUNGEON_MASTER_API_BASE_URL" "VITE_JOURNEY_LOG_API_BASE_URL"
+  "VITE_FIREBASE_API_KEY" "VITE_FIREBASE_AUTH_DOMAIN"
+  "VITE_FIREBASE_PROJECT_ID" "VITE_FIREBASE_STORAGE_BUCKET"
+  "VITE_FIREBASE_MESSAGING_SENDER_ID" "VITE_FIREBASE_APP_ID"
+  "VITE_FIREBASE_MEASUREMENT_ID"
+)
+
+for var in "${REQUIRED_VARS[@]}"; do
+  if [ -z "${!var:-}" ]; then
+    echo "❌ Error: $var is not set"
+    exit 1
+  fi
+done
+
+echo "🚀 Starting deployment..."
+echo "📦 Image: ${IMAGE_NAME}:${IMAGE_TAG}"
+echo "🌐 Region: ${REGION}"
+
+# Build and push image
+echo ""
+echo "🔨 Building Docker image..."
+gcloud builds submit \
+  --tag="${IMAGE_NAME}:${IMAGE_TAG}" \
+  --timeout=20m \
+  --machine-type=e2-highcpu-8 \
+  --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="${VITE_DUNGEON_MASTER_API_BASE_URL}" \
+  --build-arg VITE_JOURNEY_LOG_API_BASE_URL="${VITE_JOURNEY_LOG_API_BASE_URL}" \
+  --build-arg VITE_FIREBASE_API_KEY="${VITE_FIREBASE_API_KEY}" \
+  --build-arg VITE_FIREBASE_AUTH_DOMAIN="${VITE_FIREBASE_AUTH_DOMAIN}" \
+  --build-arg VITE_FIREBASE_PROJECT_ID="${VITE_FIREBASE_PROJECT_ID}" \
+  --build-arg VITE_FIREBASE_STORAGE_BUCKET="${VITE_FIREBASE_STORAGE_BUCKET}" \
+  --build-arg VITE_FIREBASE_MESSAGING_SENDER_ID="${VITE_FIREBASE_MESSAGING_SENDER_ID}" \
+  --build-arg VITE_FIREBASE_APP_ID="${VITE_FIREBASE_APP_ID}" \
+  --build-arg VITE_FIREBASE_MEASUREMENT_ID="${VITE_FIREBASE_MEASUREMENT_ID}"
+
+if [ $? -ne 0 ]; then
+  echo "❌ Build failed"
+  exit 1
+fi
+
+# Deploy to Cloud Run
+echo ""
+echo "☁️  Deploying to Cloud Run..."
+gcloud run deploy ${SERVICE_NAME} \
+  --image="${IMAGE_NAME}:${IMAGE_TAG}" \
+  --platform=managed \
+  --region=${REGION} \
+  --allow-unauthenticated \
+  --port=8080 \
+  --cpu=${CLOUD_RUN_CPU} \
+  --memory=${CLOUD_RUN_MEMORY} \
+  --min-instances=${CLOUD_RUN_MIN_INSTANCES} \
+  --max-instances=${CLOUD_RUN_MAX_INSTANCES} \
+  --timeout=${CLOUD_RUN_TIMEOUT} \
+  --concurrency=${CLOUD_RUN_CONCURRENCY}
+
+if [ $? -ne 0 ]; then
+  echo "❌ Deployment failed"
+  exit 1
+fi
+
+# Get service URL
+SERVICE_URL=$(gcloud run services describe ${SERVICE_NAME} \
+  --region=${REGION} \
+  --format='value(status.url)')
+
+echo ""
+echo "✅ Deployment successful!"
+echo "🌐 Service URL: ${SERVICE_URL}"
+echo ""
+echo "Next steps:"
+echo "1. Add ${SERVICE_URL#https://} to Firebase Authorized Domains"
+echo "2. Run verification checklist from the deployment guide"
+EOF
+
+chmod +x deploy.sh
+```
+
+**Usage**:
+```bash
+# Run the deployment script
+./deploy.sh
+```
+
+**Benefits**:
+- ✅ Credentials never appear in shell history
+- ✅ Single source of truth for deployment logic
+- ✅ Validates all required variables before deployment
+- ✅ Consistent error handling
+- ✅ Clear deployment progress and success messages
+
+> **🔒 Security Best Practice**: This approach keeps credentials in `deployment-config.sh` (gitignored) and references them from the script, avoiding exposure in command history or process listings.
 
 ### Step 2: Build the Docker Image
 
@@ -434,17 +560,28 @@ curl -I "${SERVICE_URL}/characters"
 - [ ] Journey Log API calls succeed (200/201 responses)
 - [ ] CORS headers are present in API responses
 - [ ] Authorization headers are sent with requests
+- [ ] JWT token format is valid and properly structured
 
 **Test Steps**:
 1. Open DevTools → Network tab
 2. Create a new character
 3. Verify POST to `${VITE_JOURNEY_LOG_API_BASE_URL}/characters`
 4. Inspect request headers (should include `Authorization: Bearer <token>`)
-5. Inspect response headers (should include `Access-Control-Allow-Origin`)
+5. Copy the JWT token from the Authorization header
+6. Decode and inspect the JWT token:
+   ```bash
+   # Use jwt.io or decode locally
+   echo "<token>" | cut -d'.' -f2 | base64 -d | jq .
+   # Verify claims include: iss, sub, aud, exp, iat
+   # Verify aud matches your Firebase project ID
+   ```
+7. Inspect response headers (should include `Access-Control-Allow-Origin`)
 
 **Expected Behavior**:
 - No CORS errors in console
 - API responses return valid JSON
+- JWT token contains valid Firebase claims (user_id, email, exp)
+- Token expiry (exp) is in the future
 - 401 errors if backend requires auth and token is missing
 
 ### ✅ 5. Character Lifecycle Flows
@@ -571,6 +708,62 @@ docker run --rm "${IMAGE_NAME}:${IMAGE_TAG}" cat /usr/share/nginx/html/assets/in
 
 ---
 
+### Problem: Backend Rejects Firebase Token (Project ID Mismatch)
+
+**Symptoms**:
+- Frontend auth works correctly (Firebase login succeeds)
+- Backend APIs return 401 or 403 errors with valid JWT token
+- Backend logs show: `Invalid token` or `Project ID mismatch`
+
+**Cause**: Backend Firebase Admin SDK is configured for a different Firebase project than the frontend, or backend isn't validating Firebase tokens correctly
+
+**Root Causes**:
+1. **Project ID Mismatch**: Frontend uses Firebase project A, backend expects project B
+2. **Missing Backend Configuration**: Backend Firebase Admin SDK not initialized
+3. **Incorrect Service Account**: Backend using wrong service account credentials
+4. **Audience Claim Mismatch**: JWT `aud` claim doesn't match backend's expected project ID
+
+**Solution**:
+
+**Frontend Verification**:
+```bash
+# Decode JWT token from Authorization header
+# Get token from browser DevTools → Network → Request Headers
+echo "<your-jwt-token>" | cut -d'.' -f2 | base64 -d | jq .
+
+# Verify these claims:
+# - "aud": should be your Firebase project ID
+# - "iss": should be "https://securetoken.google.com/<project-id>"
+# - "sub": user ID
+# - "exp": expiry timestamp (future)
+```
+
+**Backend Fixes** (requires backend deployment):
+1. Verify backend Firebase Admin SDK initialization uses same project ID as frontend
+2. Check backend service account has correct permissions
+3. Ensure backend validates `aud` claim matches its Firebase project
+4. Review backend logs for specific validation errors
+
+**Common Mistakes**:
+- Using different Firebase projects for frontend staging vs production
+- Deploying frontend production build but backend still in dev mode
+- Backend service account from wrong GCP project
+
+**Verification Steps**:
+1. Compare `VITE_FIREBASE_PROJECT_ID` (frontend) with backend Firebase Admin config
+2. Test with curl to isolate frontend vs backend issue:
+   ```bash
+   TOKEN="<firebase-jwt-token>"
+   curl -H "Authorization: Bearer ${TOKEN}" \
+     "${VITE_DUNGEON_MASTER_API_BASE_URL}/health"
+   ```
+3. Check backend deployment logs for Firebase initialization messages
+4. Verify backend's GCP project matches frontend's Firebase project
+
+> **Note**: This is a backend configuration issue. The deployment guide focuses on frontend; coordinate with backend team to ensure matching Firebase projects across environments.
+
+---
+
 ### Problem: 404 on Page Refresh (SPA Routes)
 
 **Symptoms**:
@@ -625,14 +818,15 @@ gcloud run deploy ${SERVICE_NAME} --region=us-central1
 ```bash
 # Correct workflow to update env vars
 export VITE_DUNGEON_MASTER_API_BASE_URL="https://new-api-url.run.app"
+export NEW_TAG="new-$(date +%s)"
 
 # 1. Rebuild with new env var
-gcloud builds submit --tag="${IMAGE_NAME}:new-$(date +%s)" \
+gcloud builds submit --tag="${IMAGE_NAME}:${NEW_TAG}" \
   --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="${VITE_DUNGEON_MASTER_API_BASE_URL}" \
   # ... (all other build args)
 
 # 2. Deploy new image
-gcloud run deploy ${SERVICE_NAME} --image="${IMAGE_NAME}:new-$(date +%s)"
+gcloud run deploy ${SERVICE_NAME} --image="${IMAGE_NAME}:${NEW_TAG}"
 ```
 
 ---
@@ -885,9 +1079,10 @@ gcloud artifacts docker tags add \
 - **Total: ~$0.30/month** (negligible)
 
 **With 1 warm instance**:
-- 1 instance × 1 vCPU × 730 hours × 3600 seconds = 2,628,000 vCPU-seconds = $63.07
-- 1 instance × 0.5GB × 730 hours × 3600 seconds = 1,314,000 GiB-seconds = $3.29
-- **Total: ~$66/month**
+- A warm instance is mostly idle. Cloud Run bills idle CPU at a much lower rate than active CPU.
+- **Memory Cost**: 1 instance × 0.5GB × 730 hours × 3600s × $0.00000250/GiB-s ≈ $3.29/month
+- **Idle CPU Cost**: 1 instance × 1 vCPU × 730 hours × 3600s × $0.00000245/vCPU-s (idle rate) ≈ $6.44/month
+- **Total: ~$10/month** (plus cost for requests)
 
 **Cost Optimization**:
 ```bash
@@ -926,6 +1121,9 @@ jobs:
   deploy:
     name: Build and Deploy
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.SERVICE_NAME }}
+      IMAGE_TAG: ${{ github.sha }}
     permissions:
       contents: read
       id-token: write  # For Workload Identity Federation
@@ -945,9 +1143,6 @@ jobs:
 
       - name: Build and Push Container
         run: |
-          IMAGE_NAME="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REGISTRY}/${SERVICE_NAME}"
-          IMAGE_TAG="${GITHUB_SHA}"
-          
           gcloud builds submit \
             --tag="${IMAGE_NAME}:${IMAGE_TAG}" \
             --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="${{ secrets.VITE_DUNGEON_MASTER_API_BASE_URL }}" \
@@ -962,9 +1157,6 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |
-          IMAGE_NAME="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REGISTRY}/${SERVICE_NAME}"
-          IMAGE_TAG="${GITHUB_SHA}"
-          
           gcloud run deploy ${SERVICE_NAME} \
             --image="${IMAGE_NAME}:${IMAGE_TAG}" \
             --platform=managed \
@@ -999,6 +1191,77 @@ jobs:
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`
 - `VITE_FIREBASE_APP_ID`
 - `VITE_FIREBASE_MEASUREMENT_ID`
+
+---
+
+## Security Best Practices
+
+### Secure Logging Practices
+
+When deploying and debugging Cloud Run services, follow these logging guidelines to prevent credential exposure:
+
+**1. Avoid Logging Sensitive Values**:
+```bash
+# ❌ BAD: Logs credentials
+echo "Deploying with API key: ${VITE_FIREBASE_API_KEY}"
+
+# ✅ GOOD: Logs without credentials
+echo "Deploying with Firebase configuration (credentials redacted)"
+```
+
+**2. Sanitize Cloud Build Logs**:
+- Build args are visible in Cloud Build logs
+- Use `gcloud builds submit --suppress-logs` for sensitive builds (not recommended for debugging)
+- Review logs before sharing with team members
+
+**3. Review Command History**:
+```bash
+# Clear sensitive commands from history
+history -d $(history | grep "VITE_FIREBASE_API_KEY" | awk '{print $1}')
+
+# Or disable history temporarily
+set +o history
+# ... run sensitive commands ...
+set -o history
+```
+
+**4. Use Secret Manager for CI/CD**:
+```yaml
+# GitHub Actions: Use secrets (stored encrypted)
+--build-arg VITE_FIREBASE_API_KEY="${{ secrets.VITE_FIREBASE_API_KEY }}"
+
+# Cloud Build: Use Secret Manager
+availableSecrets:
+  secretManager:
+  - versionName: projects/${PROJECT_ID}/secrets/firebase-api-key/versions/latest
+    env: 'FIREBASE_API_KEY'
+```
+
+**5. Audit Access to Deployment Credentials**:
+- Limit who has access to `deployment-config.sh`
+- Use Cloud IAM to restrict who can view Cloud Build logs
+- Rotate Firebase API keys if accidentally exposed (though they're client-side safe)
+
+**6. Monitor for Credential Exposure**:
+```bash
+# Check if credentials were committed to git
+git log -S "AIzaSy" --source --all
+
+# Scan for exposed credentials in code
+grep -r "AIzaSy" . --exclude-dir=.git --exclude-dir=node_modules
+```
+
+**7. Production Deployment Security Checklist**:
+- [ ] Never commit `deployment-config.sh` to version control
+- [ ] Use GitHub Actions or Cloud Build triggers for production deploys
+- [ ] Store all credentials in GitHub Secrets or Secret Manager
+- [ ] Enable Cloud Audit Logs to track deployment activities
+- [ ] Restrict Cloud Run IAM roles to minimum necessary (e.g., `roles/run.developer` not `roles/owner`)
+- [ ] Use Workload Identity Federation instead of service account keys
+- [ ] Regularly rotate service account credentials
+- [ ] Review Cloud Run service IAM bindings (`gcloud run services get-iam-policy`)
+
+> **Important**: While Firebase API keys are safe to expose in client-side code (they're bundled in the frontend JavaScript), other credentials like service account keys or backend API tokens must NEVER be included in frontend builds or logs.
 
 ---
 
