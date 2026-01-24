@@ -938,8 +938,8 @@ Total files: 137
 **Role:** implementation  
 **Role Justification:** general implementation file (default classification)  
 **Summary:** TypeScript core implementation  
-**Size:** 2.76 KB  
-**LOC:** 64  
+**Size:** 7.75 KB  
+**LOC:** 192  
 **TODOs/FIXMEs:** 0  
 
 ## src/context/AuthContext.tsx
