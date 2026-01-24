@@ -637,16 +637,18 @@ Add a CNAME record pointing to Firebase's auth servers:
 ```
 Type: CNAME
 Name: auth (or your chosen subdomain)
-Value: {project-id}.firebaseapp.com
+Value: your-project-id.firebaseapp.com
 TTL: 3600
 ```
+
+Replace `your-project-id` with your actual Firebase project ID (e.g., `adventure-game-prod.firebaseapp.com`).
 
 Verify DNS propagation:
 ```bash
 # Check CNAME record
 dig auth.yourdomain.com CNAME
 
-# Should return: auth.yourdomain.com. 3600 IN CNAME {project-id}.firebaseapp.com.
+# Should return: auth.yourdomain.com. 3600 IN CNAME your-project-id.firebaseapp.com.
 ```
 
 **3. Update Frontend Firebase Configuration**:
@@ -700,9 +702,17 @@ VITE_FIREBASE_AUTH_DOMAIN=auth.yourdomain.com
 Rebuild and redeploy with the new configuration:
 ```bash
 # Rebuild Docker image with new auth domain
+# For complete build args list, see cloud-run-deploy.md Environment Variables section
 gcloud builds submit --tag="${IMAGE_NAME}:${TAG}" \
   --build-arg VITE_FIREBASE_AUTH_DOMAIN="auth.yourdomain.com" \
-  # ... other build args
+  --build-arg VITE_FIREBASE_API_KEY="${VITE_FIREBASE_API_KEY}" \
+  --build-arg VITE_FIREBASE_PROJECT_ID="${VITE_FIREBASE_PROJECT_ID}" \
+  --build-arg VITE_FIREBASE_STORAGE_BUCKET="${VITE_FIREBASE_STORAGE_BUCKET}" \
+  --build-arg VITE_FIREBASE_MESSAGING_SENDER_ID="${VITE_FIREBASE_MESSAGING_SENDER_ID}" \
+  --build-arg VITE_FIREBASE_APP_ID="${VITE_FIREBASE_APP_ID}" \
+  --build-arg VITE_FIREBASE_MEASUREMENT_ID="${VITE_FIREBASE_MEASUREMENT_ID}" \
+  --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="${VITE_DUNGEON_MASTER_API_BASE_URL}" \
+  --build-arg VITE_JOURNEY_LOG_API_BASE_URL="${VITE_JOURNEY_LOG_API_BASE_URL}"
 ```
 
 **6. Test Custom Auth Domain**:
