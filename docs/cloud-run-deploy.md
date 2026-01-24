@@ -450,7 +450,10 @@ If you need immediate functionality, perform these minimal steps:
 
 3. **Update Backend CORS** (if you control backend services):
    - Add Cloud Run URL to `allow_origins` in both dungeon-master and journey-log APIs
-   - Include required headers: `Authorization`, `X-User-Id`, `Content-Type`
+   - Include required headers: 
+     - `Authorization` - Contains Firebase ID token for authentication
+     - `X-User-Id` - Contains Firebase user UID for backend authorization (custom header required by Adventure Client APIs)
+     - `Content-Type` - Standard content type header
    - Redeploy backend services
 
 > **⚠️ Warning**: Skipping these steps will cause sign-in failures and 403 errors on API calls. See the [complete Firebase setup guide](./firebase-setup.md#production-deployment-with-cloud-run) for comprehensive instructions and troubleshooting.

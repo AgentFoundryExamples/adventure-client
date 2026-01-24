@@ -598,23 +598,194 @@ const result = await getRedirectResult(auth);
 
 #### Custom Authentication Domains
 
-If you use Firebase's custom authentication domains feature:
+Firebase supports custom authentication domains for branding and multi-tenancy use cases. This allows you to use your own domain (e.g., `auth.yourdomain.com`) instead of the default `*.firebaseapp.com` domain for authentication flows.
 
-1. **Configure in Firebase Console**:
-   - Go to **Authentication > Settings > Authorized domains**
-   - Click **Add custom domain**
-   - Follow Firebase's domain verification steps
+**When to Use Custom Auth Domains**:
+- Enterprise applications requiring branded authentication URLs
+- Multi-tenant applications with tenant-specific auth domains
+- Compliance requirements for authentication domain ownership
+- Custom OAuth redirect URLs for third-party integrations
 
-2. **Update auth configuration**:
-   ```typescript
-   // In your Firebase config
-   const auth = getAuth(app);
-   auth.tenantId = "your-tenant-id";  // If using multi-tenancy
-   ```
+##### Complete Configuration Steps
 
-3. **Add custom auth domain to authorized domains**:
+**1. Configure Custom Domain in Firebase Console**:
+
+a. Navigate to Firebase Console > **Authentication** > **Settings** > **Authorized domains**
+
+b. Click **Add custom domain** (requires Firebase Blaze plan)
+
+c. Enter your custom authentication domain:
    - Example: `auth.yourdomain.com`
-   - Must be added separately from app domain
+   - Must be a subdomain (not apex domain)
+   - SSL certificate will be provisioned automatically by Firebase
+
+d. Verify domain ownership:
+   - Firebase provides a TXT record
+   - Add the TXT record to your DNS provider
+   - Wait for verification (usually 5-15 minutes)
+   - Firebase will display "Verified" status when complete
+
+e. Enable custom domain for authentication:
+   - Toggle "Enable" for the custom domain
+   - Wait for SSL certificate provisioning (15-30 minutes)
+   - Status shows "Active" when ready
+
+**2. Update DNS Records**:
+
+Add a CNAME record pointing to Firebase's auth servers:
+
+```
+Type: CNAME
+Name: auth (or your chosen subdomain)
+Value: {project-id}.firebaseapp.com
+TTL: 3600
+```
+
+Verify DNS propagation:
+```bash
+# Check CNAME record
+dig auth.yourdomain.com CNAME
+
+# Should return: auth.yourdomain.com. 3600 IN CNAME {project-id}.firebaseapp.com.
+```
+
+**3. Update Frontend Firebase Configuration**:
+
+Modify your Firebase config to use the custom auth domain:
+
+```typescript
+// In your Firebase initialization (src/config/firebase.ts or similar)
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+
+const firebaseConfig = {
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: "auth.yourdomain.com",  // Custom domain instead of {project-id}.firebaseapp.com
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID,
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// For multi-tenancy, also set tenant ID
+// auth.tenantId = "your-tenant-id";  // Optional: only if using Firebase multi-tenancy
+```
+
+**4. Add Custom Auth Domain to Authorized Domains**:
+
+The custom authentication domain must be separately authorized:
+
+a. In Firebase Console > **Authentication** > **Settings** > **Authorized domains**
+
+b. Click **Add domain**
+
+c. Add your custom auth domain: `auth.yourdomain.com`
+
+d. Also keep your application domains:
+   - `adventure-client-xyz123-uc.a.run.app` (Cloud Run)
+   - `app.yourdomain.com` (custom app domain, if used)
+
+**5. Update Environment Variables**:
+
+Update your environment configuration to use the custom domain:
+
+```bash
+# .env.production or Docker build args
+VITE_FIREBASE_AUTH_DOMAIN=auth.yourdomain.com
+```
+
+Rebuild and redeploy with the new configuration:
+```bash
+# Rebuild Docker image with new auth domain
+gcloud builds submit --tag="${IMAGE_NAME}:${TAG}" \
+  --build-arg VITE_FIREBASE_AUTH_DOMAIN="auth.yourdomain.com" \
+  # ... other build args
+```
+
+**6. Test Custom Auth Domain**:
+
+After configuration:
+
+a. Clear browser cache and cookies
+
+b. Navigate to your Cloud Run URL
+
+c. Initiate authentication (sign in/sign up)
+
+d. Verify in browser DevTools > Network tab:
+   - Auth requests go to `auth.yourdomain.com`
+   - Redirects use custom domain
+   - No `firebaseapp.com` requests appear
+
+e. Check for errors in console:
+   - Should see no CORS errors
+   - Should see no domain authorization errors
+
+##### Multi-Tenancy Configuration
+
+For applications serving multiple organizations with isolated authentication:
+
+**1. Enable Multi-Tenancy in Firebase Console**:
+   - Go to **Authentication** > **Settings** > **Multi-tenancy**
+   - Click **Get started**
+   - Create tenants for each organization
+
+**2. Assign Custom Domains Per Tenant** (Enterprise feature):
+   - Each tenant can have its own auth domain
+   - Example: `org1-auth.yourdomain.com`, `org2-auth.yourdomain.com`
+
+**3. Set Tenant ID in Frontend**:
+```typescript
+import { getAuth } from 'firebase/auth';
+
+const auth = getAuth(app);
+
+// Dynamically set tenant based on user's organization
+// Typically determined from URL subdomain or user selection
+const tenantId = getTenantIdFromContext(); // Your logic here
+auth.tenantId = tenantId;
+```
+
+**4. Test Tenant Isolation**:
+   - Users in tenant A cannot access tenant B's data
+   - Each tenant has separate user database
+   - Auth tokens include tenant ID in claims
+
+##### Troubleshooting Custom Auth Domains
+
+**Issue**: "auth/invalid-custom-token" error
+
+**Cause**: Custom domain not fully provisioned or DNS not propagated
+
+**Solution**:
+- Verify domain shows "Active" in Firebase Console
+- Check DNS CNAME record is correct
+- Wait 30 minutes for full propagation
+- Clear browser cache and retry
+
+**Issue**: CORS errors on custom auth domain
+
+**Cause**: Custom auth domain not added to authorized domains list
+
+**Solution**:
+- Add both `auth.yourdomain.com` and `app.yourdomain.com` to authorized domains
+- Ensure both auth and app domains are in the list
+
+**Issue**: Redirects still use firebaseapp.com
+
+**Cause**: Frontend not rebuilt with new `VITE_FIREBASE_AUTH_DOMAIN`
+
+**Solution**:
+- Verify `VITE_FIREBASE_AUTH_DOMAIN=auth.yourdomain.com` in build
+- Rebuild Docker image with correct env var
+- Inspect bundled JavaScript to confirm custom domain is used:
+  ```bash
+  docker run --rm IMAGE cat /usr/share/nginx/html/assets/index-*.js | grep "authDomain"
+  # Should show: authDomain:"auth.yourdomain.com"
+  ```
 
 #### Cookie Restrictions on Custom Domains
 
@@ -924,16 +1095,20 @@ curl -I https://adventure-client-xyz123-uc.a.run.app
 
 # Expected: HTTP/2 200
 
-# 3. Check CORS headers on backend
+# 3. Check CORS headers on backend (preflight)
 curl -X OPTIONS https://your-dungeon-master-api.run.app/characters \
   -H "Origin: https://adventure-client-xyz123-uc.a.run.app" \
+  -H "Access-Control-Request-Method: GET" \
+  -H "Access-Control-Request-Headers: Authorization,X-User-Id" \
   -v
 
-# Expected headers:
+# Expected response headers:
 # Access-Control-Allow-Origin: https://adventure-client-xyz123-uc.a.run.app
 # Access-Control-Allow-Credentials: true
+# Access-Control-Allow-Headers: Authorization, X-User-Id, Content-Type, Accept
+#   ^^^ CRITICAL: Verify X-User-Id is explicitly listed
 
-# 4. Test authenticated request
+# 4. Test authenticated request with both required headers
 curl https://your-dungeon-master-api.run.app/characters \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "X-User-Id: YOUR_UID" \
@@ -941,7 +1116,59 @@ curl https://your-dungeon-master-api.run.app/characters \
   -v
 
 # Expected: 200 OK with character data
+# If 403: Check backend accepts X-User-Id header
+
+# 5. Verify frontend sends X-User-Id header
+# In production, use browser DevTools:
+# - Open DevTools > Network tab
+# - Sign in to your app
+# - Make an API call (navigate to /characters)
+# - Click the API request in Network tab
+# - Check Request Headers section
+# - Verify presence of:
+#   Authorization: Bearer eyJhbGci...
+#   X-User-Id: abc123user456
+#   ^^^ If missing, check API client configuration
+
+# 6. Test backend accepts X-User-Id header explicitly
+# This confirms backend CORS allows the custom header
+curl -X GET https://your-journey-log-api.run.app/entries \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "X-User-Id: YOUR_UID" \
+  -H "Origin: https://adventure-client-xyz123-uc.a.run.app" \
+  -v
+
+# Expected: 200 OK
+# If CORS error: Backend doesn't allow X-User-Id in allow_headers
+# If 403: Backend doesn't process X-User-Id for authorization
 ```
+
+**Critical Header Verification**:
+
+The `X-User-Id` header is a **custom header** required by both dungeon-master and journey-log APIs for user authorization. Backend CORS configuration must explicitly allow this header, or all authenticated requests will fail.
+
+**Frontend sends**: `X-User-Id: <firebase-uid>`
+**Backend requires**: `X-User-Id` in `allow_headers` list
+**Common mistake**: Forgetting to include `X-User-Id`, only allowing standard headers
+
+To verify `X-User-Id` is being sent by the frontend:
+
+1. Open your deployed Cloud Run app in browser
+2. Open DevTools (F12) > Network tab
+3. Sign in and navigate to a page that makes API calls (e.g., `/characters`)
+4. Find a request to dungeon-master or journey-log API
+5. Click the request > Headers tab
+6. Scroll to **Request Headers** section
+7. Verify both headers are present:
+   ```
+   Authorization: Bearer eyJhbGci...
+   X-User-Id: abc123xyz456def789
+   ```
+
+If `X-User-Id` is missing from frontend requests, check your API client configuration:
+- OpenAPI generated clients should include it automatically
+- Verify `AuthProvider` is properly configured
+- Check custom Axios/fetch interceptors include the header
 
 #### Common Test Failures
 
