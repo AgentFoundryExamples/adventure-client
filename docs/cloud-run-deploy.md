@@ -1580,7 +1580,153 @@ gcloud billing budgets create \
 
 ### GitHub Actions Workflow
 
-Create `.github/workflows/deploy-cloud-run.yml`:
+This repository includes an **optional reference workflow** at `.github/workflows/cloud-run.yml` that automates the complete build, test, and deployment pipeline to Cloud Run.
+
+**Workflow Features**:
+- ✅ Automatically triggered on pushes to `main` branch
+- ✅ Can be manually triggered via GitHub Actions UI (`workflow_dispatch`)
+- ✅ Installs dependencies and runs linter (`npm run lint`)
+- ✅ Runs full test suite (`npm run test`)
+- ✅ Builds frontend to verify compilation (`npm run build`)
+- ✅ Builds Docker image and pushes to Artifact Registry (tagged with commit SHA)
+- ✅ Deploys to Cloud Run with production-ready settings
+- ✅ Uses Workload Identity Federation for secure, keyless authentication
+- ✅ Fails fast on lint or test errors before deploying
+- ✅ Prevents concurrent deployments to avoid race conditions
+- ✅ Automatically cleans up authentication credentials after completion
+
+**⚠️ Important**: This workflow is a **sample/reference implementation**. Teams must adapt secrets, permissions, service account roles, and configuration to their specific environment and security requirements.
+
+### Setting Up the Workflow
+
+#### 1. Configure Workload Identity Federation (Recommended)
+
+Workload Identity Federation allows GitHub Actions to authenticate to Google Cloud without service account keys, following security best practices.
+
+**Step-by-step Setup**:
+
+```bash
+# Set variables
+export PROJECT_ID="your-gcp-project-id"
+export PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format='value(projectNumber)')
+export POOL_NAME="github-actions-pool"
+export PROVIDER_NAME="github-provider"
+export SERVICE_ACCOUNT="github-actions-deployer"
+export REPO_OWNER="your-github-org"
+export REPO_NAME="adventure-client"
+
+# 1. Create service account for GitHub Actions
+gcloud iam service-accounts create ${SERVICE_ACCOUNT} \
+  --display-name="GitHub Actions Deployer" \
+  --project=${PROJECT_ID}
+
+# 2. Grant required permissions to service account
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/run.admin"
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/artifactregistry.writer"
+
+gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+  --member="serviceAccount:${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com" \
+  --role="roles/iam.serviceAccountUser"
+
+# 3. Create Workload Identity Pool
+gcloud iam workload-identity-pools create ${POOL_NAME} \
+  --location="global" \
+  --project=${PROJECT_ID}
+
+# 4. Create Workload Identity Provider for GitHub
+gcloud iam workload-identity-pools providers create-oidc ${PROVIDER_NAME} \
+  --location="global" \
+  --workload-identity-pool=${POOL_NAME} \
+  --issuer-uri="https://token.actions.githubusercontent.com" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository" \
+  --attribute-condition="assertion.repository == '${REPO_OWNER}/${REPO_NAME}'" \
+  --project=${PROJECT_ID}
+
+# 5. Allow GitHub Actions to impersonate service account
+gcloud iam service-accounts add-iam-policy-binding \
+  ${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL_NAME}/attribute.repository/${REPO_OWNER}/${REPO_NAME}" \
+  --project=${PROJECT_ID}
+
+# 6. Get provider resource name for GitHub secrets
+gcloud iam workload-identity-pools providers describe ${PROVIDER_NAME} \
+  --location="global" \
+  --workload-identity-pool=${POOL_NAME} \
+  --format="value(name)" \
+  --project=${PROJECT_ID}
+```
+
+Copy the output from step 6 (the provider resource name) for use in GitHub secrets.
+
+**Alternative: Service Account Key (Not Recommended)**
+
+If Workload Identity Federation is not available, you can use a service account key (less secure):
+
+```bash
+# Create and download service account key
+gcloud iam service-accounts keys create key.json \
+  --iam-account=${SERVICE_ACCOUNT}@${PROJECT_ID}.iam.gserviceaccount.com
+
+# Add as GitHub secret GCP_SA_KEY (base64 encoded)
+# ⚠️ Remember to securely delete key.json after adding to GitHub
+```
+
+#### 2. Configure GitHub Secrets
+
+Navigate to your repository on GitHub: **Settings → Secrets and variables → Actions → New repository secret**
+
+Add the following secrets (12 required + 1 optional):
+
+**Google Cloud Configuration** (3 secrets):
+- `GCP_PROJECT_ID`: Your Google Cloud project ID (e.g., `my-adventure-prod`)
+- `WIF_PROVIDER`: Full Workload Identity provider resource name from setup step 6 above
+  - Format: `projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_NAME/providers/PROVIDER_NAME`
+- `WIF_SERVICE_ACCOUNT`: Service account email
+  - Format: `github-actions-deployer@PROJECT_ID.iam.gserviceaccount.com`
+
+**Backend API Endpoints** (2 secrets):
+- `VITE_DUNGEON_MASTER_API_BASE_URL`: Dungeon Master API URL (e.g., `https://dungeon-master-api-xxx.run.app`)
+- `VITE_JOURNEY_LOG_API_BASE_URL`: Journey Log API URL (e.g., `https://journey-log-api-xxx.run.app`)
+
+**Firebase Configuration** (7 required + 1 optional = 8 secrets):
+- `VITE_FIREBASE_API_KEY`: Firebase API key (from Firebase Console → Project Settings)
+- `VITE_FIREBASE_AUTH_DOMAIN`: Firebase auth domain (e.g., `your-project.firebaseapp.com`)
+- `VITE_FIREBASE_PROJECT_ID`: Firebase project ID
+- `VITE_FIREBASE_STORAGE_BUCKET`: Firebase storage bucket (e.g., `your-project.appspot.com`)
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`: Firebase messaging sender ID (numeric)
+- `VITE_FIREBASE_APP_ID`: Firebase app ID (format: `1:xxx:web:xxx`)
+- `VITE_FIREBASE_MEASUREMENT_ID`: Firebase measurement/analytics ID (format: `G-XXXXXXXXXX`) - **Optional**, can be empty string if not using Google Analytics
+
+> **🔐 Security Note**: While Firebase configuration values are client-visible (they're bundled in the frontend), storing them as GitHub secrets:
+> 1. Prevents accidental exposure in public repositories
+> 2. Enables different values for staging/production environments
+> 3. Centralizes configuration management
+> 4. Allows secret rotation without code changes
+
+#### 3. Enable Workflow
+
+Once secrets are configured:
+
+1. Push a commit to the `main` branch, or
+2. Manually trigger the workflow from GitHub Actions UI
+
+The workflow will:
+1. ✅ Install dependencies
+2. ✅ Run linter and tests (fail fast if errors)
+3. ✅ Build frontend
+4. ✅ Build and push Docker image to Artifact Registry
+5. ✅ Deploy to Cloud Run
+6. ✅ Output the service URL in the deployment summary
+
+### Workflow Reference (Abbreviated)
+
+The actual workflow is defined in `.github/workflows/cloud-run.yml`. Here's an abbreviated structure for reference:
 
 ```yaml
 name: Deploy to Cloud Run
@@ -1598,78 +1744,202 @@ env:
 
 jobs:
   deploy:
-    name: Build and Deploy
+    name: Build, Test, and Deploy
     runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.SERVICE_NAME }}
-      IMAGE_TAG: ${{ github.sha }}
-    permissions:
-      contents: read
-      id-token: write  # For Workload Identity Federation
-
+    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - name: Checkout code
+      - name: Setup Node.js
+      - name: Install dependencies
+      - name: Run linter (fail fast)
+      - name: Run tests with verification (fail fast)
+      - name: Build frontend
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
-
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Build and Push Container
-        run: |
-          gcloud builds submit \
-            --tag="${IMAGE_NAME}:${IMAGE_TAG}" \
-            --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="${{ secrets.VITE_DUNGEON_MASTER_API_BASE_URL }}" \
-            --build-arg VITE_JOURNEY_LOG_API_BASE_URL="${{ secrets.VITE_JOURNEY_LOG_API_BASE_URL }}" \
-            --build-arg VITE_FIREBASE_API_KEY="${{ secrets.VITE_FIREBASE_API_KEY }}" \
-            --build-arg VITE_FIREBASE_AUTH_DOMAIN="${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}" \
-            --build-arg VITE_FIREBASE_PROJECT_ID="${{ secrets.VITE_FIREBASE_PROJECT_ID }}" \
-            --build-arg VITE_FIREBASE_STORAGE_BUCKET="${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}" \
-            --build-arg VITE_FIREBASE_MESSAGING_SENDER_ID="${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}" \
-            --build-arg VITE_FIREBASE_APP_ID="${{ secrets.VITE_FIREBASE_APP_ID }}" \
-            --build-arg VITE_FIREBASE_MEASUREMENT_ID="${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}"
-
+      - name: Configure Docker authentication
+      - name: Build Docker image locally
+      - name: Push to Artifact Registry
       - name: Deploy to Cloud Run
-        run: |
-          gcloud run deploy ${SERVICE_NAME} \
-            --image="${IMAGE_NAME}:${IMAGE_TAG}" \
-            --platform=managed \
-            --region=${REGION} \
-            --allow-unauthenticated \
-            --port=8080 \
-            --cpu=1 \
-            --memory=512Mi \
-            --min-instances=0 \
-            --max-instances=10 \
-            --timeout=300s \
-            --concurrency=80
-
-      - name: Get Service URL
-        run: |
-          SERVICE_URL=$(gcloud run services describe ${SERVICE_NAME} \
-            --region=${REGION} \
-            --format='value(status.url)')
-          echo "🚀 Deployed to: ${SERVICE_URL}"
+      - name: Get service URL
 ```
 
-**Required GitHub Secrets**:
-- `GCP_PROJECT_ID`
-- `WIF_PROVIDER` (Workload Identity Federation provider)
-- `WIF_SERVICE_ACCOUNT`
-- `VITE_DUNGEON_MASTER_API_BASE_URL`
-- `VITE_JOURNEY_LOG_API_BASE_URL`
-- `VITE_FIREBASE_API_KEY`
-- `VITE_FIREBASE_AUTH_DOMAIN`
-- `VITE_FIREBASE_PROJECT_ID`
-- `VITE_FIREBASE_STORAGE_BUCKET`
-- `VITE_FIREBASE_MESSAGING_SENDER_ID`
-- `VITE_FIREBASE_APP_ID`
-- `VITE_FIREBASE_MEASUREMENT_ID`
+**Security Note**: The workflow builds Docker images locally on GitHub Actions runners instead of using `gcloud builds submit`. This approach keeps build arguments within GitHub Actions' secure, access-controlled logging environment rather than exposing them in Cloud Build logs.
+
+**View the complete workflow**: [`.github/workflows/cloud-run.yml`](../.github/workflows/cloud-run.yml)
+
+### Edge Cases and Best Practices
+
+#### Handling Concurrent Pushes
+
+The workflow includes a `concurrency` configuration that prevents simultaneous deployments:
+
+```yaml
+concurrency:
+  group: cloud-run-deployment
+  cancel-in-progress: false  # Let running deployments complete
+```
+
+This ensures:
+- ✅ Only one deployment runs at a time
+- ✅ Subsequent pushes queue rather than conflict
+- ✅ No risk of partial deployments or race conditions
+
+**Alternative Approach: Zero-Downtime Deployments**
+
+For more advanced scenarios requiring zero downtime during concurrent pushes:
+
+```bash
+# Deploy with --no-traffic flag (staged deployment)
+gcloud run deploy ${SERVICE_NAME} \
+  --image="${IMAGE_NAME}:${IMAGE_TAG}" \
+  --no-traffic \
+  --tag="staging-${GITHUB_SHA:0:7}" \
+  # ... other flags ...
+
+# Test the staged revision
+curl https://staging-abc123---adventure-client-xxx.run.app
+
+# Gradually migrate traffic to new revision
+gcloud run services update-traffic ${SERVICE_NAME} \
+  --region=${REGION} \
+  --to-revisions="staging-${GITHUB_SHA:0:7}=10"  # 10% traffic
+
+# Full cutover after validation
+gcloud run services update-traffic ${SERVICE_NAME} \
+  --region=${REGION} \
+  --to-latest
+```
+
+#### Artifact Registry Permission Failures
+
+If the workflow fails during the Docker push step with permission errors:
+
+**Troubleshooting Steps**:
+
+1. **Verify service account permissions**:
+   ```bash
+   gcloud projects get-iam-policy ${PROJECT_ID} \
+     --flatten="bindings[].members" \
+     --filter="bindings.members:serviceAccount:github-actions-deployer@*"
+   ```
+
+2. **Check Artifact Registry repository exists**:
+   ```bash
+   gcloud artifacts repositories describe adventure-client \
+     --location=us-central1 \
+     --format=json
+   ```
+
+3. **Grant missing permissions**:
+   ```bash
+   gcloud projects add-iam-policy-binding ${PROJECT_ID} \
+     --member="serviceAccount:github-actions-deployer@${PROJECT_ID}.iam.gserviceaccount.com" \
+     --role="roles/artifactregistry.writer"
+   ```
+
+4. **Verify Workload Identity Federation binding**:
+   ```bash
+   gcloud iam service-accounts get-iam-policy \
+     github-actions-deployer@${PROJECT_ID}.iam.gserviceaccount.com
+   ```
+
+**Fallback: Manual Push**
+
+If automated push fails, manually build and push locally:
+
+```bash
+# Authenticate Docker locally
+gcloud auth configure-docker us-central1-docker.pkg.dev
+
+# Build locally
+docker build -t ${IMAGE_NAME}:${GITHUB_SHA} \
+  --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="..." \
+  # ... (all other build args)
+
+# Push manually
+docker push ${IMAGE_NAME}:${GITHUB_SHA}
+
+# Deploy manually
+gcloud run deploy ${SERVICE_NAME} --image="${IMAGE_NAME}:${GITHUB_SHA}" ...
+```
+
+#### Adapting for Different Regions and Projects
+
+The workflow uses placeholders that forks and teams should adapt:
+
+**Configurable Values in Workflow**:
+```yaml
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}  # ← Adapt via GitHub secret
+  REGION: us-central1                        # ← Change if deploying to other regions
+  SERVICE_NAME: adventure-client             # ← Change for different service names
+  ARTIFACT_REGISTRY: adventure-client        # ← Change if using different registry name
+```
+
+**Common Region Alternatives**:
+- `us-central1` (Iowa, USA) - Default, lowest latency for US
+- `us-east1` (South Carolina, USA)
+- `europe-west1` (Belgium)
+- `asia-northeast1` (Tokyo)
+- See all regions: [Cloud Run Locations](https://cloud.google.com/run/docs/locations)
+
+**Important**: Artifact Registry and Cloud Run service should be in the **same region** to minimize latency and data transfer costs.
+
+#### Rotating Service Account Keys and Secrets
+
+**Service Account Key Rotation** (if not using Workload Identity Federation):
+
+```bash
+# 1. Create new key
+gcloud iam service-accounts keys create new-key.json \
+  --iam-account=github-actions-deployer@${PROJECT_ID}.iam.gserviceaccount.com
+
+# 2. Update GitHub secret with new key (base64 encoded)
+
+# 3. Verify new key works by triggering workflow
+
+# 4. Delete old key
+gcloud iam service-accounts keys list \
+  --iam-account=github-actions-deployer@${PROJECT_ID}.iam.gserviceaccount.com
+
+gcloud iam service-accounts keys delete OLD_KEY_ID \
+  --iam-account=github-actions-deployer@${PROJECT_ID}.iam.gserviceaccount.com
+```
+
+**Recommended Rotation Schedule**:
+- Service account keys: Every 90 days (quarterly)
+- Firebase API keys: Only if compromised (they're client-visible, so rotation is less critical)
+- Backend API URLs: Only when endpoints change
+- Workload Identity Federation: No rotation needed (keyless authentication)
+
+**Best Practice**: Use **Workload Identity Federation** instead of service account keys to eliminate key rotation requirements entirely.
+
+#### Monitoring Workflow Failures
+
+**GitHub Actions Notifications**:
+- Enable email notifications: Settings → Notifications → Actions
+- Use status checks to block PRs if workflow fails
+- Set up Slack/Discord webhooks for deployment notifications
+
+**Cloud Run Monitoring**:
+```bash
+# View recent logs
+gcloud run logs read ${SERVICE_NAME} --region=${REGION} --limit=50
+
+# Stream live logs
+gcloud run logs tail ${SERVICE_NAME} --region=${REGION}
+
+# Check service health
+gcloud run services describe ${SERVICE_NAME} \
+  --region=${REGION} \
+  --format='value(status.conditions[0].message)'
+```
+
+**Common Failure Modes**:
+1. **Test failures**: Fix tests before merging to main
+2. **Build args missing**: Verify all 13 GitHub secrets are configured
+3. **Permission denied**: Check service account IAM roles
+4. **Image too large**: Optimize Docker layers, remove unnecessary dependencies
+5. **Deployment timeout**: Increase `--timeout` flag or optimize container startup
 
 ---
 
@@ -1688,9 +1958,18 @@ echo "Deploying with API key: ${VITE_FIREBASE_API_KEY}"
 echo "Deploying with Firebase configuration (credentials redacted)"
 ```
 
-**2. Sanitize Cloud Build Logs**:
-- Build args are visible in Cloud Build logs
+**2. CI/CD Build Strategy**:
+
+**For GitHub Actions (Recommended)**:
+- The provided workflow builds Docker images locally on GitHub Actions runners
+- Build arguments are only visible in GitHub Actions logs (private to your organization)
+- This approach avoids exposing credentials in Cloud Build logs
+- GitHub Actions logs are encrypted and access-controlled
+
+**For Cloud Build (Alternative)**:
+- Build args passed to `gcloud builds submit` are visible in Cloud Build logs
 - Use `gcloud builds submit --suppress-logs` for sensitive builds (not recommended for debugging)
+- Consider using Secret Manager integration for Cloud Build
 - Review logs before sharing with team members
 
 **3. Review Command History**:
@@ -1718,7 +1997,7 @@ availableSecrets:
 
 **5. Audit Access to Deployment Credentials**:
 - Limit who has access to `deployment-config.sh`
-- Use Cloud IAM to restrict who can view Cloud Build logs
+- Use Cloud IAM to restrict who can view GitHub Actions or Cloud Build logs
 - Rotate Firebase API keys if accidentally exposed (though they're client-side safe)
 
 **6. Monitor for Credential Exposure**:

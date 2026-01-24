@@ -1,0 +1,206 @@
+# Cloud Run CI/CD Workflow
+# 
+# This workflow builds, tests, and deploys the Adventure Client frontend to Google Cloud Run.
+# It is triggered on pushes to the main branch and can also be manually triggered.
+#
+# IMPORTANT: This workflow is an OPTIONAL REFERENCE IMPLEMENTATION.
+# Teams must adapt secrets, permissions, and configuration to their environment.
+#
+# Required GitHub Secrets:
+# - GCP_PROJECT_ID: Your Google Cloud Project ID
+# - WIF_PROVIDER: Workload Identity Federation provider (format: projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID)
+# - WIF_SERVICE_ACCOUNT: Service account email for deployment (format: SERVICE_ACCOUNT_NAME@PROJECT_ID.iam.gserviceaccount.com)
+# - VITE_DUNGEON_MASTER_API_BASE_URL: Backend API endpoint for Dungeon Master service
+# - VITE_JOURNEY_LOG_API_BASE_URL: Backend API endpoint for Journey Log service
+# - VITE_FIREBASE_API_KEY: Firebase API key
+# - VITE_FIREBASE_AUTH_DOMAIN: Firebase auth domain
+# - VITE_FIREBASE_PROJECT_ID: Firebase project ID
+# - VITE_FIREBASE_STORAGE_BUCKET: Firebase storage bucket
+# - VITE_FIREBASE_MESSAGING_SENDER_ID: Firebase messaging sender ID
+# - VITE_FIREBASE_APP_ID: Firebase app ID
+# - VITE_FIREBASE_MEASUREMENT_ID: Firebase measurement ID (optional - can be empty if not using Google Analytics)
+#
+# Service Account Permissions Required:
+# - roles/run.admin (for Cloud Run deployment)
+# - roles/artifactregistry.writer (for pushing Docker images)
+# - roles/iam.serviceAccountUser (for acting as the Cloud Run service account)
+#
+# See docs/cloud-run-deploy.md for detailed setup instructions and manual deployment reference.
+
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual triggering
+
+# Prevent concurrent deployments to avoid race conditions
+concurrency:
+  group: cloud-run-deployment
+  cancel-in-progress: false  # Let running deployments complete
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  REGION: us-central1
+  SERVICE_NAME: adventure-client
+  ARTIFACT_REGISTRY: adventure-client
+
+jobs:
+  deploy:
+    name: Build, Test, and Deploy
+    runs-on: ubuntu-latest
+    
+    # Skip deployment if commit is from maintenance bot
+    if: github.actor != 'github-actions[bot]'
+    
+    permissions:
+      contents: read
+      id-token: write  # Required for Workload Identity Federation
+
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'  # Node 24 LTS as per ts_dev_versions.txt
+          cache: 'npm'
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run linter (fail fast on code quality issues)
+      - name: Run linter
+        run: npm run lint
+
+      # Step 5: Run tests (fail fast on test failures)
+      - name: Run tests
+        run: |
+          echo "🧪 Running tests..."
+          npm run test -- --reporter=verbose --reporter=json --outputFile=test-results.json
+          
+          # Verify tests actually ran and passed
+          if [ ! -f test-results.json ]; then
+            echo "❌ Error: Test results file not found"
+            exit 1
+          fi
+          
+          # Parse test results using jq for robust JSON handling
+          TEST_COUNT=$(jq -r '.numTotalTests // 0' test-results.json)
+          PASSED_COUNT=$(jq -r '.numPassedTests // 0' test-results.json)
+          
+          # Verify tests were executed
+          if [ "$TEST_COUNT" = "0" ]; then
+            echo "❌ Error: No tests were executed"
+            exit 1
+          fi
+          
+          # Verify all tests passed
+          if [ "$TEST_COUNT" != "$PASSED_COUNT" ]; then
+            echo "❌ Error: Some tests failed ($PASSED_COUNT/$TEST_COUNT passed)"
+            exit 1
+          fi
+          
+          echo "✅ All $TEST_COUNT tests passed"
+          rm test-results.json
+
+      # Step 6: Build frontend (verify build works before deploying)
+      - name: Build frontend
+        run: npm run build
+
+      # Step 7: Authenticate to Google Cloud using Workload Identity Federation
+      - name: Authenticate to Google Cloud
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+          cleanup_credentials: true  # Clean up credentials after workflow completes
+
+      # Step 8: Set up Cloud SDK
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # Step 9: Configure Docker to authenticate with Artifact Registry
+      - name: Configure Docker authentication
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+      # Step 10: Build Docker image locally (avoids exposing secrets in Cloud Build logs)
+      # Uses commit SHA for immutable tagging (not :latest)
+      - name: Build Docker image
+        env:
+          IMAGE_NAME: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.SERVICE_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "🔨 Building Docker image: ${IMAGE_NAME}:${IMAGE_TAG}"
+          # Build with secrets as build args (only visible in GitHub Actions logs, not Cloud Build)
+          docker build \
+            --tag="${IMAGE_NAME}:${IMAGE_TAG}" \
+            --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="${{ secrets.VITE_DUNGEON_MASTER_API_BASE_URL }}" \
+            --build-arg VITE_JOURNEY_LOG_API_BASE_URL="${{ secrets.VITE_JOURNEY_LOG_API_BASE_URL }}" \
+            --build-arg VITE_FIREBASE_API_KEY="${{ secrets.VITE_FIREBASE_API_KEY }}" \
+            --build-arg VITE_FIREBASE_AUTH_DOMAIN="${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}" \
+            --build-arg VITE_FIREBASE_PROJECT_ID="${{ secrets.VITE_FIREBASE_PROJECT_ID }}" \
+            --build-arg VITE_FIREBASE_STORAGE_BUCKET="${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}" \
+            --build-arg VITE_FIREBASE_MESSAGING_SENDER_ID="${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}" \
+            --build-arg VITE_FIREBASE_APP_ID="${{ secrets.VITE_FIREBASE_APP_ID }}" \
+            --build-arg VITE_FIREBASE_MEASUREMENT_ID="${{ secrets.VITE_FIREBASE_MEASUREMENT_ID }}" \
+            .
+          echo "✅ Docker image built successfully"
+
+      # Step 11: Push Docker image to Artifact Registry
+      - name: Push Docker image
+        env:
+          IMAGE_NAME: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.SERVICE_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "📦 Pushing Docker image to Artifact Registry..."
+          docker push "${IMAGE_NAME}:${IMAGE_TAG}"
+          echo "✅ Docker image pushed successfully"
+
+      # Step 12: Deploy to Cloud Run
+      - name: Deploy to Cloud Run
+        env:
+          IMAGE_NAME: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REGISTRY }}/${{ env.SERVICE_NAME }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          echo "☁️  Deploying to Cloud Run..."
+          gcloud run deploy ${SERVICE_NAME} \
+            --image="${IMAGE_NAME}:${IMAGE_TAG}" \
+            --platform=managed \
+            --region=${REGION} \
+            --allow-unauthenticated \
+            --port=8080 \
+            --cpu=1 \
+            --memory=512Mi \
+            --min-instances=0 \
+            --max-instances=10 \
+            --timeout=300s \
+            --concurrency=80
+          echo "✅ Deployment completed"
+
+      # Step 13: Get and display service URL
+      - name: Get service URL
+        run: |
+          SERVICE_URL=$(gcloud run services describe ${SERVICE_NAME} \
+            --region=${REGION} \
+            --format='value(status.url)')
+          echo "🚀 Deployed to: ${SERVICE_URL}"
+          echo "SERVICE_URL=${SERVICE_URL}" >> $GITHUB_ENV
+
+      # Step 14: Post-deployment summary
+      - name: Deployment summary
+        run: |
+          echo "### Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Service:** ${SERVICE_NAME}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Region:** ${REGION}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image Tag:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **URL:** ${SERVICE_URL}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All steps completed successfully" >> $GITHUB_STEP_SUMMARY
