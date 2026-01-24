@@ -10,6 +10,7 @@ This guide walks you through setting up Firebase Authentication for the Adventur
 - [Enabling Authentication Providers](#enabling-authentication-providers)
 - [Configuring Authorized Domains](#configuring-authorized-domains)
 - [Environment Configuration](#environment-configuration)
+- [Production Deployment with Cloud Run](#production-deployment-with-cloud-run)
 - [Authentication Flow Components](#authentication-flow-components)
 - [Testing Authentication](#testing-authentication)
 - [Troubleshooting](#troubleshooting)
@@ -304,6 +305,1021 @@ In GitHub Actions or Cloud Build, store secrets securely:
    - Variables are visible in the client JavaScript bundle
    - This is expected and safe for Firebase configuration
    - Do not store backend secrets in frontend env vars
+
+## Production Deployment with Cloud Run
+
+This section provides comprehensive guidance for configuring Firebase Authentication for production deployments on Google Cloud Run, including authorized domains, backend CORS configuration, and troubleshooting production-specific auth issues.
+
+> **📘 Deployment Prerequisites**: Before configuring production Firebase settings, ensure you have deployed your application to Cloud Run. See [docs/cloud-run-deploy.md](./cloud-run-deploy.md) for complete deployment instructions.
+
+### Overview of Production Configuration
+
+When deploying to Cloud Run, several configuration changes are required to ensure Firebase Authentication and API calls work correctly:
+
+1. **Firebase Authorized Domains**: Add your Cloud Run service URL to Firebase's whitelist
+2. **Backend CORS Configuration**: Ensure dungeon-master and journey-log APIs accept requests from Cloud Run
+3. **HTTPS Requirements**: Verify all production auth flows use HTTPS
+4. **Custom Domains**: Configure additional domains if using custom domain mapping
+
+**Risk**: Skipping authorized domain or CORS updates will block sign-ins and API calls from production, resulting in 403 errors or auth failures.
+
+### Obtaining Your Cloud Run Service URL
+
+After deploying to Cloud Run (see [deployment guide](./cloud-run-deploy.md)), you need to capture the service URL:
+
+```bash
+# Get the service URL
+gcloud run services describe YOUR_SERVICE_NAME \
+  --region=YOUR_REGION \
+  --format='value(status.url)'
+
+# Example output:
+# https://adventure-client-xyz123-uc.a.run.app
+```
+
+**Important Notes**:
+- Cloud Run generates unique URLs per service (e.g., `adventure-client-xyz123-uc.a.run.app`)
+- The URL includes a hash suffix that is stable unless you delete and recreate the service
+- Always use the **hostname only** when adding to Firebase (without `https://` protocol)
+
+### Step 1: Add Cloud Run URL to Firebase Authorized Domains
+
+Firebase Authentication requires all authentication-enabled domains to be explicitly whitelisted.
+
+#### For Single Environment (Production)
+
+1. Navigate to [Firebase Console](https://console.firebase.google.com/)
+2. Select your **production** Firebase project
+3. Go to **Authentication > Settings** tab
+4. Scroll to **Authorized domains** section
+5. Click **Add domain**
+6. Enter your Cloud Run hostname (e.g., `adventure-client-xyz123-uc.a.run.app`)
+7. Click **Add**
+
+#### For Multiple Environments (Staging + Production)
+
+If you have separate staging and production deployments, add **both** Cloud Run URLs:
+
+| Environment | Firebase Project | Cloud Run URL Example | Notes |
+|-------------|------------------|----------------------|-------|
+| Staging | `adventure-game-staging` | `adventure-client-staging-abc.a.run.app` | For QA testing |
+| Production | `adventure-game-prod` | `adventure-client-prod-xyz.a.run.app` | For live users |
+
+**Best Practice**: Use separate Firebase projects for each environment to isolate user databases and prevent accidental data mixing.
+
+#### Adding Custom Domains
+
+If you map a custom domain to your Cloud Run service:
+
+1. Complete the custom domain mapping in Cloud Run (see [Cloud Run custom domains](https://cloud.google.com/run/docs/mapping-custom-domains))
+2. Add **both** the Cloud Run auto-generated URL **and** your custom domain to Firebase:
+   - `adventure-client-xyz123-uc.a.run.app` (required even with custom domain)
+   - `app.yourdomain.com` (your custom domain)
+
+**Why both?**: During deployment and health checks, Cloud Run may serve requests on the auto-generated URL before custom domain routing is active.
+
+#### Verification
+
+After adding domains:
+
+1. Wait 2-5 minutes for Firebase configuration to propagate
+2. Visit your Cloud Run URL in a browser
+3. Attempt to sign in using Email/Password or Google Sign-In
+4. Check browser console for any `auth/unauthorized-domain` errors
+5. If errors persist, verify:
+   - Domain spelling (case-sensitive)
+   - No `https://` prefix in Firebase domain list
+   - Firebase Console shows domain as "Verified"
+
+### Step 2: Configure Backend CORS for Cloud Run Origin
+
+The Adventure Client makes authenticated API calls to two backend services: **dungeon-master** and **journey-log**. Both must be configured to accept requests from your Cloud Run origin.
+
+#### Understanding CORS Requirements
+
+CORS (Cross-Origin Resource Sharing) is enforced by browsers when your frontend (running on Cloud Run) makes requests to backend APIs (running on different origins). The backends must explicitly allow:
+
+- **Origin**: The Cloud Run URL making the request
+- **Headers**: Authentication and user identification headers
+- **Methods**: HTTP methods used (GET, POST, PUT, DELETE, OPTIONS)
+- **Credentials**: Cookies and auth tokens
+
+#### Required Headers for API Calls
+
+The Adventure Client sends these headers with every authenticated API request:
+
+| Header | Value Example | Purpose |
+|--------|---------------|---------|
+| `Authorization` | `Bearer eyJhbGci...` | Firebase ID token for authentication |
+| `X-User-Id` | `abc123user456` | User's Firebase UID for authorization |
+| `Content-Type` | `application/json` | Request body format |
+
+#### Configuring Dungeon Master API CORS
+
+The Dungeon Master API must allow your Cloud Run origin and required headers.
+
+**Expected Backend CORS Configuration** (Python/FastAPI example):
+
+```python
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",  # Local development
+        "https://adventure-client-xyz123-uc.a.run.app",  # Production Cloud Run
+        "https://app.yourdomain.com",  # Custom domain (if used)
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "X-User-Id",
+        "Content-Type",
+        "Accept",
+    ],
+)
+```
+
+**Key Points**:
+- Add your Cloud Run URL to `allow_origins`
+- Include `Authorization` and `X-User-Id` in `allow_headers`
+- Enable `allow_credentials=True` for token-based auth
+- Allow `OPTIONS` method for preflight requests
+
+**Verification**:
+```bash
+# Test CORS preflight from Cloud Run origin
+curl -X OPTIONS https://your-dungeon-master-api.run.app/characters \
+  -H "Origin: https://adventure-client-xyz123-uc.a.run.app" \
+  -H "Access-Control-Request-Method: GET" \
+  -H "Access-Control-Request-Headers: Authorization,X-User-Id" \
+  -v
+
+# Expected response headers:
+# Access-Control-Allow-Origin: https://adventure-client-xyz123-uc.a.run.app
+# Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+# Access-Control-Allow-Headers: Authorization, X-User-Id, Content-Type, Accept
+# Access-Control-Allow-Credentials: true
+```
+
+#### Configuring Journey Log API CORS
+
+The Journey Log API has identical CORS requirements to Dungeon Master:
+
+```python
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "https://adventure-client-xyz123-uc.a.run.app",  # Add your Cloud Run URL
+        "https://app.yourdomain.com",
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "X-User-Id",
+        "Content-Type",
+        "Accept",
+    ],
+)
+```
+
+#### Common CORS Pitfalls
+
+❌ **Mistake**: Using wildcard `*` for `allow_origins` with `allow_credentials=True`
+```python
+allow_origins=["*"]  # ❌ FAILS with credentials
+allow_credentials=True
+```
+
+✅ **Correct**: Explicitly list allowed origins
+```python
+allow_origins=[
+    "https://adventure-client-xyz123-uc.a.run.app"
+]
+allow_credentials=True
+```
+
+❌ **Mistake**: Forgetting to allow OPTIONS method for preflight
+```python
+allow_methods=["GET", "POST"]  # ❌ Preflight fails
+```
+
+✅ **Correct**: Include OPTIONS for CORS preflight
+```python
+allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+```
+
+❌ **Mistake**: Missing required auth headers
+```python
+allow_headers=["Content-Type"]  # ❌ Authorization headers blocked
+```
+
+✅ **Correct**: Include all auth headers
+```python
+allow_headers=["Authorization", "X-User-Id", "Content-Type", "Accept"]
+```
+
+#### Testing Backend CORS Configuration
+
+1. **Deploy backends** with updated CORS configuration
+2. **Test from Cloud Run** frontend:
+   ```javascript
+   // In browser console on your Cloud Run URL
+   fetch('https://your-dungeon-master-api.run.app/characters', {
+     method: 'GET',
+     headers: {
+       'Authorization': 'Bearer YOUR_TOKEN',
+       'X-User-Id': 'YOUR_UID',
+     },
+     credentials: 'include',
+   })
+     .then(res => res.json())
+     .then(console.log)
+     .catch(console.error);
+   ```
+3. **Check for CORS errors** in browser console:
+   - ✅ Success: No errors, response received
+   - ❌ Failure: "CORS policy: No 'Access-Control-Allow-Origin' header"
+
+### Step 3: Firebase Auth Considerations for HTTPS Origins
+
+Cloud Run enforces HTTPS for all traffic, which introduces specific requirements for Firebase Authentication.
+
+#### HTTPS-Only Requirements
+
+1. **Authentication Flows**: All Firebase auth methods (popup, redirect) require HTTPS in production
+   - ✅ `https://adventure-client-xyz.a.run.app` - Works
+   - ❌ `http://adventure-client-xyz.a.run.app` - Blocked by Firebase
+
+2. **Redirect URIs**: Firebase automatically validates redirect URIs match authorized domains
+   - Redirect URIs must use HTTPS
+   - Domain must exactly match authorized domain in Firebase Console
+
+3. **Token Cookies**: Firebase uses secure cookies for session persistence
+   - Cookies are marked `Secure` (HTTPS-only) in production
+   - Session state won't persist on HTTP connections
+
+#### Popup vs Redirect Authentication
+
+Cloud Run deployments work with both authentication methods:
+
+**Popup Authentication** (Default):
+```typescript
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+
+const provider = new GoogleAuthProvider();
+const result = await signInWithPopup(auth, provider);
+```
+
+**Considerations**:
+- Requires popup blockers to be disabled
+- Works well for desktop browsers
+- May be blocked on mobile devices or strict browser settings
+
+**Redirect Authentication** (Alternative):
+```typescript
+import { signInWithRedirect, getRedirectResult } from 'firebase/auth';
+
+// Initiate redirect
+await signInWithRedirect(auth, provider);
+
+// After redirect, check result
+const result = await getRedirectResult(auth);
+```
+
+**Considerations**:
+- No popup blockers to worry about
+- Better mobile browser compatibility
+- Requires proper redirect URI configuration
+- User leaves and returns to your app
+
+#### Custom Authentication Domains
+
+Firebase supports custom authentication domains for branding and multi-tenancy use cases. This allows you to use your own domain (e.g., `auth.yourdomain.com`) instead of the default `*.firebaseapp.com` domain for authentication flows.
+
+**When to Use Custom Auth Domains**:
+- Enterprise applications requiring branded authentication URLs
+- Multi-tenant applications with tenant-specific auth domains
+- Compliance requirements for authentication domain ownership
+- Custom OAuth redirect URLs for third-party integrations
+
+##### Complete Configuration Steps
+
+**1. Configure Custom Domain in Firebase Console**:
+
+a. Navigate to Firebase Console > **Authentication** > **Settings** > **Authorized domains**
+
+b. Click **Add custom domain** (requires Firebase Blaze plan)
+
+c. Enter your custom authentication domain:
+   - Example: `auth.yourdomain.com`
+   - Must be a subdomain (not apex domain)
+   - SSL certificate will be provisioned automatically by Firebase
+
+d. Verify domain ownership:
+   - Firebase provides a TXT record
+   - Add the TXT record to your DNS provider
+   - Wait for verification (usually 5-15 minutes)
+   - Firebase will display "Verified" status when complete
+
+e. Enable custom domain for authentication:
+   - Toggle "Enable" for the custom domain
+   - Wait for SSL certificate provisioning (15-30 minutes)
+   - Status shows "Active" when ready
+
+**2. Update DNS Records**:
+
+Add a CNAME record pointing to Firebase's auth servers:
+
+```
+Type: CNAME
+Name: auth (or your chosen subdomain)
+Value: your-project-id.firebaseapp.com
+TTL: 3600
+```
+
+Replace `your-project-id` with your actual Firebase project ID (e.g., `adventure-game-prod.firebaseapp.com`).
+
+Verify DNS propagation:
+```bash
+# Check CNAME record
+dig auth.yourdomain.com CNAME
+
+# Should return: auth.yourdomain.com. 3600 IN CNAME your-project-id.firebaseapp.com.
+```
+
+**3. Update Frontend Firebase Configuration**:
+
+Modify your Firebase config to use the custom auth domain:
+
+```typescript
+// In your Firebase initialization (src/config/firebase.ts or similar)
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+
+const firebaseConfig = {
+  apiKey: process.env.VITE_FIREBASE_API_KEY,
+  authDomain: "auth.yourdomain.com",  // Custom domain instead of {project-id}.firebaseapp.com
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.VITE_FIREBASE_APP_ID,
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// For multi-tenancy, also set tenant ID
+// auth.tenantId = "your-tenant-id";  // Optional: only if using Firebase multi-tenancy
+```
+
+**4. Add Custom Auth Domain to Authorized Domains**:
+
+The custom authentication domain must be separately authorized:
+
+a. In Firebase Console > **Authentication** > **Settings** > **Authorized domains**
+
+b. Click **Add domain**
+
+c. Add your custom auth domain: `auth.yourdomain.com`
+
+d. Also keep your application domains:
+   - `adventure-client-xyz123-uc.a.run.app` (Cloud Run)
+   - `app.yourdomain.com` (custom app domain, if used)
+
+**5. Update Environment Variables**:
+
+Update your environment configuration to use the custom domain:
+
+```bash
+# .env.production or Docker build args
+VITE_FIREBASE_AUTH_DOMAIN=auth.yourdomain.com
+```
+
+Rebuild and redeploy with the new configuration:
+```bash
+# Set your image name and tag
+IMAGE_NAME="us-central1-docker.pkg.dev/YOUR_PROJECT_ID/adventure-client/adventure-client"
+TAG="custom-auth-$(date +%s)"
+
+# Rebuild Docker image with new auth domain
+# For complete build args list, see cloud-run-deploy.md Environment Variables section
+gcloud builds submit --tag="${IMAGE_NAME}:${TAG}" \
+  --build-arg VITE_FIREBASE_AUTH_DOMAIN="auth.yourdomain.com" \
+  --build-arg VITE_FIREBASE_API_KEY="${VITE_FIREBASE_API_KEY}" \
+  --build-arg VITE_FIREBASE_PROJECT_ID="${VITE_FIREBASE_PROJECT_ID}" \
+  --build-arg VITE_FIREBASE_STORAGE_BUCKET="${VITE_FIREBASE_STORAGE_BUCKET}" \
+  --build-arg VITE_FIREBASE_MESSAGING_SENDER_ID="${VITE_FIREBASE_MESSAGING_SENDER_ID}" \
+  --build-arg VITE_FIREBASE_APP_ID="${VITE_FIREBASE_APP_ID}" \
+  --build-arg VITE_FIREBASE_MEASUREMENT_ID="${VITE_FIREBASE_MEASUREMENT_ID}" \
+  --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="${VITE_DUNGEON_MASTER_API_BASE_URL}" \
+  --build-arg VITE_JOURNEY_LOG_API_BASE_URL="${VITE_JOURNEY_LOG_API_BASE_URL}"
+```
+
+**6. Test Custom Auth Domain**:
+
+After configuration:
+
+a. Clear browser cache and cookies
+
+b. Navigate to your Cloud Run URL
+
+c. Initiate authentication (sign in/sign up)
+
+d. Verify in browser DevTools > Network tab:
+   - Auth requests go to `auth.yourdomain.com`
+   - Redirects use custom domain
+   - No `firebaseapp.com` requests appear
+
+e. Check for errors in console:
+   - Should see no CORS errors
+   - Should see no domain authorization errors
+
+##### Multi-Tenancy Configuration
+
+For applications serving multiple organizations with isolated authentication:
+
+**1. Enable Multi-Tenancy in Firebase Console**:
+   - Go to **Authentication** > **Settings** > **Multi-tenancy**
+   - Click **Get started**
+   - Create tenants for each organization
+
+**2. Assign Custom Domains Per Tenant** (Enterprise feature):
+   - Each tenant can have its own auth domain
+   - Example: `org1-auth.yourdomain.com`, `org2-auth.yourdomain.com`
+
+**3. Set Tenant ID in Frontend**:
+```typescript
+import { getAuth } from 'firebase/auth';
+
+const auth = getAuth(app);
+
+// Dynamically set tenant based on user's organization
+// Typically determined from URL subdomain or user selection
+const tenantId = getTenantIdFromContext(); // Your logic here
+auth.tenantId = tenantId;
+```
+
+**4. Test Tenant Isolation**:
+   - Users in tenant A cannot access tenant B's data
+   - Each tenant has separate user database
+   - Auth tokens include tenant ID in claims
+
+##### Troubleshooting Custom Auth Domains
+
+**Issue**: "auth/invalid-custom-token" error
+
+**Cause**: Custom domain not fully provisioned or DNS not propagated
+
+**Solution**:
+- Verify domain shows "Active" in Firebase Console
+- Check DNS CNAME record is correct
+- Wait 30 minutes for full propagation
+- Clear browser cache and retry
+
+**Issue**: CORS errors on custom auth domain
+
+**Cause**: Custom auth domain not added to authorized domains list
+
+**Solution**:
+- Add both `auth.yourdomain.com` and `app.yourdomain.com` to authorized domains
+- Ensure both auth and app domains are in the list
+
+**Issue**: Redirects still use firebaseapp.com
+
+**Cause**: Frontend not rebuilt with new `VITE_FIREBASE_AUTH_DOMAIN`
+
+**Solution**:
+- Verify `VITE_FIREBASE_AUTH_DOMAIN=auth.yourdomain.com` in build
+- Rebuild Docker image with correct env var
+- Inspect bundled JavaScript to confirm custom domain is used:
+  ```bash
+  docker run --rm your-image-name:tag cat /usr/share/nginx/html/assets/index-*.js | grep "authDomain"
+  # Should show: authDomain:"auth.yourdomain.com"
+  ```
+
+#### Cookie Restrictions on Custom Domains
+
+Modern browsers (Chrome, Safari) have strict cookie policies that affect authentication on custom domains:
+
+**SameSite Cookie Policy**:
+- Firebase sets cookies with `SameSite=None; Secure` for cross-site contexts
+- Custom domains may require additional cookie configuration
+- Third-party cookies may be blocked by browser privacy settings
+
+**Solutions**:
+1. **Use first-party domains**: Keep frontend and backend on same apex domain
+   - Frontend: `app.yourdomain.com`
+   - API: `api.yourdomain.com`
+   - Reduces cross-origin cookie issues
+
+2. **Test in multiple browsers**: Chrome, Safari, and Firefox have different cookie policies
+   - Chrome: Strict SameSite enforcement
+   - Safari: Intelligent Tracking Prevention (ITP)
+   - Firefox: Enhanced Tracking Protection
+
+3. **Provide fallback auth methods**: If cookies are blocked, rely on token-based auth
+   - Store tokens in memory or localStorage
+   - Include token in Authorization header for API calls
+
+### Step 4: Troubleshooting Production Auth Issues
+
+This section covers common production auth failures and their solutions.
+
+#### Issue: 403 Forbidden on API Calls
+
+**Symptoms**:
+- Authentication succeeds (user signs in)
+- API calls return 403 Forbidden
+- Backend logs show "unauthorized" or "invalid token"
+
+**Causes & Solutions**:
+
+1. **Backend doesn't allow Cloud Run origin**:
+   - Check backend CORS configuration includes Cloud Run URL
+   - Verify `allow_origins` list has exact URL match (case-sensitive)
+   - Restart backend services after CORS changes
+
+2. **Missing or incorrect Authorization header**:
+   - Verify frontend sends `Authorization: Bearer <token>`
+   - Check token format: should start with `eyJhbGci`
+   - Ensure token isn't expired (Firebase tokens expire after 1 hour)
+
+3. **Backend Firebase project mismatch**:
+   - Verify backend validates tokens against same Firebase project as frontend
+   - Check `VITE_FIREBASE_PROJECT_ID` matches backend Firebase Admin SDK config
+   - Ensure backend has correct service account credentials
+
+4. **User doesn't have required permissions**:
+   - Check backend authorization logic (separate from authentication)
+   - Verify user has access to requested resource
+   - Review backend authorization rules
+
+**Debugging Steps**:
+```bash
+# 1. Check if token is being sent
+# Open browser DevTools > Network tab > Select failed API call > Headers
+# Look for: Authorization: Bearer eyJhbGci...
+
+# 2. Test token validity
+# Copy token from Authorization header
+# Decode at https://jwt.io
+# Verify:
+# - "iss": "https://securetoken.google.com/YOUR_PROJECT_ID"
+# - "exp": Future timestamp (token not expired)
+# - "user_id": Your Firebase UID
+
+# 3. Check backend logs for specific error
+# If backend logs "invalid token signature", verify Firebase project ID match
+# If backend logs "token expired", check client-side token refresh logic
+```
+
+#### Issue: CORS Errors in Production
+
+**Symptoms**:
+- Browser console shows: "CORS policy: No 'Access-Control-Allow-Origin' header"
+- API calls fail with network errors
+- Works locally but fails in Cloud Run
+
+**Causes & Solutions**:
+
+1. **Backend doesn't allow Cloud Run origin**:
+   ```
+   ❌ Error: "Access-Control-Allow-Origin header has value 'http://localhost:5173'"
+   ✅ Fix: Add Cloud Run URL to backend allow_origins
+   ```
+
+2. **OPTIONS preflight request fails**:
+   ```
+   ❌ Error: "Response to preflight request doesn't pass access control check"
+   ✅ Fix: Ensure backend allows OPTIONS method and required headers
+   ```
+
+3. **Missing credentials support**:
+   ```
+   ❌ Error: "Credentials flag is 'true', but Access-Control-Allow-Credentials is missing"
+   ✅ Fix: Set allow_credentials=True in backend CORS config
+   ```
+
+4. **Wildcard origin with credentials**:
+   ```
+   ❌ Error: "Cannot use wildcard in Access-Control-Allow-Origin when credentials flag is true"
+   ✅ Fix: Replace allow_origins=["*"] with specific domains
+   ```
+
+**Debugging Steps**:
+1. Open browser DevTools > Network tab
+2. Find failed request
+3. Check **Response Headers** for CORS headers:
+   - `Access-Control-Allow-Origin`: Should match your Cloud Run URL
+   - `Access-Control-Allow-Credentials`: Should be `true`
+   - `Access-Control-Allow-Headers`: Should include `Authorization` and `X-User-Id`
+4. If headers are missing, update backend CORS configuration
+5. Redeploy backend and wait 2-3 minutes for propagation
+
+#### Issue: "auth/unauthorized-domain" Error
+
+**Symptoms**:
+- Firebase popup shows error: "auth/unauthorized-domain"
+- Sign-in attempt fails immediately
+- Error message: "This domain (YOUR_DOMAIN) is not authorized..."
+
+**Causes & Solutions**:
+
+1. **Domain not added to Firebase authorized domains**:
+   - Go to Firebase Console > Authentication > Settings > Authorized domains
+   - Verify your Cloud Run URL is listed
+   - Check for typos (domains are case-sensitive)
+
+2. **Recently added domain hasn't propagated**:
+   - Wait 5-10 minutes after adding domain
+   - Clear browser cache and cookies
+   - Try in incognito/private window
+
+3. **Protocol mismatch** (http vs https):
+   - Firebase expects domains without protocol
+   - ✅ Correct: `adventure-client-xyz.a.run.app`
+   - ❌ Wrong: `https://adventure-client-xyz.a.run.app`
+
+4. **Subdomain not whitelisted**:
+   - Firebase doesn't auto-whitelist subdomains
+   - Add each subdomain explicitly
+   - Example: Add both `api.example.com` and `app.example.com` separately
+
+**Verification**:
+```bash
+# Check current authorized domains via Firebase REST API
+curl "https://identitytoolkit.googleapis.com/v1/projects/YOUR_PROJECT_ID/config?key=YOUR_API_KEY"
+
+# Look for "authorizedDomains" array
+# Verify your Cloud Run domain is present
+```
+
+#### Issue: Authentication Works Locally but Fails in Production
+
+**Symptoms**:
+- Sign-in works on `localhost`
+- Same sign-in fails on Cloud Run deployment
+- Different error messages in production vs development
+
+**Causes & Solutions**:
+
+1. **Environment variables not propagated to build**:
+   - Check Dockerfile receives all `--build-arg` flags
+   - Verify env vars are bundled into production build:
+     ```bash
+     # Extract built assets
+     docker create --name temp YOUR_IMAGE
+     docker cp temp:/usr/share/nginx/html/assets ./inspect
+     docker rm temp
+     
+     # Search for Firebase config
+     grep -r "firebase" ./inspect
+     
+     # Should find Firebase project ID, API key, etc.
+     rm -rf ./inspect
+     ```
+   - If missing, rebuild with correct build arguments
+
+2. **Firebase project mismatch**:
+   - Verify production build uses production Firebase project
+   - Check `VITE_FIREBASE_PROJECT_ID` in build logs
+   - Ensure staging/production environments use correct Firebase projects
+
+3. **Redirect URI mismatch**:
+   - Firebase validates redirect URIs in production
+   - Check redirect URI matches Cloud Run URL exactly
+   - Verify protocol (https), domain, and port match
+
+4. **Browser cookie restrictions**:
+   - Some browsers block third-party cookies on custom domains
+   - Test in multiple browsers (Chrome, Safari, Firefox)
+   - Check browser console for cookie-related warnings
+
+#### Issue: Popup Blocked or Redirect Loop
+
+**Symptoms**:
+- Sign-in popup is blocked by browser
+- Redirect authentication causes infinite loop
+- User stuck on authentication screen
+
+**Causes & Solutions**:
+
+1. **Popup blocked by browser**:
+   - Ensure sign-in is triggered by user action (button click)
+   - Don't call `signInWithPopup` on page load
+   - Provide fallback to redirect auth:
+     ```typescript
+     try {
+       await signInWithPopup(auth, provider);
+     } catch (error) {
+       if (error.code === 'auth/popup-blocked') {
+         // Fall back to redirect
+         await signInWithRedirect(auth, provider);
+       }
+     }
+     ```
+
+2. **Redirect loop on callback**:
+   - Occurs when `getRedirectResult` is called repeatedly
+   - Only call `getRedirectResult` once on app load:
+     ```typescript
+     useEffect(() => {
+       getRedirectResult(auth)
+         .then((result) => {
+           if (result) {
+             // Handle successful sign-in
+           }
+         })
+         .catch(console.error);
+     }, []); // Empty deps - run once
+     ```
+
+3. **Callback URL mismatch**:
+   - Check authorized redirect URIs in Firebase Console
+   - Verify callback URL matches exactly
+   - Add both auto-generated and custom domains
+
+### Step 5: Testing Production Deployment
+
+After configuring Firebase for production, follow these steps to validate the setup:
+
+#### Pre-Deployment Checklist
+
+- [ ] Cloud Run URL added to Firebase authorized domains
+- [ ] Custom domain added to Firebase (if applicable)
+- [ ] dungeon-master CORS updated with Cloud Run origin
+- [ ] journey-log CORS updated with Cloud Run origin
+- [ ] Backend services redeployed with CORS changes
+- [ ] Firebase project ID matches between frontend and backend
+- [ ] All environment variables correctly set in Docker build
+
+#### Testing Procedure
+
+1. **Navigate to Cloud Run URL**:
+   ```
+   https://adventure-client-xyz123-uc.a.run.app
+   ```
+
+2. **Test Email/Password Authentication**:
+   - Click "Sign In" button
+   - Enter email and password
+   - Verify successful sign-in
+   - Check that user name appears in UI
+
+3. **Test Google Sign-In** (if enabled):
+   - Click "Sign in with Google"
+   - Select Google account
+   - Verify popup isn't blocked
+   - Check successful authentication
+
+4. **Test Authenticated API Calls**:
+   - Navigate to a protected route (e.g., `/characters`)
+   - Verify API calls succeed (check Network tab)
+   - Look for `Authorization` and `X-User-Id` headers in requests
+   - Confirm no CORS errors in console
+
+5. **Test Token Refresh**:
+   - Stay on page for 60+ minutes
+   - Verify token auto-refreshes (no logout)
+   - Make an API call after refresh
+   - Ensure call succeeds with new token
+
+6. **Test Multiple Browsers**:
+   - Chrome: Check for cookie/CORS issues
+   - Safari: Test with ITP enabled
+   - Firefox: Verify Enhanced Tracking Protection doesn't block auth
+
+7. **Test Custom Domain** (if applicable):
+   - Navigate to `https://app.yourdomain.com`
+   - Repeat authentication tests
+   - Verify cookies work across domain
+
+#### Verification Commands
+
+```bash
+# 1. Check Cloud Run service is running
+gcloud run services describe YOUR_SERVICE --region=YOUR_REGION
+
+# 2. Test endpoint is accessible
+curl -I https://adventure-client-xyz123-uc.a.run.app
+
+# Expected: HTTP/2 200
+
+# 3. Check CORS headers on backend (preflight)
+curl -X OPTIONS https://your-dungeon-master-api.run.app/characters \
+  -H "Origin: https://adventure-client-xyz123-uc.a.run.app" \
+  -H "Access-Control-Request-Method: GET" \
+  -H "Access-Control-Request-Headers: Authorization,X-User-Id" \
+  -v
+
+# Expected response headers:
+# Access-Control-Allow-Origin: https://adventure-client-xyz123-uc.a.run.app
+# Access-Control-Allow-Credentials: true
+# Access-Control-Allow-Headers: Authorization, X-User-Id, Content-Type, Accept
+#   ^^^ CRITICAL: Verify X-User-Id is explicitly listed
+
+# 4. Test authenticated request with both required headers
+curl https://your-dungeon-master-api.run.app/characters \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "X-User-Id: YOUR_UID" \
+  -H "Origin: https://adventure-client-xyz123-uc.a.run.app" \
+  -v
+
+# Expected: 200 OK with character data
+# If 403: Check backend accepts X-User-Id header
+
+# 5. Verify frontend sends X-User-Id header
+# In production, use browser DevTools:
+# - Open DevTools > Network tab
+# - Sign in to your app
+# - Make an API call (navigate to /characters)
+# - Click the API request in Network tab
+# - Check Request Headers section
+# - Verify presence of:
+#   Authorization: Bearer eyJhbGci...
+#   X-User-Id: abc123user456
+#   ^^^ If missing, check API client configuration
+
+# 6. Test backend accepts X-User-Id header explicitly
+# This confirms backend CORS allows the custom header
+curl https://your-journey-log-api.run.app/entries \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "X-User-Id: YOUR_UID" \
+  -H "Origin: https://adventure-client-xyz123-uc.a.run.app" \
+  -v
+
+# Expected: 200 OK
+# If CORS error: Backend doesn't allow X-User-Id in allow_headers
+# If 403: Backend doesn't process X-User-Id for authorization
+```
+
+**Critical Header Verification**:
+
+The `X-User-Id` header is a **custom header** required by both dungeon-master and journey-log APIs for user authorization. Backend CORS configuration must explicitly allow this header, or all authenticated requests will fail.
+
+**Frontend sends**: `X-User-Id: <firebase-uid>`
+**Backend requires**: `X-User-Id` in `allow_headers` list
+**Common mistake**: Forgetting to include `X-User-Id`, only allowing standard headers
+
+To verify `X-User-Id` is being sent by the frontend:
+
+1. Open your deployed Cloud Run app in browser
+2. Open DevTools (F12) > Network tab
+3. Sign in and navigate to a page that makes API calls (e.g., `/characters`)
+4. Find a request to dungeon-master or journey-log API
+5. Click the request > Headers tab
+6. Scroll to **Request Headers** section
+7. Verify both headers are present:
+   ```
+   Authorization: Bearer eyJhbGci...
+   X-User-Id: abc123xyz456def789
+   ```
+
+If `X-User-Id` is missing from frontend requests, check your API client configuration:
+- OpenAPI generated clients should include it automatically
+- Verify `AuthProvider` is properly configured
+- Check custom Axios/fetch interceptors include the header
+
+#### Common Test Failures
+
+| Failure | Likely Cause | Solution |
+|---------|--------------|----------|
+| Sign-in popup shows "unauthorized-domain" | Domain not in Firebase | Add Cloud Run URL to authorized domains |
+| API call returns 403 | CORS not configured | Update backend CORS to allow Cloud Run origin |
+| CORS error in console | Missing CORS headers | Check backend allows Authorization/X-User-Id headers |
+| Token validation fails | Firebase project mismatch | Verify backend uses same Firebase project as frontend |
+| Works in Chrome, fails in Safari | Cookie restrictions | Test first-party cookie approach or localStorage tokens |
+
+### Multi-Environment Best Practices
+
+When managing multiple environments (dev, staging, prod), follow these practices:
+
+#### Separate Firebase Projects
+
+Create distinct Firebase projects for each environment:
+
+| Environment | Firebase Project | Cloud Run Service | Purpose |
+|-------------|------------------|------------------|---------|
+| Development | `adventure-game-dev` | `adventure-client-dev` | Local testing |
+| Staging | `adventure-game-staging` | `adventure-client-staging` | QA validation |
+| Production | `adventure-game-prod` | `adventure-client-prod` | Live users |
+
+**Benefits**:
+- Isolated user databases (no accidental production data access during testing)
+- Separate auth configurations (different providers per environment)
+- Independent rate limits and quotas
+- Clear separation of concerns
+
+#### Environment-Specific Configuration
+
+Manage environment variables for each deployment:
+
+```bash
+# Development
+export VITE_FIREBASE_PROJECT_ID="adventure-game-dev"
+export VITE_FIREBASE_AUTH_DOMAIN="adventure-game-dev.firebaseapp.com"
+
+# Staging
+export VITE_FIREBASE_PROJECT_ID="adventure-game-staging"
+export VITE_FIREBASE_AUTH_DOMAIN="adventure-game-staging.firebaseapp.com"
+
+# Production
+export VITE_FIREBASE_PROJECT_ID="adventure-game-prod"
+export VITE_FIREBASE_AUTH_DOMAIN="adventure-game-prod.firebaseapp.com"
+```
+
+#### Authorized Domains Per Environment
+
+Each Firebase project should authorize its corresponding deployment:
+
+**Development Project** (`adventure-game-dev`):
+- `localhost` (always included)
+- `adventure-client-dev-abc.a.run.app` (if deploying dev to Cloud Run)
+
+**Staging Project** (`adventure-game-staging`):
+- `adventure-client-staging-xyz.a.run.app`
+- `staging.yourdomain.com` (optional custom domain)
+
+**Production Project** (`adventure-game-prod`):
+- `adventure-client-prod-123.a.run.app`
+- `app.yourdomain.com` (custom domain)
+
+#### CORS Configuration Per Environment
+
+Backend services should allow origins for all environments:
+
+```python
+# Centralized CORS configuration
+ALLOWED_ORIGINS = {
+    "development": [
+        "http://localhost:5173",
+        "https://adventure-client-dev-abc.a.run.app",
+    ],
+    "staging": [
+        "https://adventure-client-staging-xyz.a.run.app",
+        "https://staging.yourdomain.com",
+    ],
+    "production": [
+        "https://adventure-client-prod-123.a.run.app",
+        "https://app.yourdomain.com",
+    ],
+}
+
+# Get environment from env var
+env = os.getenv("ENVIRONMENT", "development")
+origins = ALLOWED_ORIGINS.get(env, ALLOWED_ORIGINS["development"])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "X-User-Id", "Content-Type", "Accept"],
+)
+```
+
+### Firebase Console Configuration Propagation
+
+Firebase configuration changes (authorized domains, providers) don't take effect immediately.
+
+**Expected Propagation Times**:
+- **Authorized domains**: 2-5 minutes
+- **Provider changes** (enabling/disabling): 1-2 minutes
+- **Security rules**: Near-instant (< 30 seconds)
+- **Custom domains**: 10-30 minutes (includes DNS propagation)
+
+**Best Practices**:
+1. Make configuration changes **before** deploying code
+2. Wait for propagation before testing
+3. Use `curl` or browser DevTools to verify changes took effect
+4. Clear browser cache if changes don't appear
+5. Test in incognito window to avoid cached auth state
+
+**Verification**:
+```bash
+# After adding authorized domain, verify propagation
+# Wait 2-5 minutes, then check:
+curl "https://identitytoolkit.googleapis.com/v1/projects/YOUR_PROJECT_ID/config?key=YOUR_API_KEY" \
+  | jq '.authorizedDomains'
+
+# Should include your newly added domain
+```
+
+### Cross-Reference: Cloud Run Deployment
+
+For complete instructions on deploying the Adventure Client to Cloud Run, including:
+- Building Docker images with environment variables
+- Pushing to Artifact Registry
+- Deploying services
+- Obtaining the service URL for Firebase configuration
+
+See the **[Cloud Run Deployment Guide](./cloud-run-deploy.md)**.
+
+The deployment guide provides step-by-step commands for deploying and obtaining the Cloud Run URL that you'll need to add to Firebase authorized domains.
 
 ## API Authentication Integration
 

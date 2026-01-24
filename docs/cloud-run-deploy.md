@@ -408,18 +408,55 @@ echo "🚀 Adventure Client deployed at: ${SERVICE_URL}"
 open "${SERVICE_URL}" || xdg-open "${SERVICE_URL}"
 ```
 
-### Step 5: Update Firebase Authorized Domains
+### Step 5: Configure Firebase for Production
 
-**Critical**: Add the Cloud Run URL to Firebase's authorized domains to prevent auth errors:
+**Critical**: After deployment, you must configure Firebase Authentication to work with your Cloud Run URL to prevent auth errors and API call failures.
 
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Select your project
-3. Navigate to **Authentication** → **Settings** → **Authorized domains**
-4. Click **Add domain**
-5. Add your Cloud Run domain (e.g., `adventure-client-xxxxxxxxxx-uc.a.run.app`)
-6. Save
+#### Required Firebase Configuration Steps
 
-> **🔥 Common Mistake**: Forgetting this step causes `auth/unauthorized-domain` errors on login.
+1. **Add Cloud Run URL to Firebase Authorized Domains**
+   - Prevents `auth/unauthorized-domain` errors during sign-in
+   - Required for both popup and redirect authentication flows
+
+2. **Configure Backend CORS for Cloud Run Origin**
+   - Allows dungeon-master and journey-log APIs to accept authenticated requests
+   - Prevents CORS errors and 403 Forbidden responses
+
+3. **Verify HTTPS Requirements**
+   - Ensures Firebase auth flows work correctly over HTTPS
+   - Validates redirect URIs and token cookies
+
+> **📖 Complete Production Firebase Setup**: For detailed instructions on:
+> - Adding your Cloud Run URL to Firebase authorized domains
+> - Configuring backend CORS for dungeon-master and journey-log APIs
+> - Troubleshooting production auth issues (403s, CORS errors, origin mismatches)
+> - Testing production deployments
+> - Managing multiple environments (staging vs production)
+> 
+> See **[docs/firebase-setup.md - Production Deployment with Cloud Run](./firebase-setup.md#production-deployment-with-cloud-run)**
+
+#### Quick Firebase Setup (Minimal Steps)
+
+If you need immediate functionality, perform these minimal steps:
+
+1. **Get your Cloud Run service URL** (from Step 4 output above)
+2. **Add to Firebase Console**:
+   - Navigate to [Firebase Console](https://console.firebase.google.com)
+   - Select your project → **Authentication** → **Settings** → **Authorized domains**
+   - Click **Add domain**
+   - Enter your Cloud Run hostname only (e.g., `adventure-client-xyz123-uc.a.run.app`)
+   - **Important**: Do NOT include `https://` protocol
+   - Save and wait 2-5 minutes for propagation
+
+3. **Update Backend CORS** (if you control backend services):
+   - Add Cloud Run URL to `allow_origins` in both dungeon-master and journey-log APIs
+   - Include required headers: 
+     - `Authorization` - Contains Firebase ID token for authentication
+     - `X-User-Id` - Contains Firebase user UID for backend authorization (custom header required by Adventure Client APIs)
+     - `Content-Type` - Standard content type header
+   - Redeploy backend services
+
+> **⚠️ Warning**: Skipping these steps will cause sign-in failures and 403 errors on API calls. See the [complete Firebase setup guide](./firebase-setup.md#production-deployment-with-cloud-run) for comprehensive instructions and troubleshooting.
 
 ---
 
@@ -1047,6 +1084,17 @@ curl -I "${SERVICE_URL}" | grep -E "X-Content-Type-Options|X-Frame-Options|Conte
 
 ## Troubleshooting
 
+> **📖 Comprehensive Firebase & Auth Troubleshooting**: For detailed production authentication troubleshooting, including:
+> - Firebase authorized domain issues
+> - Backend CORS configuration problems
+> - 403 Forbidden errors on API calls
+> - Token validation failures
+> - Production auth testing procedures
+> 
+> See **[docs/firebase-setup.md - Troubleshooting Production Auth Issues](./firebase-setup.md#step-4-troubleshooting-production-auth-issues)**
+>
+> This section covers Cloud Run deployment-specific issues. For Firebase Authentication and API integration problems, consult the Firebase setup guide.
+
 ### Problem: `auth/unauthorized-domain` Error
 
 **Symptoms**:
@@ -1061,6 +1109,8 @@ curl -I "${SERVICE_URL}" | grep -E "X-Content-Type-Options|X-Frame-Options|Conte
 3. Add domain (e.g., `adventure-client-xxxxxxxxxx-uc.a.run.app`)
 4. Wait 1-2 minutes for propagation
 5. Clear browser cache and retry
+
+> **📖 Detailed Guide**: See [Firebase Setup - Production Deployment](./firebase-setup.md#step-1-add-cloud-run-url-to-firebase-authorized-domains) for comprehensive instructions including multi-environment setup and custom domains.
 
 ---
 
@@ -1099,7 +1149,7 @@ gcloud run services get-iam-policy ${SERVICE_NAME} --region=${REGION}
    ```
    Access-Control-Allow-Origin: https://your-frontend-domain.run.app
    Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
-   Access-Control-Allow-Headers: Content-Type, Authorization
+   Access-Control-Allow-Headers: Content-Type, Authorization, X-User-Id
    Access-Control-Allow-Credentials: true
    ```
 2. Backend must handle OPTIONS preflight requests
@@ -1108,6 +1158,8 @@ gcloud run services get-iam-policy ${SERVICE_NAME} --region=${REGION}
 **Frontend Check**:
 - Verify `VITE_DUNGEON_MASTER_API_BASE_URL` and `VITE_JOURNEY_LOG_API_BASE_URL` are correct
 - Ensure URLs don't have trailing slashes (unless backend expects them)
+
+> **📖 Complete CORS Configuration Guide**: For detailed backend CORS setup for dungeon-master and journey-log APIs, including required headers, OPTIONS preflight configuration, and common pitfalls, see [Firebase Setup - Backend CORS Configuration](./firebase-setup.md#step-2-configure-backend-cors-for-cloud-run-origin).
 
 ---
 
@@ -1179,12 +1231,15 @@ echo "<your-jwt-token>" | cut -d'.' -f2 | base64 -d | jq .
    ```bash
    TOKEN="<firebase-jwt-token>"
    curl -H "Authorization: Bearer ${TOKEN}" \
+     -H "X-User-Id: <your-uid>" \
      "${VITE_DUNGEON_MASTER_API_BASE_URL}/health"
    ```
 3. Check backend deployment logs for Firebase initialization messages
 4. Verify backend's GCP project matches frontend's Firebase project
 
 > **Note**: This is a backend configuration issue. The deployment guide focuses on frontend; coordinate with backend team to ensure matching Firebase projects across environments.
+
+> **📖 Comprehensive 403/Auth Troubleshooting**: For detailed troubleshooting of 403 errors, token validation, and API authentication issues, see [Firebase Setup - Issue: 403 Forbidden on API Calls](./firebase-setup.md#issue-403-forbidden-on-api-calls).
 
 ---
 
