@@ -15,14 +15,16 @@ ARG VITE_FIREBASE_MEASUREMENT_ID
 
 WORKDIR /app
 
-# Copy package files first for better layer caching
+# Copy package files first (for reference in layer metadata)
 COPY package.json package-lock.json ./
 
-# Copy source files (required for npm ci to work correctly in Alpine)
+# Copy all source files
+# Note: Must copy source before npm ci due to Alpine Linux timing requirements
+# See: .dockerignore for details on why node_modules is not excluded
 COPY . .
 
-# Install dependencies and build in a single layer for efficiency
-# npm ci requires source files present in Alpine due to timing issues
+# Install dependencies and build
+# Combined into single RUN to reduce layer count and leverage npm ci's speed
 RUN npm ci && npm run build
 
 # STAGE 2: SERVE
