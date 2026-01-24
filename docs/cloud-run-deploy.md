@@ -1082,7 +1082,7 @@ gcloud artifacts docker tags add \
 - A warm instance is mostly idle. Cloud Run bills idle CPU at a much lower rate than active CPU.
 - **Memory Cost**: 1 instance × 0.5GB × 730 hours × 3600s × $0.00000250/GiB-s ≈ $3.29/month
 - **Idle CPU Cost**: 1 instance × 1 vCPU × 730 hours × 3600s × $0.00000245/vCPU-s (idle rate) ≈ $6.44/month
-- **Total: ~$10/month** (plus cost for requests)
+- **Total: ≈ $10/month** (plus cost for requests)
 
 **Cost Optimization**:
 ```bash
