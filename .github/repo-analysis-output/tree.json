@@ -80,6 +80,10 @@
         },
         {
           "type": "file",
+          "name": "cloud-run-deploy.md"
+        },
+        {
+          "type": "file",
           "name": "firebase-setup.md"
         },
         {

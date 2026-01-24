@@ -17,6 +17,7 @@
     └── af_maintenance.yml
 ├── docs
   ├── character-creation.md
+  ├── cloud-run-deploy.md
   ├── firebase-setup.md
   └── gameplay.md
 ├── public
