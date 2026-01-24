@@ -90,15 +90,17 @@ jobs:
             exit 1
           fi
           
-          # Check if any tests ran
-          TEST_COUNT=$(grep -o '"numTotalTests":[0-9]*' test-results.json | grep -o '[0-9]*' || echo "0")
+          # Parse test results using jq for robust JSON handling
+          TEST_COUNT=$(jq -r '.numTotalTests // 0' test-results.json)
+          PASSED_COUNT=$(jq -r '.numPassedTests // 0' test-results.json)
+          
+          # Verify tests were executed
           if [ "$TEST_COUNT" = "0" ]; then
             echo "❌ Error: No tests were executed"
             exit 1
           fi
           
-          # Check if all tests passed
-          PASSED_COUNT=$(grep -o '"numPassedTests":[0-9]*' test-results.json | grep -o '[0-9]*' || echo "0")
+          # Verify all tests passed
           if [ "$TEST_COUNT" != "$PASSED_COUNT" ]; then
             echo "❌ Error: Some tests failed ($PASSED_COUNT/$TEST_COUNT passed)"
             exit 1

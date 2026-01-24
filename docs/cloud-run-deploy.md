@@ -1762,7 +1762,7 @@ jobs:
       - name: Get service URL
 ```
 
-**Security Note**: The workflow builds Docker images locally on GitHub Actions runners instead of using `gcloud builds submit` to avoid exposing build arguments in Cloud Build logs. While Firebase credentials are client-visible, this approach keeps them within GitHub Actions' secure environment.
+**Security Note**: The workflow builds Docker images locally on GitHub Actions runners instead of using `gcloud builds submit`. This approach keeps build arguments within GitHub Actions' secure, access-controlled logging environment rather than exposing them in Cloud Build logs.
 
 **View the complete workflow**: [`.github/workflows/cloud-run.yml`](../.github/workflows/cloud-run.yml)
 
