@@ -701,6 +701,10 @@ VITE_FIREBASE_AUTH_DOMAIN=auth.yourdomain.com
 
 Rebuild and redeploy with the new configuration:
 ```bash
+# Set your image name and tag
+IMAGE_NAME="us-central1-docker.pkg.dev/YOUR_PROJECT_ID/adventure-client/adventure-client"
+TAG="custom-auth-$(date +%s)"
+
 # Rebuild Docker image with new auth domain
 # For complete build args list, see cloud-run-deploy.md Environment Variables section
 gcloud builds submit --tag="${IMAGE_NAME}:${TAG}" \
@@ -793,7 +797,7 @@ auth.tenantId = tenantId;
 - Rebuild Docker image with correct env var
 - Inspect bundled JavaScript to confirm custom domain is used:
   ```bash
-  docker run --rm IMAGE cat /usr/share/nginx/html/assets/index-*.js | grep "authDomain"
+  docker run --rm your-image-name:tag cat /usr/share/nginx/html/assets/index-*.js | grep "authDomain"
   # Should show: authDomain:"auth.yourdomain.com"
   ```
 
