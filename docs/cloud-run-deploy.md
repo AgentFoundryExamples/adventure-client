@@ -1681,7 +1681,7 @@ gcloud iam service-accounts keys create key.json \
 
 Navigate to your repository on GitHub: **Settings → Secrets and variables → Actions → New repository secret**
 
-Add the following **13 required secrets**:
+Add the following secrets (12 required + 1 optional):
 
 **Google Cloud Configuration** (3 secrets):
 - `GCP_PROJECT_ID`: Your Google Cloud project ID (e.g., `my-adventure-prod`)
@@ -1694,14 +1694,14 @@ Add the following **13 required secrets**:
 - `VITE_DUNGEON_MASTER_API_BASE_URL`: Dungeon Master API URL (e.g., `https://dungeon-master-api-xxx.run.app`)
 - `VITE_JOURNEY_LOG_API_BASE_URL`: Journey Log API URL (e.g., `https://journey-log-api-xxx.run.app`)
 
-**Firebase Configuration** (8 secrets):
+**Firebase Configuration** (7 required + 1 optional = 8 secrets):
 - `VITE_FIREBASE_API_KEY`: Firebase API key (from Firebase Console → Project Settings)
 - `VITE_FIREBASE_AUTH_DOMAIN`: Firebase auth domain (e.g., `your-project.firebaseapp.com`)
 - `VITE_FIREBASE_PROJECT_ID`: Firebase project ID
 - `VITE_FIREBASE_STORAGE_BUCKET`: Firebase storage bucket (e.g., `your-project.appspot.com`)
 - `VITE_FIREBASE_MESSAGING_SENDER_ID`: Firebase messaging sender ID (numeric)
 - `VITE_FIREBASE_APP_ID`: Firebase app ID (format: `1:xxx:web:xxx`)
-- `VITE_FIREBASE_MEASUREMENT_ID`: Firebase measurement/analytics ID (format: `G-XXXXXXXXXX`)
+- `VITE_FIREBASE_MEASUREMENT_ID`: Firebase measurement/analytics ID (format: `G-XXXXXXXXXX`) - **Optional**, can be empty string if not using Google Analytics
 
 > **🔐 Security Note**: While Firebase configuration values are client-visible (they're bundled in the frontend), storing them as GitHub secrets:
 > 1. Prevents accidental exposure in public repositories

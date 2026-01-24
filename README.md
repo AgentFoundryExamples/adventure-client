@@ -895,7 +895,7 @@ This repository includes an **optional reference workflow** at `.github/workflow
 - ✅ Uses Workload Identity Federation for secure authentication
 - ✅ Fails fast on test/lint errors before deploying
 
-**Required GitHub Secrets**: The workflow requires 13 GitHub secrets to be configured in your repository settings. See the workflow file header for the complete list, or refer to [docs/cloud-run-deploy.md#cicd-integration](docs/cloud-run-deploy.md#cicd-integration) for detailed setup instructions.
+**Required GitHub Secrets**: The workflow requires 13 GitHub secrets to be configured in your repository settings (12 required + 1 optional). See the workflow file header for the complete list, or refer to [docs/cloud-run-deploy.md#cicd-integration](docs/cloud-run-deploy.md#cicd-integration) for detailed setup instructions.
 
 **⚠️ Important Notes**:
 - This workflow is a **sample/reference implementation only**
