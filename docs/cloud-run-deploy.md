@@ -507,6 +507,418 @@ export VITE_DUNGEON_MASTER_API_BASE_URL="https://dungeon-master-production.run.a
 
 ---
 
+## Understanding Environment Configuration Parity
+
+This section explains how local development and production deployments differ, how configuration flows through the system, and how to verify your setup.
+
+### 🔑 Core Concept: Build-Time vs Runtime Variables
+
+**Critical Understanding:** Vite bundles environment variables **at build time**, not runtime.
+
+```mermaid
+graph LR
+    A[.env.development] -->|npm run dev| B[Vite Dev Server]
+    C[.env.local] -->|Override| B
+    B --> D[Browser: Development Mode]
+    
+    E[Docker --build-arg] -->|npm run build| F[Vite Build]
+    G[.env.production] -->|Default fallback| F
+    F --> H[Static Bundle dist/]
+    H -->|nginx serves| I[Browser: Production Mode]
+    
+    style E fill:#f96,stroke:#333,stroke-width:2px
+    style F fill:#9f6,stroke:#333,stroke-width:2px
+    style H fill:#69f,stroke:#333,stroke-width:2px
+```
+
+**Key Implications:**
+
+1. **Development:** 
+   - Vite dev server (`npm run dev`) reads `.env.development` and `.env.local`
+   - Hot reload works, but env changes require dev server restart
+   - Environment variables are evaluated on every module load
+
+2. **Production:**
+   - Docker build step (`npm run build`) reads `.env.production` and `--build-arg` flags
+   - `--build-arg` values **override** `.env.production` defaults
+   - Variables are **baked into JavaScript bundles** in `dist/assets/*.js`
+   - Cloud Run environment variables (set via `gcloud run deploy --set-env-vars`) **DO NOT work** for `VITE_*` variables
+
+3. **Configuration Changes:**
+   - ❌ Updating Cloud Run env vars has no effect
+   - ✅ Must rebuild Docker image with new `--build-arg` values
+   - ✅ Must redeploy Cloud Run service with new image
+
+### 📂 Environment File Precedence
+
+Vite loads environment files in this order (later files override earlier):
+
+#### Development Mode (`npm run dev`)
+```
+1. .env                      # Base defaults (usually not used)
+2. .env.local                # Local overrides (gitignored)
+3. .env.development          # Development defaults (committed)
+4. .env.development.local    # Dev local overrides (gitignored)
+```
+
+**Practical workflow:**
+```bash
+# Copy development template
+cp .env.development .env.local
+
+# Edit .env.local with real Firebase credentials
+# This file overrides .env.development and is in .gitignore
+```
+
+#### Production Mode (`npm run build`)
+```
+1. .env                      # Base defaults (usually not used)
+2. .env.local                # Local overrides (gitignored)
+3. .env.production           # Production defaults (committed)
+4. .env.production.local     # Prod local overrides (gitignored)
+5. Docker --build-arg flags  # HIGHEST PRIORITY (overrides all files)
+```
+
+**Dockerfile workflow:**
+```dockerfile
+# Dockerfile declares ARGs (must match variable names)
+ARG VITE_FIREBASE_API_KEY
+ARG VITE_FIREBASE_PROJECT_ID
+# ... (all other variables)
+
+# ARGs become build-time environment variables
+ENV VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY
+ENV VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
+# ... (set all as ENV)
+
+# npm run build uses these ENV values
+RUN npm run build
+```
+
+### 🔍 Verifying Environment Configuration
+
+#### During Development
+
+**Method 1: Browser Console**
+```javascript
+// Open DevTools (F12) and run:
+console.log('Mode:', import.meta.env.MODE)
+console.log('API URLs:', {
+  dungeonMaster: import.meta.env.VITE_DUNGEON_MASTER_API_BASE_URL,
+  journeyLog: import.meta.env.VITE_JOURNEY_LOG_API_BASE_URL
+})
+console.log('Firebase Project:', import.meta.env.VITE_FIREBASE_PROJECT_ID)
+```
+
+**Method 2: Check Config Module**
+```javascript
+// In DevTools console:
+import('/src/config/env.ts').then(m => {
+  console.log('Loaded config:', m.config)
+})
+```
+
+**Method 3: Temporary Logging**
+```typescript
+// Add to src/main.tsx (remove after verification)
+import { config } from './config/env'
+console.log('🔧 Environment Configuration:', {
+  mode: import.meta.env.MODE,
+  apiEndpoints: {
+    dungeonMaster: config.dungeonMasterApiUrl,
+    journeyLog: config.journeyLogApiUrl
+  },
+  firebase: {
+    projectId: config.firebase.projectId,
+    authDomain: config.firebase.authDomain
+  }
+})
+```
+
+**Method 4: Development Debug Page**
+```typescript
+// Create src/pages/ConfigDebugPage.tsx (development only)
+import { config } from '@/config/env'
+
+export default function ConfigDebugPage() {
+  if (import.meta.env.PROD) {
+    return <div>Not available in production</div>
+  }
+  
+  return (
+    <div>
+      <h1>Configuration Debug</h1>
+      <pre>{JSON.stringify(config, null, 2)}</pre>
+    </div>
+  )
+}
+```
+
+#### After Production Build
+
+**Verify Docker Build Arguments Were Applied:**
+```bash
+# After running: docker build --build-arg VITE_FIREBASE_PROJECT_ID=my-prod-project ...
+
+# Method 1: Search built bundle for your production values
+docker run --rm --entrypoint cat your-image:tag /usr/share/nginx/html/assets/index-*.js \
+  | grep -o "VITE_FIREBASE_PROJECT_ID.*" | head -1
+
+# Expected: Should show your production project ID, NOT the .env.production placeholder
+
+# Method 2: Inspect environment during build
+docker build \
+  --build-arg VITE_FIREBASE_PROJECT_ID=my-prod-project \
+  --progress=plain \
+  --no-cache \
+  -t test-image . 2>&1 | grep VITE_FIREBASE_PROJECT_ID
+```
+
+**Verify Deployed Application:**
+```bash
+# 1. Deploy and get URL
+export SERVICE_URL=$(gcloud run services describe adventure-client \
+  --region=us-central1 \
+  --format='value(status.url)')
+
+# 2. Download and inspect main bundle
+curl -s "${SERVICE_URL}" \
+  | grep -oP 'src="([^"]*index[^"]*.js)"' \
+  | head -1 \
+  | sed 's/src="//;s/"//' \
+  | xargs -I {} curl -s "${SERVICE_URL}{}" \
+  | grep -o "projectId:\"[^\"]*\"" \
+  | head -1
+
+# Expected: projectId:"your-production-firebase-project"
+```
+
+### ⚠️ Configuration Validation Checklist
+
+Before deploying to production, verify these critical configuration points:
+
+#### Pre-Deployment Checks
+
+- [ ] **Separate Firebase Projects:** Development and production use different Firebase project IDs
+  ```bash
+  # Verify .env.development has test/mock project
+  grep VITE_FIREBASE_PROJECT_ID .env.development
+  # Output: VITE_FIREBASE_PROJECT_ID=mock-project-dev
+  
+  # Verify production build args have real project
+  echo $VITE_FIREBASE_PROJECT_ID
+  # Output: your-production-firebase-project
+  ```
+
+- [ ] **HTTPS API Endpoints:** Production API URLs use `https://`, not `http://`
+  ```bash
+  # Check that production build args use HTTPS
+  echo $VITE_DUNGEON_MASTER_API_BASE_URL | grep -q "^https://" && echo "✅ HTTPS" || echo "❌ HTTP"
+  ```
+
+- [ ] **No Localhost in Production:** Production API URLs don't contain `localhost`
+  ```bash
+  # Verify no localhost URLs in production config
+  echo $VITE_DUNGEON_MASTER_API_BASE_URL | grep -q "localhost" && echo "❌ Localhost detected!" || echo "✅ No localhost"
+  ```
+
+- [ ] **All Required Variables Set:** All 9 required variables have non-empty values
+  ```bash
+  # Check all required env vars are set
+  for var in VITE_DUNGEON_MASTER_API_BASE_URL VITE_JOURNEY_LOG_API_BASE_URL \
+             VITE_FIREBASE_API_KEY VITE_FIREBASE_AUTH_DOMAIN VITE_FIREBASE_PROJECT_ID \
+             VITE_FIREBASE_STORAGE_BUCKET VITE_FIREBASE_MESSAGING_SENDER_ID \
+             VITE_FIREBASE_APP_ID VITE_FIREBASE_MEASUREMENT_ID; do
+    if [ -z "${!var}" ]; then
+      echo "❌ Missing: $var"
+    else
+      echo "✅ Set: $var"
+    fi
+  done
+  ```
+
+- [ ] **Dockerfile ARG Declarations:** Dockerfile declares all variables as ARGs
+  ```bash
+  # Verify Dockerfile has ARG declarations for all VITE_* variables
+  grep "^ARG VITE_" Dockerfile | wc -l
+  # Expected: 9 (one for each required variable)
+  ```
+
+#### Post-Deployment Verification
+
+- [ ] **Firebase Auth Domain Authorized:** Cloud Run domain added to Firebase authorized domains
+  ```
+  1. Get Cloud Run URL: gcloud run services describe adventure-client --format='value(status.url)'
+  2. Extract domain: adventure-client-xxx-uc.a.run.app
+  3. Check Firebase Console > Authentication > Settings > Authorized domains
+  4. Verify domain is in the list
+  ```
+
+- [ ] **API Connectivity:** Frontend can reach both backend APIs
+  ```bash
+  # Test from Cloud Run service (if you have shell access)
+  curl -I https://dungeon-master-api.run.app/health
+  curl -I https://journey-log-api.run.app/health
+  ```
+
+- [ ] **Environment Values in Bundle:** Production values are baked into deployed bundle
+  ```bash
+  # View source of deployed app and search for your project ID
+  curl -s $SERVICE_URL | grep "your-production-firebase-project"
+  # If found in HTML or linked JS, configuration is correct
+  ```
+
+### 🚨 Common Configuration Mistakes
+
+#### Mistake 1: Setting Cloud Run Environment Variables
+**Problem:** Setting `VITE_*` variables via `gcloud run deploy --set-env-vars` has no effect.
+
+**Why:** Vite bundles variables at **build time** (during `npm run build`), not at **runtime** (when Cloud Run serves requests).
+
+**Solution:** Pass variables as Docker `--build-arg` flags during `gcloud builds submit` or `docker build`.
+
+**Correct:**
+```bash
+gcloud builds submit \
+  --build-arg VITE_FIREBASE_PROJECT_ID="prod-project" \
+  --tag=image:tag
+```
+
+**Incorrect:**
+```bash
+gcloud run deploy service \
+  --set-env-vars VITE_FIREBASE_PROJECT_ID="prod-project"  # ❌ Won't work
+```
+
+#### Mistake 2: Using .env.production Values Directly
+**Problem:** `.env.production` contains placeholder/example values, and deployment uses them.
+
+**Why:** `.env.production` is a **committed template**. Real values should come from `--build-arg` in CI/CD.
+
+**Solution:** Always override `.env.production` with `--build-arg` flags during production builds.
+
+**Correct Dockerfile + Build:**
+```dockerfile
+# Dockerfile declares ARGs (no defaults)
+ARG VITE_FIREBASE_PROJECT_ID
+
+# Set as ENV for npm run build
+ENV VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
+```
+
+```bash
+# Build with actual value
+docker build --build-arg VITE_FIREBASE_PROJECT_ID="real-prod-project" .
+```
+
+#### Mistake 3: Forgetting to Redeploy After Config Change
+**Problem:** Changed an API URL but app still uses old value.
+
+**Why:** Environment variables are baked into the bundle during build. Changing Cloud Run config doesn't update the bundle.
+
+**Solution:** Rebuild and redeploy whenever any `VITE_*` variable changes.
+
+```bash
+# 1. Rebuild with new values
+gcloud builds submit \
+  --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="https://new-api-url.run.app" \
+  --tag="${IMAGE_NAME}:${NEW_TAG}"
+
+# 2. Redeploy with new image
+gcloud run deploy adventure-client \
+  --image="${IMAGE_NAME}:${NEW_TAG}"
+```
+
+#### Mistake 4: Mixed Content (HTTP Backend, HTTPS Frontend)
+**Problem:** Production frontend (HTTPS) tries to call backend API with `http://` URL.
+
+**Why:** Browsers block mixed content (HTTPS page loading HTTP resources).
+
+**Solution:** Ensure all production API URLs use `https://` protocol.
+
+```bash
+# Check for http:// in production build args
+echo $VITE_DUNGEON_MASTER_API_BASE_URL | grep -q "^http://" && echo "⚠️ HTTP detected!" || echo "✅ HTTPS"
+```
+
+#### Mistake 5: Exposing Backend Secrets in VITE_* Variables
+**Problem:** Storing backend service account keys or database passwords in `VITE_*` variables.
+
+**Why:** All `VITE_*` variables are **visible in the client-side JavaScript bundle** (anyone can inspect them).
+
+**Solution:** 
+- ✅ Store backend secrets in **backend services** only (Secret Manager, Cloud Run env vars on backend)
+- ✅ Use Firebase API keys in `VITE_*` variables (they're meant to be public, protected by Security Rules)
+- ❌ Never store service account JSON keys, database passwords, or API secret keys in `VITE_*` variables
+
+**Example of Safe vs Unsafe Variables:**
+```bash
+# ✅ SAFE to expose in VITE_* (client-side)
+VITE_FIREBASE_API_KEY="AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXX"  # Public by design
+VITE_FIREBASE_PROJECT_ID="my-project"                    # Public identifier
+VITE_DUNGEON_MASTER_API_BASE_URL="https://api.run.app"   # Public endpoint
+
+# ❌ UNSAFE for VITE_* (backend-only secrets)
+VITE_SERVICE_ACCOUNT_KEY="{...json...}"                  # ❌ Private key - goes in backend
+VITE_DATABASE_PASSWORD="secret123"                       # ❌ DB credential - goes in backend
+VITE_JWT_SECRET="mysecret"                               # ❌ Signing key - goes in backend
+```
+
+### 📋 Environment Variable Configuration Matrix
+
+| Variable | Dev (.env.development) | Prod (--build-arg) | Required | Notes |
+|----------|------------------------|-------------------|----------|-------|
+| `VITE_DUNGEON_MASTER_API_BASE_URL` | `http://localhost:8001` | `https://dm-api.run.app` | ✅ Yes | Must be HTTPS in prod |
+| `VITE_JOURNEY_LOG_API_BASE_URL` | `http://localhost:8002` | `https://jl-api.run.app` | ✅ Yes | Must be HTTPS in prod |
+| `VITE_FIREBASE_API_KEY` | `mock-api-key-dev` | `AIzaSyXXXX...` | ✅ Yes | Get from Firebase Console |
+| `VITE_FIREBASE_AUTH_DOMAIN` | `mock-project-dev.firebaseapp.com` | `prod-project.firebaseapp.com` | ✅ Yes | Add Cloud Run domain to authorized list |
+| `VITE_FIREBASE_PROJECT_ID` | `mock-project-dev` | `prod-project-id` | ✅ Yes | Use separate projects for dev/prod |
+| `VITE_FIREBASE_STORAGE_BUCKET` | `mock-project-dev.appspot.com` | `prod-project.appspot.com` | ✅ Yes | Optional if not using Storage |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | `000000000000` | `123456789012` | ✅ Yes | From Firebase Console > Cloud Messaging |
+| `VITE_FIREBASE_APP_ID` | `1:000000000000:web:mockappiddev` | `1:123456789012:web:abcdef` | ✅ Yes | From Firebase app registration |
+| `VITE_FIREBASE_MEASUREMENT_ID` | `G-MOCKIDDEV` | `G-XXXXXXXXXX` | ⚠️ Optional | Only needed if using Analytics |
+
+### 🔗 Configuration Contract: src/config/env.ts
+
+All environment variables consumed by the application are declared and validated in `src/config/env.ts`. This file serves as the **single source of truth** for configuration requirements.
+
+**Key features:**
+- Type-safe configuration via `EnvConfig` interface
+- Fail-fast validation with descriptive error messages
+- Centralized access via exported `config` singleton
+- Optional vs required variable handling
+
+**How variables flow:**
+
+```typescript
+// 1. Vite exposes VITE_* as import.meta.env
+import.meta.env.VITE_FIREBASE_PROJECT_ID
+
+// 2. env.ts validates and structures them
+function getRequiredEnv(key: string): string {
+  const value = import.meta.env[key];
+  if (!value) throw new Error(`Missing: ${key}`);
+  return value;
+}
+
+// 3. Application imports structured config
+import { config } from '@/config/env';
+console.log(config.firebase.projectId);  // Type-safe access
+```
+
+**When adding new environment variables:**
+
+1. Update `EnvConfig` interface in `src/config/env.ts`
+2. Add to `loadConfig()` function with validation
+3. Update `.env.example` with documentation
+4. Update `.env.development` with mock/test value
+5. Update `.env.production` with placeholder
+6. Update `Dockerfile` with new `ARG` declaration
+7. Update deployment scripts with new `--build-arg`
+8. Update this documentation with new variable
+
+---
+
 ## Verification Checklist
 
 After deployment, systematically verify all functionality:

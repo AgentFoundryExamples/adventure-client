@@ -45,45 +45,153 @@ A React-based web client for the Adventure Game platform, built with TypeScript 
 
 ## Configuration
 
-The application uses environment variables for configuration. Different configurations are needed for development and production.
+The application uses environment variables for configuration. Understanding how Vite handles environment variables is critical for successful deployment.
 
-### Development Configuration
+### 🔑 Key Concept: Build-Time vs Runtime Environment Variables
 
-For local development, copy the development template:
+**Vite bundles environment variables at BUILD time, not RUNTIME.** This means:
 
+- ✅ Environment variables prefixed with `VITE_` are exposed to the client-side code
+- ✅ Variables are baked into the static JavaScript bundle during `npm run build`
+- ⚠️ Changing environment variables requires **rebuilding and redeploying** the application
+- ⚠️ All `VITE_*` variables are **visible in the client bundle** (never store backend secrets here)
+- ⚠️ Runtime environment variable injection (e.g., Cloud Run env vars) **does NOT work** for `VITE_*` variables
+
+### 📁 Environment File Strategy
+
+The project uses different `.env.*` files for different build scenarios:
+
+| File | Purpose | When Used | Committed to Git |
+|------|---------|-----------|------------------|
+| `.env.example` | Template with all required variables and documentation | Reference for new deployments | ✅ Yes |
+| `.env.development` | Default values for local development (mock Firebase config) | Automatically loaded during `npm run dev` | ✅ Yes |
+| `.env.production` | Template for production builds (placeholder values only) | Automatically loaded during `npm run build` | ✅ Yes |
+| `.env.local` | Personal overrides for local development (real Firebase config) | Overrides `.env.development` when present | ❌ No (in .gitignore) |
+
+**Development Workflow:**
 ```bash
+# Copy development template to create local overrides
 cp .env.development .env.local
+
+# Edit .env.local with your actual Firebase project credentials
+# This file is in .gitignore and won't be committed
 ```
 
-The `.env.development` file includes mock values for local development:
-- API endpoints point to localhost (ports 8001, 8002)
-- Firebase configuration uses mock/test values
+**Production Workflow:**
+```bash
+# Environment variables MUST be passed as Docker build arguments
+# See docs/cloud-run-deploy.md for complete deployment instructions
+docker build \
+  --build-arg VITE_DUNGEON_MASTER_API_BASE_URL="https://your-api.run.app" \
+  --build-arg VITE_FIREBASE_API_KEY="your-actual-key" \
+  # ... (all other variables)
+```
 
-Edit `.env.local` to match your local setup if needed.
+### 📋 Required Environment Variables
 
-### Production Configuration
+All environment variables consumed by the application are defined in `src/config/env.ts`. The application will **fail fast at startup** with descriptive errors if required variables are missing.
 
-For production deployments, environment variables should be:
-- Built into the application during the Docker build process
-- Set via CI/CD pipelines or Cloud Run environment configuration
+#### API Endpoints (Required)
 
-**Important**: Since Vite bundles environment variables at build time (not runtime), production values must be available during the `npm run build` step.
+| Variable | Description | Development Value | Production Value |
+|----------|-------------|-------------------|------------------|
+| `VITE_DUNGEON_MASTER_API_BASE_URL` | Dungeon Master API endpoint for game logic and turn processing | `http://localhost:8001` | `https://dungeon-master-prod-xxx.run.app` |
+| `VITE_JOURNEY_LOG_API_BASE_URL` | Journey Log API endpoint for character management and history | `http://localhost:8002` | `https://journey-log-prod-xxx.run.app` |
 
-#### Environment Variables Reference
+#### Firebase Configuration (Required)
 
-| Variable | Description | Example (Development) |
-|----------|-------------|----------------------|
-| `VITE_DUNGEON_MASTER_API_BASE_URL` | Dungeon Master API endpoint | `http://localhost:8001` |
-| `VITE_JOURNEY_LOG_API_BASE_URL` | Journey Log API endpoint | `http://localhost:8002` |
-| `VITE_FIREBASE_API_KEY` | Firebase API key | `mock-api-key-dev` |
-| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase auth domain | `mock-project-dev.firebaseapp.com` |
-| `VITE_FIREBASE_PROJECT_ID` | Firebase project ID | `mock-project-dev` |
-| `VITE_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket | `mock-project-dev.appspot.com` |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase sender ID | `000000000000` |
-| `VITE_FIREBASE_APP_ID` | Firebase app ID | `1:000000000000:web:mockappiddev` |
-| `VITE_FIREBASE_MEASUREMENT_ID` | Firebase measurement ID | `G-MOCKIDDEV` |
+| Variable | Description | Development Value | Production Value |
+|----------|-------------|-------------------|------------------|
+| `VITE_FIREBASE_API_KEY` | Firebase API key (safe to expose publicly) | `mock-api-key-dev` | `AIzaSyXXXXXXXXXXXXXXXXXX` |
+| `VITE_FIREBASE_AUTH_DOMAIN` | Firebase auth domain for OAuth redirects | `mock-project-dev.firebaseapp.com` | `your-prod-project.firebaseapp.com` |
+| `VITE_FIREBASE_PROJECT_ID` | Firebase project identifier | `mock-project-dev` | `your-prod-project-id` |
+| `VITE_FIREBASE_STORAGE_BUCKET` | Firebase storage bucket (if using Cloud Storage) | `mock-project-dev.appspot.com` | `your-prod-project.appspot.com` |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase Cloud Messaging sender ID | `000000000000` | `123456789012` |
+| `VITE_FIREBASE_APP_ID` | Firebase app registration ID | `1:000000000000:web:mockappiddev` | `1:123456789012:web:abcdef123456` |
 
-**Security Note**: Never commit real Firebase credentials or production API keys to version control. Use `.env.local` for local secrets (already in `.gitignore`).
+#### Firebase Configuration (Optional)
+
+| Variable | Description | When Required |
+|----------|-------------|---------------|
+| `VITE_FIREBASE_MEASUREMENT_ID` | Google Analytics measurement ID | Only if using Google Analytics with Firebase |
+
+**Security Notes:**
+- ✅ Firebase API keys are **safe to expose** in client code (access is controlled by Firebase Security Rules)
+- ❌ Never store **backend service account keys** or **database secrets** in these variables
+- ⚠️ Use **separate Firebase projects** for dev/staging/production environments
+- ⚠️ Ensure `.env.local` is in `.gitignore` to prevent accidental commits of real credentials
+
+### 🔍 Verifying Your Configuration
+
+#### Development: Check Loaded Configuration
+
+To verify which environment variables are loaded in development:
+
+1. **Browser Console Method** (recommended):
+   ```javascript
+   // Open browser DevTools (F12) and run in console:
+   import('/src/config/env.ts').then(m => console.log('Config:', m.config))
+   ```
+
+2. **Add Temporary Logging** (for debugging):
+   ```typescript
+   // In src/config/env.ts (temporarily during development)
+   console.log('Loaded environment config:', loadConfig());
+   ```
+
+3. **Use the Debug Page** (if available):
+   - Navigate to `/debug` in development mode
+   - The debug page displays current configuration (sanitized for security)
+
+#### Production: Validate Before Deployment
+
+Before deploying to production, verify:
+
+```bash
+# 1. Check that .env.production has placeholder values only
+cat .env.production
+
+# 2. Verify build arguments are set in your CI/CD pipeline
+# Example: GitHub Actions should reference secrets for all VITE_* variables
+
+# 3. After build, inspect the bundle (optional, advanced)
+grep -r "VITE_FIREBASE_PROJECT_ID" dist/assets/*.js
+# Should show your production project ID baked into the bundle
+```
+
+**⚠️ Production Security Warning:**
+- Never log full configuration in production builds
+- Never expose Firebase credentials in production UI
+- Use development-only checks (conditional on `import.meta.env.DEV`)
+
+### ⚠️ Common Configuration Pitfalls
+
+#### 1. Runtime Environment Variables Don't Work
+**Problem:** Setting `VITE_*` variables via Cloud Run environment variables has no effect.  
+**Solution:** Pass variables as `--build-arg` flags during Docker build step.
+
+#### 2. Changes Not Reflecting After Update
+**Problem:** Updated environment variable but app still shows old value.  
+**Solution:** Rebuild and redeploy. Environment variables are baked at build time.
+
+#### 3. Localhost URLs in Production
+**Problem:** Production build still pointing to `localhost:8001`.  
+**Solution:** Ensure production build uses correct `--build-arg` values, not `.env.production` defaults.
+
+#### 4. Mixed Content Errors (HTTPS/HTTP)
+**Problem:** Production frontend (HTTPS) trying to call HTTP backend.  
+**Solution:** Ensure production API URLs use `https://` protocol.
+
+#### 5. Firebase Auth Fails in Production
+**Problem:** Authentication fails with "unauthorized domain" error.  
+**Solution:** Add your Cloud Run domain to Firebase Console > Authentication > Settings > Authorized domains.
+
+### 📚 Additional Resources
+
+- **Complete deployment guide:** [docs/cloud-run-deploy.md](docs/cloud-run-deploy.md)
+- **Firebase setup instructions:** [docs/firebase-setup.md](docs/firebase-setup.md)
+- **Environment variable template:** [.env.example](.env.example)
+- **Configuration contract:** [src/config/env.ts](src/config/env.ts)
 
 #### Firebase Setup
 
